@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { MulterError } from 'multer';
 import { AppError, fail } from '../lib/apiResponse.js';
 import { logger } from '../lib/logger.js';
 
@@ -7,7 +8,25 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
 };
 
 // express는 인자 4개여야 에러 핸들러로 인식한다(_next 는 그래서 남겨 둔다)
+/** multer 한도 초과는 학생이 읽을 수 있는 400 으로 (RPT-04: 5MB, 장수) */
+const MULTER_MESSAGES: Record<string, string> = {
+  LIMIT_FILE_SIZE: '사진이 너무 커요. 5MB 이하로 올려 주세요.',
+  LIMIT_FILE_COUNT: '사진이 너무 많아요. 장수를 줄여 주세요.',
+  LIMIT_UNEXPECTED_FILE: '보낼 수 없는 파일이 섞여 있어요. 사진만 올려 주세요.',
+};
+
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  if (err instanceof MulterError) {
+    res
+      .status(400)
+      .json(
+        fail(
+          'BAD_REQUEST',
+          MULTER_MESSAGES[err.code] ?? '사진을 올릴 수 없어요. 다시 확인해 주세요.',
+        ),
+      );
+    return;
+  }
   if (err instanceof AppError) {
     res.status(err.status).json(fail(err.code, err.message, err.details));
     return;

@@ -193,6 +193,8 @@ export interface HomeView {
   weekPoints: number;
   report: { status: 'none' | PostStatus; postId: number | null };
   notifications: NotificationView[];
+  /** ADM-04 활성 공지(최대 3) */
+  notices: NoticeView[];
 }
 
 export interface SchoolYearView {
@@ -539,4 +541,204 @@ export interface PendingCounts {
   flagged: number;
   pending: number;
   escalated: number;
+}
+
+// ---------- S5: 결산·명예의 전당·통계·공지 ----------
+
+/** 명예의 전당 명단 항목. 학생 뷰에는 name/studentNo/rank/points 가 없다 (HOF-01 확정) */
+export interface HallStudent {
+  userId: number;
+  displayName: string;
+  className: string;
+  grade: number;
+  name?: string;
+  studentNo?: number | null;
+  rank?: number;
+  points?: number;
+}
+
+export interface HallClassRow {
+  classId: number;
+  className: string;
+  grade: number;
+  memberCount: number;
+  avgPoints: number;
+  participationRate: number;
+}
+
+export interface WeeklyTopView {
+  weekKey: string;
+  prevWeekKey: string;
+  nextWeekKey: string | null;
+  /** 교사 뷰면 true: rank·points·name 포함 */
+  showRank: boolean;
+  perGrade: number;
+  grades: Array<{ grade: number; students: HallStudent[] }>;
+  classes: HallClassRow[];
+}
+
+export type AwardCategoryKey = 'phonefree' | 'reporter' | 'participation' | 'growth';
+
+export interface HallAward {
+  category: AwardCategoryKey;
+  label: string;
+  grade: number;
+  student: HallStudent;
+  reason: string | null;
+}
+
+export interface MonthlyHallView {
+  monthKey: string;
+  prevMonthKey: string;
+  nextMonthKey: string | null;
+  confirmed: boolean;
+  giftTargets: Array<{ grade: number; students: HallStudent[] }>;
+  growth: Array<{ grade: number; students: Array<HallStudent & { growthRate?: number }> }>;
+  awards: HallAward[];
+  winnerClass: HallClassRow | null;
+}
+
+export interface ClassHallView {
+  months: Array<{ monthKey: string } & HallClassRow>;
+  latestWeek: { weekKey: string; classes: HallClassRow[] } | null;
+}
+
+export interface AllTimeView {
+  months: Array<{
+    monthKey: string;
+    awards: HallAward[];
+    giftCount: number;
+    winnerClass: HallClassRow | null;
+  }>;
+}
+
+export interface SettlementRankRow {
+  userId: number;
+  name: string;
+  displayName: string;
+  className: string;
+  studentNo: number | null;
+  points: number;
+  rank: number;
+  selected: boolean;
+  skippedReason: string | null;
+  tiebreak: { reportCount: number; articleCount: number; activeDays: number } | null;
+}
+
+export interface SettlementGrowthRow extends SettlementRankRow {
+  prevPoints: number;
+  growthRate: number;
+}
+
+export interface SettlementClassRow extends HallClassRow {
+  rank: number;
+  isWinner: boolean;
+  skippedReason: string | null;
+}
+
+export interface AwardCandidateView {
+  category: AwardCategoryKey;
+  userId: number;
+  name: string;
+  className: string;
+  studentNo: number | null;
+  score: number;
+  breakdown: Record<string, number>;
+  rank: number;
+  warnings: string[];
+  status: 'candidate' | 'selected' | 'skipped';
+  reason: string | null;
+}
+
+export interface SettlementView {
+  monthKey: string;
+  id: number | null;
+  status: 'none' | 'draft' | 'confirmed';
+  perGradeGiftCount: number;
+  perGradeGrowthCount: number;
+  isFirstMonth: boolean;
+  draftedAt: string | null;
+  confirmedAt: string | null;
+  confirmedByName: string | null;
+  note: string | null;
+  grades: Array<{
+    grade: number;
+    ranking: SettlementRankRow[];
+    growth: SettlementGrowthRow[];
+    awards: Record<'phonefree' | 'reporter' | 'participation', AwardCandidateView[]>;
+  }>;
+  classes: SettlementClassRow[];
+  giftCount: number;
+  warnings: string[];
+}
+
+export interface ConfirmSettlementInput {
+  perGradeGiftCount: number;
+  perGradeGrowthCount: number;
+  allowConsecutiveUserIds: number[];
+  allowConsecutiveClass: boolean;
+  awards: Array<{
+    category: 'phonefree' | 'reporter' | 'participation';
+    userId: number;
+    reason: string;
+  }>;
+  note?: string;
+}
+
+export interface ConfirmSettlementResult {
+  settlement: SettlementView;
+  granted: { monthlyTop: number; growth: number; awards: number };
+  warnings: string[];
+}
+
+export interface ClassDashboardView {
+  classId: number;
+  className: string;
+  weekKey: string;
+  studentCount: number;
+  submitted: number;
+  submissionRate: number;
+  pending: PendingCounts & { total: number };
+  avgWeekPoints: number;
+  top5: Array<{ userId: number; name: string; studentNo: number | null; points: number }>;
+  nonParticipants: Array<{ userId: number; name: string; studentNo: number | null }>;
+}
+
+export interface SchoolStatsView {
+  weekKey: string;
+  monthKey: string;
+  classes: Array<{
+    classId: number;
+    className: string;
+    grade: number;
+    students: number;
+    consentRate: number;
+    weekSubmissionRate: number;
+    monthParticipationRate: number;
+    avgMonthPoints: number;
+  }>;
+  grades: Array<{
+    grade: number;
+    students: number;
+    weekSubmissionRate: number;
+    monthParticipationRate: number;
+  }>;
+  usageTrend: Array<{ weekKey: string; avgMinutes: number | null; reports: number }>;
+  activityTrend: Array<{ weekKey: string; posts: number; comments: number; likes: number }>;
+}
+
+export interface NoticeView {
+  id: number;
+  title: string;
+  body: string;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  authorName: string | null;
+}
+
+export interface TextsView {
+  captureGuide: CaptureGuideView;
+  goodCommentGuide: string;
+  reviewGuide: string;
 }

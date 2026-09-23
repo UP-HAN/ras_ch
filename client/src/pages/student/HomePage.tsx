@@ -107,7 +107,7 @@ export function HomePage() {
     );
   }
 
-  const { me, weekPoints, report, notifications } = q.data;
+  const { me, weekPoints, report, notifications, notices } = q.data;
   const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
   const openNotification = async (id: number, link?: string) => {
     await meApi.readNotification(id).catch(() => undefined);
@@ -117,6 +117,16 @@ export function HomePage() {
 
   return (
     <div className="space-y-4">
+      {notices.map((n) => (
+        <section
+          key={n.id}
+          data-testid="notice-banner"
+          className="rounded-lg border border-accent-100 bg-accent-50 px-4 py-3"
+        >
+          <p className="text-base font-bold text-accent-700">📢 {n.title}</p>
+          <p className="mt-1 whitespace-pre-wrap text-base">{n.body}</p>
+        </section>
+      ))}
       <Card tone="primary">
         <div className="flex items-center justify-between gap-3">
           <div>

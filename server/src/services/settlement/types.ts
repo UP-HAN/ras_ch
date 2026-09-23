@@ -1,7 +1,7 @@
 /**
  * 월간 결산 산식의 입력·출력 타입 (HOF-02, 02a, 02b, 02c, 03, 04, 7.2~7.4)
  *
- * 원칙: 산식 함수는 DB를 모른다. `loadInputs.ts`(S5)가 아래 입력을 만들고,
+ * 원칙: 산식 함수는 DB를 모른다. `loadInputs.ts`가 아래 입력을 만들고,
  * 각 산식 함수는 배열을 받아 배열을 돌려준다. 결과는 monthly_* 스냅샷 테이블에 저장된다.
  */
 
@@ -9,7 +9,7 @@ export interface StudentMonthInput {
   userId: number;
   grade: number;
   classId: number;
-  /** 이번 달 원장 합계 */
+  /** 이번 달 원장 합계 (month_key 기준 — 리포트 승인 포인트는 그 주차 월요일이 속한 달) */
   points: number;
   /** 지난달 원장 합계(성장률용). 첫 달은 null */
   prevPoints: number | null;
@@ -18,7 +18,7 @@ export interface StudentMonthInput {
   articleCount: number;
   activeDays: number;
   parentConsent: 'Y' | 'N';
-  /** 이번 달 주간 선물 수령 여부(HOF-01b "주간 수령자 제외" 토글) */
+  /** 이번 달 주간 선물 수령 여부(HOF-01b "주간 수령자 제외" 토글, 2차) */
   receivedWeeklyGift: boolean;
 }
 
@@ -47,6 +47,12 @@ export interface SettlementSettings {
   excludeWeeklyGift: boolean;
   /** 첫 달(지난달 결산 없음)이면 성장률 부문 미운영 */
   isFirstMonth: boolean;
+}
+
+/** 승인 교사가 확정 시 허용한 예외(연속 선정 제한 무시) */
+export interface ConsecutiveOverrides {
+  userIds: Set<number>;
+  allowClass: boolean;
 }
 
 export interface RankedStudent {
@@ -78,6 +84,38 @@ export interface ClassRewardResult {
 }
 
 export type AwardCategory = 'phonefree' | 'reporter' | 'participation';
+export const AWARD_CATEGORIES: AwardCategory[] = ['phonefree', 'reporter', 'participation'];
+
+/** 3부문 산식 입력(7.2~7.4). 그 달(approved_at 기준)의 활동 집계 */
+export interface AwardStudentInput {
+  userId: number;
+  grade: number;
+  /** 승인 리포트(일기 포함) 수 */
+  reportCount: number;
+  articleCount: number;
+  /** 월초 첫 리포트·월말 마지막 리포트의 하루 평균 사용시간(분). 없으면 null */
+  firstReportMinutes: number | null;
+  lastReportMinutes: number | null;
+  /** 교사 평가 평균 1~3. 없으면 null → 20점 */
+  teacherScore: number | null;
+  /** 내 리포트가 받은 좋아요 + 댓글 수 */
+  reportReactions: number;
+  /** 내 기사가 받은 엄지척 합 / 댓글 수 합 */
+  articleLikes: number;
+  articleComments: number;
+  /** 추천 기사(is_featured) 수 */
+  featuredCount: number;
+  /** 내가 쓴 댓글 수 */
+  commentsWritten: number;
+  /** 내가 누른 좋아요 수 */
+  likesGiven: number;
+  /** 내 댓글이 받은 좋아요 수 */
+  commentLikesReceived: number;
+  /** 출석 일수 */
+  attendanceDays: number;
+  /** 끝까지 읽은 글 수 */
+  readCount: number;
+}
 
 export interface AwardCandidate {
   category: AwardCategory;

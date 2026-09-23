@@ -14,6 +14,8 @@ import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
 import * as settings from '../services/AdminSettingsService.js';
 import { rebuildPoints } from '../services/PointsQueryService.js';
+import * as notices from '../services/NoticeService.js';
+import { schoolStats } from '../services/StatsService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
 import type { ImportResult } from '../types/api.js';
 
@@ -327,6 +329,52 @@ export function createAdminRouter(): Router {
     res
       .status(201)
       .json(ok(await settings.createCouncilAccount(actor(req), idParam(req.params.id))));
+  });
+
+  // ----- S5: 전교 통계 (ADM-05) -----
+  router.get('/stats', async (_req, res) => res.json(ok(await schoolStats())));
+
+  // ----- S5: 공지 (ADM-04) -----
+  const noticeBody = z.object({
+    title: z.string().max(100),
+    body: z.string().max(2000),
+    startsAt: z.string(),
+    endsAt: z.string(),
+    isActive: z.boolean().default(true),
+  });
+  router.get('/notices', async (_req, res) => res.json(ok(await notices.listNotices())));
+  router.post('/notices', async (req, res) => {
+    const body = noticeBody.safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('공지 내용을 확인해 주세요.');
+    res.status(201).json(ok({ id: await notices.createNotice(actor(req), body.data) }));
+  });
+  router.put('/notices/:id', async (req, res) => {
+    const body = noticeBody.safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('공지 내용을 확인해 주세요.');
+    await notices.updateNotice(actor(req), idParam(req.params.id), body.data);
+    res.json(ok({ updated: true }));
+  });
+  router.delete('/notices/:id', async (req, res) => {
+    await notices.deleteNotice(actor(req), idParam(req.params.id));
+    res.json(ok({ deleted: true }));
+  });
+
+  // ----- S5: 안내 문구 (ADM-07) -----
+  router.get('/texts', async (_req, res) => res.json(ok(await notices.getTexts())));
+  router.put('/texts', async (req, res) => {
+    const body = z
+      .object({
+        captureGuide: z.object({
+          android_samsung: z.string(),
+          iphone: z.string(),
+          warning: z.string(),
+        }),
+        goodCommentGuide: z.string(),
+        reviewGuide: z.string(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('문구를 확인해 주세요.');
+    res.json(ok(await notices.updateTexts(actor(req), body.data)));
   });
 
   // ----- S4: 포인트 리빌드 (PT-08) -----

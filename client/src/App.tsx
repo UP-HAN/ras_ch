@@ -5,6 +5,9 @@ import { TeacherShell } from '@/components/layout/TeacherShell';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
+import { ContentPage } from '@/pages/teacher/admin/ContentPage';
+import { SettlementPage } from '@/pages/teacher/admin/SettlementPage';
+import { StatsPage } from '@/pages/teacher/StatsPage';
 import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
 import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
@@ -78,14 +81,15 @@ const router = createBrowserRouter([
       { path: 'students', element: <StudentsPage /> },
       { path: 'comments', element: <CommentsPage /> },
       { path: 'reports', element: <ReportsPage /> },
-      { path: 'stats', element: <PlaceholderPage title="통계" sprint="S5 5-5" /> },
+      { path: 'stats', element: <StatsPage /> },
+      { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
       { path: 'admin/banned-words', element: <BannedWordsPage /> },
       { path: 'admin/point-rules', element: <PointRulesPage /> },
       { path: 'admin/approval', element: <ApprovalSettingsPage /> },
-      { path: 'admin/settlements', element: <PlaceholderPage title="월간 결산" sprint="S5 5-3" /> },
-      { path: 'admin/content', element: <PlaceholderPage title="공지·문구" sprint="S5 5-6" /> },
+      { path: 'admin/settlements', element: <SettlementPage /> },
+      { path: 'admin/content', element: <ContentPage /> },
     ],
   },
 ]);

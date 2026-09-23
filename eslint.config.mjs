@@ -28,8 +28,13 @@ export default defineConfig([
     },
   },
   {
-    files: ['server/**/*.ts', 'scripts/**/*.ts', '*.ts', '*.mjs'],
-    languageOptions: { globals: globals.node },
+    files: ['server/**/*.ts', 'scripts/**/*.{ts,mts}', '*.ts', '*.mjs', '*.cjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.nodeBuiltin } },
+  },
+  {
+    // 서비스 워커 (CMN-02)
+    files: ['client/public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
     files: ['client/**/*.{ts,tsx}'],

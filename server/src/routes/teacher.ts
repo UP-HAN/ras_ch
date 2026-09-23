@@ -11,6 +11,8 @@ import { resolveAllClasses, resolveApproval } from '../repos/approvalSettingsRep
 import * as postRepo from '../repos/postRepo.js';
 import { listReviewLogs } from '../repos/reviewRepo.js';
 import { teacherBonus } from '../services/PointsQueryService.js';
+import { classDashboard, classStatsCsv } from '../services/StatsService.js';
+import { sendCsv } from '../lib/csvWrite.js';
 import { transition } from '../services/PostService.js';
 import * as tc from '../services/TeacherCommentService.js';
 import type {
@@ -64,6 +66,15 @@ export function createTeacherRouter(): Router {
       studentCount: Number(c.student_count),
     }));
     res.json(ok(data));
+  });
+
+  // TCH-01 반 대시보드 / TCH-05 반 통계 CSV
+  router.get('/classes/:id/dashboard', requireClassAccess('id'), async (req, res) => {
+    res.json(ok(await classDashboard(Number(req.params.id))));
+  });
+  router.get('/classes/:id/export.csv', requireClassAccess('id'), async (req, res) => {
+    const { filename, rows } = await classStatsCsv(Number(req.params.id));
+    sendCsv(res, filename, rows);
   });
 
   router.get('/classes/:id/students', requireClassAccess('id'), async (req, res) => {

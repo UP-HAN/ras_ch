@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { postsApi } from '@/api/posts';
 import { articlesApi } from '@/api/reactions';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -32,6 +32,18 @@ export function PostListPage() {
     getNextPageParam: (last) => last.nextCursor,
   });
   const items = q.data?.pages.flatMap((p) => p.items) ?? [];
+  // CMN-04 무한 스크롤: 끝 센티널이 보이면 다음 20건. 버튼은 폴백
+  const sentinel = useRef<HTMLDivElement | null>(null);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = q;
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasNextPage || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting) && !isFetchingNextPage) void fetchNextPage();
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <>
@@ -101,6 +113,7 @@ export function PostListPage() {
           ),
         )}
       </div>
+      <div ref={sentinel} aria-hidden="true" className="h-1" />
       {q.hasNextPage && (
         <Button
           block

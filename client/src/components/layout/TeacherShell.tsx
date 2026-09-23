@@ -20,6 +20,7 @@ const TEACHER_MENU = [
   { to: '/teacher/comments', label: '댓글 모아보기' },
   { to: '/teacher/reports', label: '신고함' },
   { to: '/teacher/stats', label: '통계' },
+  { to: '/teacher/hall-of-fame', label: '명예의 전당' },
 ];
 
 const ADMIN_MENU = [

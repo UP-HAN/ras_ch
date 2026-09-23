@@ -1,0 +1,17 @@
+{
+  "name": "초롱 RAS 포인트",
+  "short_name": "RAS 포인트",
+  "description": "초롱초등학교 3~6학년 폰프리·RAS 활동 포인트",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff9f2",
+  "theme_color": "#c96a0f",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -3,6 +3,8 @@ import { env } from './config/env.js';
 import { closePool } from './db/pool.js';
 import { registerJobs } from './jobs/index.js';
 import { registerAutoEscalate } from './jobs/autoEscalate.js';
+import { registerMonthlyDraft } from './jobs/monthlyDraft.js';
+import { registerWeeklyTop } from './jobs/weeklyTop.js';
 import { logger } from './lib/logger.js';
 import { LedgerPointService } from './services/points/LedgerPointService.js';
 import { setPointService } from './services/points/PointService.js';
@@ -10,6 +12,8 @@ import { setPointService } from './services/points/PointService.js';
 // PT-01: 모든 지급·회수는 원장 구현체를 거친다
 setPointService(new LedgerPointService());
 registerAutoEscalate();
+registerWeeklyTop();
+registerMonthlyDraft();
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {
