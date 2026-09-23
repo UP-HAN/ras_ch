@@ -5,7 +5,7 @@ import { errorMessage } from '@/api/client';
 import { Button, Card, Input } from '@/components/ui';
 import { isTeacherRole, useMe, useMeCache } from '@/hooks/useMe';
 
-/** AUTH-01 로그인. 학생은 "26-3-02-15", 교사는 이메일 */
+/** AUTH-01 로그인. 학생은 "265101"(학년도·학년·반·번호), 교사는 이메일 */
 export function LoginPage() {
   const { me, isLoading } = useMe();
   const cache = useMeCache();
@@ -48,7 +48,7 @@ export function LoginPage() {
             label="아이디"
             value={loginId}
             onChange={(e) => setLoginId(e.target.value)}
-            placeholder="예: 26-3-02-15"
+            placeholder="예: 265101"
             autoComplete="username"
             autoCapitalize="none"
             required

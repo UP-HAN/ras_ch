@@ -9,6 +9,7 @@ import { env, isProd } from '../server/src/config/env.js';
 import { closePool } from '../server/src/db/pool.js';
 import { execute, insert, query, queryOne } from '../server/src/db/query.js';
 import { assignDisplayNames } from '../server/src/lib/displayName.js';
+import { buildStudentLoginId } from '../server/src/lib/studentId.js';
 import type { PointCap } from '../server/src/types/db.js';
 
 const FORCE = process.argv.includes('--force');
@@ -434,9 +435,8 @@ async function seed(): Promise<void> {
     })),
   );
   const studentIds = new Map<string, number>();
-  const yy = String(SCHOOL_YEAR).slice(2);
   for (const { item: s, displayName } of named) {
-    const loginId = `${yy}-${s.grade}-01-${String(s.no).padStart(2, '0')}`;
+    const loginId = buildStudentLoginId(SCHOOL_YEAR, s.grade, 1, s.no);
     const id = await insert(
       `INSERT INTO users (login_id, password_hash, role, name, display_name, class_id, student_no,
                           parent_consent, consent_updated_at, is_reporter, must_change_pw)
@@ -455,8 +455,8 @@ async function seed(): Promise<void> {
   // 검토 담당 (APR-02a): 회장 → 3·4학년, 부회장 → 5·6학년 (본인·같은 반 글은 시스템이 제외)
   const adminId = teacherIds.get('admin@ches.es.kr') as number;
   const assignments: Array<{ loginId: string; grades: number[] }> = [
-    { loginId: `${yy}-5-01-01`, grades: [3, 4] },
-    { loginId: `${yy}-6-01-01`, grades: [5, 6] },
+    { loginId: buildStudentLoginId(SCHOOL_YEAR, 5, 1, 1), grades: [3, 4] },
+    { loginId: buildStudentLoginId(SCHOOL_YEAR, 6, 1, 1), grades: [5, 6] },
   ];
   for (const a of assignments) {
     await insert(
