@@ -1,0 +1,4 @@
+# 저장소는 LF 로 통일한다(.editorconfig·prettier endOfLine 과 일치). Windows autocrlf 경고 방지
+* text=auto eol=lf
+*.png binary
+*.zip binary
