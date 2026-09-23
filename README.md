@@ -26,6 +26,7 @@ docker compose up -d mysql            # 로컬 MySQL 8 (스키마 ras_point). Do
 npm install                           # 루트(workspaces: client, server)
 npm run db:migrate                    # server/migrations/*.sql 적용
 npm run db:seed                       # 시범용 반·교사·학생 30명 + 규칙표 + 설정
+npm run db:seed:demo                  # (선택) 시연용 일주일치 활동: 리포트·기사·댓글·좋아요·검토·승인·출석·공지
 ```
 
 Docker 없이 로컬 MySQL 8을 직접 쓰는 경우: `ras_point` 스키마와 계정을 만든 뒤 `.env`의 `DB_*` 값만 맞추면 된다.
