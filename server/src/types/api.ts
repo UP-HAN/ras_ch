@@ -167,6 +167,8 @@ export interface MeView extends PublicUser {
   mustChangePw: boolean;
   parentConsent: YesNo;
   actingAs: 'teacher' | 'council' | null;
+  /** APR-12 연결된 자치회 검토 계정이 있는 교사 */
+  hasCouncilAccount: boolean;
 }
 
 // ---------- S1: 인증·홈·관리 ----------
@@ -214,6 +216,7 @@ export interface ClassView {
 
 export interface TeacherView extends TeacherUser {
   classIds: number[];
+  hasCouncilAccount: boolean;
 }
 
 export interface ImportRowError {
@@ -290,6 +293,11 @@ export interface CaptureGuideView {
 export interface PendingQueueView {
   classId: number;
   approvalMode: 'two_step' | 'teacher_only';
+  /** APR-07 자동 승격 기준 시간 */
+  autoEscalateHours: number;
+  /** pending 상태로 autoEscalateHours 를 넘긴 글 id (APR-07) */
+  escalatedIds: number[];
+  counts: PendingCounts;
   items: TeacherPostView[];
 }
 
@@ -408,4 +416,127 @@ export interface PostReactionsView {
   comments: CommentView[];
   myCommentCount: number;
   goodCommentGuide: string;
+}
+
+// ---------- S4: 포인트·2단계 승인 ----------
+
+export interface LedgerItemView {
+  id: number;
+  ruleCode: string;
+  ruleName: string;
+  amount: number;
+  isReversal: boolean;
+  note: string | null;
+  refType: string | null;
+  refId: number | null;
+  grantedByName: string | null;
+  dayKey: string;
+  weekKey: string;
+  createdAt: string;
+}
+
+export interface PointsSummaryView {
+  weekKey: string;
+  monthKey: string;
+  week: number;
+  month: number;
+  all: number;
+  range: 'week' | 'month' | 'all';
+  items: LedgerItemView[];
+}
+
+export interface BonusResult {
+  granted: number;
+  remainingStudentWeek: number;
+  remainingTeacherWeek: number;
+}
+
+export interface PointCapView {
+  scope: 'day' | 'week' | 'month' | 'per_object' | 'streak';
+  unit: 'count' | 'points';
+  max: number;
+  share_codes?: string[];
+  by?: 'user' | 'granter';
+}
+
+export interface PointRuleView {
+  code: string;
+  name: string;
+  amount: number;
+  amountMin: number | null;
+  amountMax: number | null;
+  caps: PointCapView[];
+  isActive: boolean;
+  version: number;
+  description: string | null;
+}
+
+export interface ApprovalSettingView {
+  scope: 'school' | 'grade' | 'class';
+  scopeId: number | null;
+  label: string;
+  mode: 'two_step' | 'teacher_only';
+  autoEscalateHours: number;
+  autoApproveTeacherReview: boolean;
+}
+
+export interface ReviewAssignmentView {
+  id: number;
+  reviewerUserId: number;
+  reviewerKind: 'student' | 'teacher';
+  reviewerName: string;
+  reviewerDisplayName: string;
+  reviewerClass: string | null;
+  grades: number[];
+  postTypes: string[];
+  allowedResults: 'pass_only' | 'pass_hold';
+  dailyCap: number;
+  preset: 'assist' | 'basic' | 'senior' | 'custom';
+  startsAt: string;
+  endsAt: string | null;
+  isActive: boolean;
+}
+
+export interface ReviewerCandidateView {
+  id: number;
+  name: string;
+  displayName: string;
+  role: string;
+  className: string | null;
+  grade: number | null;
+  title: string | null;
+}
+
+/** 익명 검토 큐 항목 (APR-02c): 작성자 식별 없음 */
+export interface ReviewQueueItem extends ReviewerPostView {
+  checklist: Array<{ code: string; label: string }>;
+}
+
+export interface ReviewSummaryView {
+  hasAssignment: boolean;
+  pending: number;
+  doneToday: number;
+  dailyCap: number;
+  allowedResults: 'pass_only' | 'pass_hold' | null;
+  grades: number[];
+  postTypes: string[];
+  guide: string;
+  holdReasons: Array<{ code: string; text: string }>;
+}
+
+export interface ReviewLogView {
+  id: number;
+  action: string;
+  actorRole: string;
+  actorName: string | null;
+  checklist: Record<string, boolean> | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface PendingCounts {
+  reviewed: number;
+  flagged: number;
+  pending: number;
+  escalated: number;
 }

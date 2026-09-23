@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { errorMessage } from '@/api/client';
 import { teacherApi } from '@/api/teacher';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { BonusModal } from '@/components/teacher/BonusModal';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
 import { StudentEditModal } from './admin/StudentEditModal';
@@ -22,6 +23,8 @@ export function StudentsPage() {
   });
   const [temp, setTemp] = useState<{ student: TeacherUser; password: string } | null>(null);
   const [editing, setEditing] = useState<TeacherUser | null>(null);
+  const [bonusFor, setBonusFor] = useState<TeacherUser | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reset = useMutation({
@@ -65,6 +68,9 @@ export function StudentsPage() {
         )}
       </div>
 
+      {msg && (
+        <p className="mb-3 rounded-md bg-success-50 px-3 py-2 text-base text-success-600">{msg}</p>
+      )}
       {error && (
         <p role="alert" className="mb-3 text-base font-medium text-danger-600">
           {error}
@@ -138,6 +144,9 @@ export function StudentsPage() {
                     </td>
                     <td className="py-2">
                       <div className="flex gap-1">
+                        <Button variant="primary" onClick={() => setBonusFor(s)}>
+                          칭찬
+                        </Button>
                         <Button
                           variant="secondary"
                           onClick={() => onReset(s)}
@@ -160,6 +169,18 @@ export function StudentsPage() {
         </Card>
       )}
 
+      {bonusFor && (
+        <BonusModal
+          student={bonusFor}
+          onClose={() => setBonusFor(null)}
+          onGranted={(r) => {
+            setMsg(
+              `${bonusFor.name} 학생에게 ${r.granted}P를 줬어요. (이 학생 이번 주 ${r.remainingStudentWeek}P, 선생님 전체 ${r.remainingTeacherWeek}P 남음)`,
+            );
+            setBonusFor(null);
+          }}
+        />
+      )}
       {editing && (
         <StudentEditModal
           student={editing}

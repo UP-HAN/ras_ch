@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
 import { reactionsApi } from '@/api/reactions';
+import { reviewApi } from '@/api/review';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 
@@ -81,6 +82,12 @@ export function HomePage() {
     queryKey: ['posts', 'list', 'class', 'home'],
     queryFn: () => postsApi.list('class'),
   });
+  const canReview = q.data?.me.isCouncil || q.data?.me.role === 'council_teacher';
+  const review = useQuery({
+    queryKey: ['review', 'summary'],
+    queryFn: reviewApi.summary,
+    enabled: canReview === true,
+  });
 
   if (q.isLoading) {
     return (
@@ -137,6 +144,19 @@ export function HomePage() {
           </div>
         </div>
       </Card>
+
+      {review.data?.hasAssignment && (
+        <Card title="리포트 검토" tone="accent" data-testid="review-card">
+          <p className="mb-3 text-base">
+            {review.data.pending > 0
+              ? `검토를 기다리는 글이 ${review.data.pending}건 있어요.`
+              : '지금은 검토할 글이 없어요.'}
+          </p>
+          <Button block size="lg" variant="secondary" onClick={() => navigate('/review')}>
+            검토하러 가기
+          </Button>
+        </Card>
+      )}
 
       <Card title="이번 주 리포트" tone={card.tone}>
         <p className="mb-3 text-base">{card.text}</p>

@@ -53,5 +53,6 @@ export function toMeView(b: UserBundle, actingAs: MeView['actingAs']): MeView {
     mustChangePw: user.must_change_pw === 1,
     parentConsent: user.parent_consent,
     actingAs,
+    hasCouncilAccount: user.linked_council_account_id !== null,
   };
 }

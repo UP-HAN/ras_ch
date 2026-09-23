@@ -152,6 +152,7 @@ export async function listTeachers(): Promise<TeacherView[]> {
     out.push({
       ...toTeacherUser({ user: r, klass: null, isCouncil: false }),
       classIds: classes.map((c) => c.id),
+      hasCouncilAccount: r.linked_council_account_id !== null,
     });
   }
   return out;

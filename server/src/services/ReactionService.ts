@@ -101,6 +101,8 @@ export async function setLike(
               userId: ownerId,
               refType: 'like',
               refId: likeId,
+              // 상한은 "게시글당 20 / 댓글당 5" → 상한 객체는 대상 글·댓글 (PT-02)
+              capObject: { type: targetType, id: targetId },
               eventKey: buildEventKey(received, 'like', likeId),
             },
             conn,

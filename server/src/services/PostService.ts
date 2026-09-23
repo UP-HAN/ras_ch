@@ -30,18 +30,28 @@ import { previousWeekKey, weekRange } from '../lib/time.js';
 import { writeAudit } from '../repos/auditRepo.js';
 import * as postRepo from '../repos/postRepo.js';
 import { insert } from '../db/query.js';
-import type { AuthUser } from '../types/auth.js';
+import { hasRole, type AuthUser } from '../types/auth.js';
 import type { ImageKind, PostStatus, Visibility } from '../types/db.js';
 import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
 import { buildEventKey, type RuleCode } from './points/types.js';
 
 export type PostAction =
-  'submit' | 'resubmit' | 'approve' | 'reject' | 'hide' | 'unhide' | 'delete';
+  | 'submit'
+  | 'resubmit'
+  | 'review_pass'
+  | 'review_hold'
+  | 'approve'
+  | 'reject'
+  | 'hide'
+  | 'unhide'
+  | 'delete';
 
-/** 허용 전이표. delete 는 소프트 삭제(상태 유지) */
+/** 허용 전이표. delete 는 소프트 삭제(상태 유지). review_* 는 자치회 1차 검토(APR-04) */
 export const TRANSITIONS: Record<PostAction, { from: PostStatus[]; to: PostStatus | 'same' }> = {
   submit: { from: ['draft'], to: 'pending' },
   resubmit: { from: ['draft', 'pending', 'reviewed', 'flagged', 'rejected'], to: 'pending' },
+  review_pass: { from: ['pending'], to: 'reviewed' },
+  review_hold: { from: ['pending'], to: 'flagged' },
   approve: { from: ['pending', 'reviewed', 'flagged'], to: 'approved' },
   reject: { from: ['pending', 'reviewed', 'flagged'], to: 'rejected' },
   hide: { from: ['approved'], to: 'hidden' },
@@ -54,6 +64,8 @@ export const TRANSITIONS: Record<PostAction, { from: PostStatus[]; to: PostStatu
 
 export const STUDENT_ACTIONS: PostAction[] = ['submit', 'resubmit', 'delete'];
 export const TEACHER_ACTIONS: PostAction[] = ['approve', 'reject', 'hide', 'unhide', 'delete'];
+/** 임원 학생(council)·교사 검토 계정(council_teacher)만. 대상 검증(본인·같은 반 제외)은 ReviewService */
+export const COUNCIL_ACTIONS: PostAction[] = ['review_pass', 'review_hold'];
 
 export function nextStatus(action: PostAction, current: PostStatus): PostStatus {
   const t = TRANSITIONS[action];
@@ -69,6 +81,9 @@ export interface TransitionOptions {
   reasonText?: string;
   /** hide: 사유 */
   hiddenReason?: string;
+  /** review_pass / review_hold: 체크리스트(코드→확인) + 메모(보류는 20자 이상, ReviewService 검사) */
+  checklist?: Record<string, boolean>;
+  note?: string | null;
   ip?: string;
 }
 
@@ -107,18 +122,43 @@ async function writeReviewLog(
   conn: PoolConnection,
   postId: number,
   actor: TransitionActor,
-  action: 'approve' | 'reject' | 'hide' | 'unhide' | 'reset',
+  action: 'pass' | 'hold' | 'approve' | 'reject' | 'hide' | 'unhide' | 'reset',
   note: string | null,
+  checklist: Record<string, boolean> | null = null,
 ): Promise<void> {
   await insert(
-    'INSERT INTO review_logs (post_id, actor_id, actor_role, action, note) VALUES (?, ?, ?, ?, ?)',
-    [postId, actorId(actor), actorRole(actor), action, note],
+    'INSERT INTO review_logs (post_id, actor_id, actor_role, action, checklist, note) VALUES (?, ?, ?, ?, ?, ?)',
+    [
+      postId,
+      actorId(actor),
+      actorRole(actor),
+      action,
+      checklist ? JSON.stringify(checklist) : null,
+      note,
+    ],
     conn,
   );
 }
 
+const REVIEW_LOG_ACTION: Partial<
+  Record<PostAction, 'pass' | 'hold' | 'approve' | 'reject' | 'hide' | 'unhide'>
+> = {
+  review_pass: 'pass',
+  review_hold: 'hold',
+  approve: 'approve',
+  reject: 'reject',
+  hide: 'hide',
+  unhide: 'unhide',
+};
+
 /** 승인 시 포인트 지급 (PT-02). 리포트는 대상 주차 기준, 기사는 승인 시각 기준 */
-async function grantApprovalPoints(bundle: PostBundle, conn: PoolConnection): Promise<void> {
+/** 승인 시 지급 (PT-02). 리빌드(PT-08)도 이 함수를 그대로 써서 산식이 한 곳에만 있게 한다 */
+export async function grantApprovalPoints(
+  bundle: PostBundle,
+  conn: PoolConnection,
+  note?: string,
+): Promise<number> {
+  let granted = 0;
   const { post, report, author } = bundle;
   const events: Array<{ ruleCode: RuleCode; cond: boolean }> = [];
   let occurredAt = new Date();
@@ -149,18 +189,21 @@ async function grantApprovalPoints(bundle: PostBundle, conn: PoolConnection): Pr
   }
   for (const e of events) {
     if (!e.cond) continue;
-    await applyPointsSafe(
+    const r = await applyPointsSafe(
       {
         ruleCode: e.ruleCode,
         userId: post.author_id,
         refType: 'post',
         refId: post.id,
         occurredAt,
+        note,
         eventKey: buildEventKey(e.ruleCode, 'post', post.id),
       },
       conn,
     );
+    if (r.granted) granted += 1;
   }
+  return granted;
 }
 
 const TYPE_LABEL: Record<string, string> = { report: '리포트', diary: '일기', article: '기사' };
@@ -223,6 +266,12 @@ export async function transition(
       const isStudentAction = STUDENT_ACTIONS.includes(action) && actor.row.role === 'student';
       if (isStudentAction) {
         if (!isAuthor) throw AppError.forbidden('내 글만 바꿀 수 있어요.');
+      } else if (COUNCIL_ACTIONS.includes(action)) {
+        if (!hasRole(actor, 'council') && !hasRole(actor, 'council_teacher'))
+          throw AppError.forbidden('검토 권한이 없어요.');
+        if (isAuthor) throw AppError.forbidden('내 글은 검토할 수 없어요.');
+        if (actor.row.role === 'student' && actor.row.class_id === post.class_id)
+          throw AppError.forbidden('같은 반 글은 검토할 수 없어요.');
       } else if (TEACHER_ACTIONS.includes(action)) {
         if (!canManagePost(viewer, post))
           throw AppError.forbidden('이 반의 글을 처리할 권한이 없어요.');
@@ -243,6 +292,16 @@ export async function transition(
         patch.submittedNow = true;
         patch.resetCouncilReview = true;
         patch.rejectReason = null;
+        break;
+      case 'review_pass':
+      case 'review_hold':
+        patch.status = action === 'review_pass' ? 'reviewed' : 'flagged';
+        patch.councilReviewerId = actorId(actor);
+        patch.councilResult = action === 'review_pass' ? 'pass' : 'hold';
+        patch.councilChecklist = opts.checklist ?? {};
+        patch.councilNote = opts.note ?? null;
+        patch.councilReviewedNow = true;
+        logNote = opts.note ?? null;
         break;
       case 'approve':
         patch.status = 'approved';
@@ -273,8 +332,9 @@ export async function transition(
     void to;
     await postRepo.updatePost(post.id, patch, conn);
 
-    if (action === 'approve' || action === 'reject' || action === 'hide' || action === 'unhide') {
-      await writeReviewLog(conn, post.id, actor, action, logNote);
+    const logAction = REVIEW_LOG_ACTION[action];
+    if (logAction) {
+      await writeReviewLog(conn, post.id, actor, logAction, logNote, opts.checklist ?? null);
     }
     await writeAudit(
       {
@@ -291,7 +351,8 @@ export async function transition(
     const bundle = await postRepo.loadBundle(post.id, conn);
     if (!bundle) throw AppError.notFound('글을 찾을 수 없어요.');
 
-    if (action === 'approve') await grantApprovalPoints(bundle, conn);
+    // 승인 시 지급, 숨김 해제 시 재지급(숨김 때 회수됐으므로; event_key 세대 규칙으로 멱등) (RPT-06, PT-03)
+    if (action === 'approve' || action === 'unhide') await grantApprovalPoints(bundle, conn);
     if ((action === 'reject' || action === 'hide' || action === 'delete') && wasApproved) {
       await reversePointsSafe(
         'post',

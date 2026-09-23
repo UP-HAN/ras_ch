@@ -49,6 +49,11 @@ export interface PointEvent {
   amount?: number;
   note?: string;
   /**
+   * per_object 상한의 대상 객체. 생략하면 ref 와 같다.
+   * 예: LIKE_RECEIVED_POST 는 ref=like(회수 키)이지만 상한 객체는 post(게시글당 20P)
+   */
+  capObject?: { type: string; id: number };
+  /**
    * 멱등 키. 같은 키로 두 번 오면 두 번째는 DUPLICATE 로 무시된다.
    * 규칙: `${ruleCode}:${refType}:${refId}` (예: "REPORT_APPROVED:post:123")
    */

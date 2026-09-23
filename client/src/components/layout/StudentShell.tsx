@@ -1,4 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { reviewApi } from '@/api/review';
+import { useMe, useMeCache } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 import { ChatIcon, HomeIcon, PencilIcon, TrophyIcon, UserIcon } from './icons';
 
@@ -16,6 +18,15 @@ const TABS = [
 ] as const;
 
 export function StudentShell() {
+  const { me } = useMe();
+  const cache = useMeCache();
+  const navigate = useNavigate();
+  const canReview = !!me && (me.isCouncil || me.role === 'council_teacher');
+  const backToTeacher = async () => {
+    await reviewApi.switchRole('teacher');
+    cache.clear();
+    navigate('/teacher', { replace: true });
+  };
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-paper/95 px-4 backdrop-blur">
@@ -25,7 +36,37 @@ export function StudentShell() {
         >
           <span aria-hidden="true">🏮</span> 초롱 RAS 포인트
         </a>
+        {canReview && (
+          <NavLink
+            to="/review"
+            className={({ isActive }) =>
+              cn(
+                'inline-flex min-h-tap items-center rounded-md px-3 text-base font-bold',
+                isActive ? 'bg-accent-600 text-white' : 'bg-accent-100 text-accent-900',
+              )
+            }
+          >
+            🔍 검토
+          </NavLink>
+        )}
       </header>
+      {me?.role === 'council_teacher' && (
+        <div
+          data-testid="council-banner"
+          className="flex items-center justify-between gap-2 bg-accent-600 px-4 py-2 text-base font-semibold text-white"
+        >
+          <span>자치회 검토 모드예요</span>
+          {me.actingAs === 'council' && (
+            <button
+              type="button"
+              onClick={backToTeacher}
+              className="min-h-tap rounded-md bg-white px-3 text-base font-bold text-accent-700"
+            >
+              교사 화면으로 돌아가기
+            </button>
+          )}
+        </div>
+      )}
 
       <main className="flex-1 px-4 pb-[calc(var(--spacing-tab-bar)+16px)] pt-4">
         <Outlet />

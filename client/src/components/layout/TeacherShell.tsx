@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
+import { reviewApi } from '@/api/review';
+import { teacherPostsApi } from '@/api/teacherPosts';
 import { useMe, useMeCache } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 import { CloseIcon, MenuIcon } from './icons';
@@ -24,11 +27,20 @@ const ADMIN_MENU = [
   { to: '/teacher/admin/students-import', label: '학생 CSV 등록' },
   { to: '/teacher/admin/banned-words', label: '금칙어' },
   { to: '/teacher/admin/point-rules', label: '포인트 규칙' },
+  { to: '/teacher/admin/approval', label: '승인·검토 설정' },
   { to: '/teacher/admin/settlements', label: '월간 결산' },
   { to: '/teacher/admin/content', label: '공지·문구' },
 ];
 
-function MenuList({ items, onNavigate }: { items: typeof TEACHER_MENU; onNavigate?: () => void }) {
+function MenuList({
+  items,
+  onNavigate,
+  badges = {},
+}: {
+  items: typeof TEACHER_MENU;
+  onNavigate?: () => void;
+  badges?: Record<string, number>;
+}) {
   return (
     <ul className="space-y-1">
       {items.map((m) => (
@@ -45,6 +57,11 @@ function MenuList({ items, onNavigate }: { items: typeof TEACHER_MENU; onNavigat
             }
           >
             {m.label}
+            {badges[m.to] ? (
+              <span className="ml-auto rounded-full bg-danger-600 px-2 py-0.5 text-base font-bold text-white">
+                {badges[m.to]}
+              </span>
+            ) : null}
           </NavLink>
         </li>
       ))}
@@ -58,11 +75,21 @@ export function TeacherShell() {
   const { me } = useMe();
   const cache = useMeCache();
   const navigate = useNavigate();
+  const counts = useQuery({
+    queryKey: ['teacher', 'pending-counts'],
+    queryFn: teacherPostsApi.pendingCounts,
+    refetchInterval: 60_000,
+  });
 
   const logout = async () => {
     await authApi.logout();
     cache.clear();
     navigate('/login', { replace: true });
+  };
+  const toCouncil = async () => {
+    await reviewApi.switchRole('council');
+    cache.clear();
+    navigate('/', { replace: true });
   };
 
   const nav = (
@@ -71,7 +98,11 @@ export function TeacherShell() {
         <span aria-hidden="true">🏮</span> 초롱 RAS 포인트
         <div className="text-base font-medium text-ink-muted">교사 화면</div>
       </div>
-      <MenuList items={TEACHER_MENU} onNavigate={close} />
+      <MenuList
+        items={TEACHER_MENU}
+        onNavigate={close}
+        badges={{ '/teacher/pending': counts.data?.total ?? 0 }}
+      />
       {me?.role === 'admin' && (
         <div>
           <p className="mb-1 px-3 text-base font-bold text-ink-muted">관리자</p>
@@ -85,6 +116,16 @@ export function TeacherShell() {
           {me?.isApprover ? ' · 승인 권한' : ''}
           {me?.advisorGradeGroup ? ` · ${me.advisorGradeGroup}학년군 지도` : ''}
         </p>
+        {me?.hasCouncilAccount && (
+          <button
+            type="button"
+            data-testid="switch-council"
+            onClick={toCouncil}
+            className="mt-2 min-h-tap w-full rounded-md bg-accent-100 px-3 text-base font-bold text-accent-900 hover:bg-accent-200"
+          >
+            자치회 검토 모드로 전환
+          </button>
+        )}
         <div className="mt-2 flex gap-1 px-1">
           <button
             type="button"

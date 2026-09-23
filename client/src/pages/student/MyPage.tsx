@@ -1,14 +1,20 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { pointsApi } from '@/api/points';
 import { authApi } from '@/api/auth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card } from '@/components/ui';
 import { useMe, useMeCache } from '@/hooks/useMe';
 
-/** 내 정보 (6.1). 포인트 내역은 S4 4-3 */
+/** 내 정보 (6.1) + 내 포인트 합계 (PT-06) */
 export function MyPage() {
   const { me } = useMe();
   const cache = useMeCache();
   const navigate = useNavigate();
+  const points = useQuery({
+    queryKey: ['me', 'points', 'week'],
+    queryFn: () => pointsApi.mine('week'),
+  });
 
   const logout = async () => {
     await authApi.logout();
@@ -29,12 +35,19 @@ export function MyPage() {
             아이디 {me?.loginId} {me?.isCouncil && <Badge tone="info">자치회 임원</Badge>}
           </p>
         </Card>
-        <Card title="내 포인트">
+        <Card
+          title="내 포인트"
+          action={
+            <Button variant="secondary" onClick={() => navigate('/me/points')}>
+              내역 보기
+            </Button>
+          }
+        >
           <dl className="grid grid-cols-3 text-center">
             {[
-              ['이번 주', '0P'],
-              ['이번 달', '0P'],
-              ['누적', '0P'],
+              ['이번 주', `${points.data?.week ?? 0}P`],
+              ['이번 달', `${points.data?.month ?? 0}P`],
+              ['누적', `${points.data?.all ?? 0}P`],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-base text-ink-muted">{k}</dt>

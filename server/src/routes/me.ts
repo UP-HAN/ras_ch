@@ -4,7 +4,10 @@ import { AppError, ok } from '../lib/apiResponse.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
 import { attendanceSummary } from '../services/AttendanceService.js';
 import { getHome, listNotifications, markNotificationRead, meView } from '../services/MeService.js';
+import { pointsSummary } from '../services/PointsQueryService.js';
 import { completeRead, openRead } from '../services/ReadService.js';
+import { writeAudit } from '../repos/auditRepo.js';
+import { clientIp } from '../middleware/auth.js';
 
 export function createMeRouter(): Router {
   const router = Router();
@@ -32,6 +35,42 @@ export function createMeRouter(): Router {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) throw AppError.badRequest('알림 번호가 올바르지 않아요.');
     res.json(ok({ read: await markNotificationRead(user.row.id, id) }));
+  });
+
+  // PT-06 내 포인트: 합계 3종 + 내역(회수 행 포함)
+  router.get('/points', async (req, res) => {
+    const range =
+      req.query.range === 'month' || req.query.range === 'all' ? req.query.range : 'week';
+    res.json(ok(await pointsSummary(currentUser(req).row.id, range)));
+  });
+
+  // APR-13 역할 전환: 교사 ↔ 자치회 검토 계정. 세션 userId 는 원 교사로 유지
+  router.post('/switch-role', async (req, res) => {
+    const body = z.object({ to: z.enum(['teacher', 'council']) }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('전환할 화면을 골라 주세요.');
+    const user = currentUser(req);
+    if (body.data.to === 'council') {
+      if (user.row.role !== 'teacher' && user.row.role !== 'admin')
+        throw AppError.forbidden('선생님만 검토 모드로 바꿀 수 있어요.');
+      if (!user.row.linked_council_account_id)
+        throw AppError.conflict(
+          '연결된 자치회 검토 계정이 없어요. 관리자에게 만들어 달라고 하세요.',
+        );
+      req.session.actingAs = 'council';
+    } else {
+      if (req.session.actingAs !== 'council') return res.json(ok({ actingAs: null }));
+      req.session.actingAs = undefined;
+      req.session.actingUserId = undefined;
+    }
+    await writeAudit({
+      actorId: req.session.userId ?? user.row.id,
+      action: `me.switch_role.${body.data.to}`,
+      ip: clientIp(req),
+    });
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve())),
+    );
+    res.json(ok({ actingAs: req.session.actingAs === 'council' ? 'council' : null }));
   });
 
   // PT-09 출석

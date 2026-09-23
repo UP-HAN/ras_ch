@@ -91,6 +91,8 @@ export interface PostRow {
   council_result: CouncilResult | null;
   council_checklist: Record<string, boolean> | null;
   council_note: string | null;
+  /** APR-07 자동 승격 표시 시각 (005) */
+  escalated_at: Date | null;
   reviewed_by: number | null;
   reviewed_at: Date | null;
   reject_reason: string | null;

@@ -8,6 +8,9 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
 import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
+import { MyPointsPage } from '@/pages/student/MyPointsPage';
+import { ReviewPostPage } from '@/pages/student/ReviewPostPage';
+import { ReviewQueuePage } from '@/pages/student/ReviewQueuePage';
 import { PostDetailPage } from '@/pages/student/PostDetailPage';
 import { PostListPage } from '@/pages/student/PostListPage';
 import { ArticleFormPage } from '@/pages/student/ArticleFormPage';
@@ -16,6 +19,8 @@ import { WritePage } from '@/pages/student/WritePage';
 import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
 import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
 import { BannedWordsPage } from '@/pages/teacher/admin/BannedWordsPage';
+import { ApprovalSettingsPage } from '@/pages/teacher/admin/ApprovalSettingsPage';
+import { PointRulesPage } from '@/pages/teacher/admin/PointRulesPage';
 import { ClassPostsPage } from '@/pages/teacher/ClassPostsPage';
 import { CommentsPage } from '@/pages/teacher/CommentsPage';
 import { DashboardPage } from '@/pages/teacher/DashboardPage';
@@ -54,6 +59,9 @@ const router = createBrowserRouter([
       },
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'me', element: <MyPage /> },
+      { path: 'me/points', element: <MyPointsPage /> },
+      { path: 'review', element: <ReviewQueuePage /> },
+      { path: 'review/:id', element: <ReviewPostPage /> },
     ],
   },
   {
@@ -74,10 +82,8 @@ const router = createBrowserRouter([
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
       { path: 'admin/banned-words', element: <BannedWordsPage /> },
-      {
-        path: 'admin/point-rules',
-        element: <PlaceholderPage title="포인트 규칙" sprint="S4 4-4" />,
-      },
+      { path: 'admin/point-rules', element: <PointRulesPage /> },
+      { path: 'admin/approval', element: <ApprovalSettingsPage /> },
       { path: 'admin/settlements', element: <PlaceholderPage title="월간 결산" sprint="S5 5-3" /> },
       { path: 'admin/content', element: <PlaceholderPage title="공지·문구" sprint="S5 5-6" /> },
     ],

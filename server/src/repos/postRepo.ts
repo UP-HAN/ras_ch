@@ -9,6 +9,7 @@ import type { PostBundle } from '../lib/serializers/post.js';
 import type {
   ArticleDetailsRow,
   ClassRow,
+  CouncilResult,
   ImageKind,
   PostImageRow,
   PostRow,
@@ -149,6 +150,12 @@ export interface PostPatch {
   hiddenReason?: string | null;
   resetCouncilReview?: boolean;
   deletedNow?: boolean;
+  /** S4 1차 검토 결과 (APR-03, 04) */
+  councilReviewerId?: number | null;
+  councilResult?: CouncilResult | null;
+  councilChecklist?: Record<string, boolean> | null;
+  councilNote?: string | null;
+  councilReviewedNow?: boolean;
 }
 
 export async function updatePost(
@@ -179,7 +186,18 @@ export async function updatePost(
     set('council_result = NULL');
     set('council_checklist = NULL');
     set('council_note = NULL');
+    set('escalated_at = NULL');
   }
+  if (patch.councilReviewerId !== undefined)
+    set('council_reviewer_id = ?', patch.councilReviewerId);
+  if (patch.councilResult !== undefined) set('council_result = ?', patch.councilResult);
+  if (patch.councilChecklist !== undefined)
+    set(
+      'council_checklist = ?',
+      patch.councilChecklist ? JSON.stringify(patch.councilChecklist) : null,
+    );
+  if (patch.councilNote !== undefined) set('council_note = ?', patch.councilNote);
+  if (patch.councilReviewedNow) set('council_reviewed_at = NOW(3)');
   if (patch.deletedNow) set('deleted_at = NOW(3)');
   if (sets.length === 0) return;
   params.push(id);

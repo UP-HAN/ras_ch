@@ -12,6 +12,8 @@ import { insertBannedWord, listBannedWords, setBannedWordActive } from '../repos
 import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
+import * as settings from '../services/AdminSettingsService.js';
+import { rebuildPoints } from '../services/PointsQueryService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
 import type { ImportResult } from '../types/api.js';
 
@@ -224,6 +226,122 @@ export function createAdminRouter(): Router {
       ip: a.ip,
     });
     res.json(ok({ updated: true }));
+  });
+
+  // ----- S4: 규칙표 (PT-05) -----
+  router.get('/point-rules', async (_req, res) => res.json(ok(await settings.listPointRules())));
+
+  router.put('/point-rules/:code', async (req, res) => {
+    const body = z
+      .object({
+        amount: z.number().int(),
+        amountMin: z.number().int().nullable(),
+        amountMax: z.number().int().nullable(),
+        caps: z.array(z.unknown()),
+        isActive: z.boolean(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('규칙 값을 확인해 주세요.');
+    const code = String(req.params.code);
+    res.json(
+      ok(
+        await settings.updatePointRule(actor(req), code, {
+          ...body.data,
+          caps: settings.validateCaps(body.data.caps),
+        }),
+      ),
+    );
+  });
+
+  // ----- S4: 승인 모드 (APR-01, 07, 14) -----
+  router.get('/approval-settings', async (_req, res) =>
+    res.json(ok(await settings.listApprovalSettings())),
+  );
+
+  router.put('/approval-settings', async (req, res) => {
+    const body = z
+      .object({
+        scope: z.enum(['school', 'grade', 'class']),
+        scopeId: z.number().int().nullable(),
+        mode: z.enum(['two_step', 'teacher_only']),
+        autoEscalateHours: z.number().int(),
+        autoApproveTeacherReview: z.boolean(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('승인 설정 값을 확인해 주세요.');
+    await settings.saveApprovalSetting(actor(req), body.data);
+    res.json(ok({ saved: true }));
+  });
+
+  router.delete('/approval-settings/:scope/:scopeId', async (req, res) => {
+    const scope = req.params.scope;
+    if (scope !== 'grade' && scope !== 'class')
+      throw AppError.badRequest('학년·반 설정만 지울 수 있어요.');
+    await settings.removeApprovalSetting(actor(req), scope, idParam(req.params.scopeId));
+    res.json(ok({ deleted: true }));
+  });
+
+  // ----- S4: 검토 담당 (APR-02, 02a) -----
+  const assignmentBody = z.object({
+    grades: z.array(z.number().int()).min(1),
+    postTypes: z.array(z.string()).min(1),
+    allowedResults: z.enum(['pass_only', 'pass_hold']),
+    dailyCap: z.number().int(),
+    preset: z.enum(['assist', 'basic', 'senior', 'custom']),
+    startsAt: z.string(),
+    endsAt: z.string().nullable(),
+    isActive: z.boolean(),
+  });
+
+  router.get('/review-assignments', async (_req, res) =>
+    res.json(ok(await settings.listReviewAssignments())),
+  );
+  router.get('/review-assignments/candidates', async (_req, res) =>
+    res.json(ok(await settings.listReviewerCandidates())),
+  );
+
+  router.post('/review-assignments', async (req, res) => {
+    const body = assignmentBody
+      .extend({ reviewerUserId: z.number().int().positive() })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('검토 담당 값을 확인해 주세요.');
+    const { reviewerUserId, ...rest } = body.data;
+    const id = await settings.createReviewAssignment(actor(req), reviewerUserId, rest);
+    res.status(201).json(ok({ id }));
+  });
+
+  router.put('/review-assignments/:id', async (req, res) => {
+    const body = assignmentBody.safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('검토 담당 값을 확인해 주세요.');
+    await settings.updateReviewAssignment(actor(req), idParam(req.params.id), body.data);
+    res.json(ok({ updated: true }));
+  });
+
+  router.delete('/review-assignments/:id', async (req, res) => {
+    await settings.deactivateReviewAssignment(actor(req), idParam(req.params.id));
+    res.json(ok({ deactivated: true }));
+  });
+
+  // ----- S4: 교사 검토 계정 (APR-12) — 비밀번호는 1회만 보여준다 -----
+  router.post('/teachers/:id/council-account', async (req, res) => {
+    res
+      .status(201)
+      .json(ok(await settings.createCouncilAccount(actor(req), idParam(req.params.id))));
+  });
+
+  // ----- S4: 포인트 리빌드 (PT-08) -----
+  router.post('/points/rebuild', async (req, res) => {
+    const body = z
+      .object({
+        from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('기간을 YYYY-MM-DD 로 적어 주세요.');
+    if (body.data.from > body.data.to) throw AppError.badRequest('시작일이 종료일보다 늦어요.');
+    res.json(
+      ok(await rebuildPoints(currentUser(req), body.data.from, body.data.to, clientIp(req))),
+    );
   });
 
   return router;

@@ -19,11 +19,23 @@ export function loadUserWith(loader: UserLoader): RequestHandler {
   return async (req, _res, next) => {
     const userId = req.session?.userId;
     if (!userId) return next();
-    const user = await loader(userId);
+    let user = await loader(userId);
     if (!user) {
       // 비활성·삭제된 계정: 세션 폐기
       await new Promise<void>((resolve) => req.session.destroy(() => resolve()));
       return next();
+    }
+    // APR-13 역할 전환: 교사가 자치회 검토 모드면 연결된 검토 계정으로 행동한다(원 교사 id 는 세션에 유지)
+    if (req.session.actingAs === 'council') {
+      const linkedId = user.row.linked_council_account_id;
+      const linked = linkedId ? await loader(linkedId) : null;
+      if (linked && linked.row.role === 'council_teacher') {
+        user = linked;
+        req.session.actingUserId = linked.row.id;
+      } else {
+        req.session.actingAs = undefined;
+        req.session.actingUserId = undefined;
+      }
     }
     req.user = user;
     next();

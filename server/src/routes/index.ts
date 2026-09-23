@@ -9,6 +9,7 @@ import {
 } from '../middleware/auth.js';
 import { createAdminRouter } from './admin.js';
 import { createAuthRouter } from './auth.js';
+import { createCouncilRouter } from './council.js';
 import { attendance } from '../middleware/attendance.js';
 import { createMeRouter } from './me.js';
 import { createPostsRouter } from './posts.js';
@@ -45,6 +46,7 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/me', createMeRouter());
   router.use('/admin', createAdminRouter());
   router.use('/teacher', createTeacherRouter());
+  router.use('/council', createCouncilRouter());
   router.use('/posts', createPostsRouter());
   router.use('/settings', createSettingsRouter());
   router.use('/', createReactionsRouter());

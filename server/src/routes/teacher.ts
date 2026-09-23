@@ -7,10 +7,18 @@ import { query } from '../db/query.js';
 import { AppError, ok } from '../lib/apiResponse.js';
 import { toTeacherPostView } from '../lib/serializers/post.js';
 import { toTeacherUser } from '../lib/serializers/user.js';
+import { resolveAllClasses, resolveApproval } from '../repos/approvalSettingsRepo.js';
 import * as postRepo from '../repos/postRepo.js';
+import { listReviewLogs } from '../repos/reviewRepo.js';
+import { teacherBonus } from '../services/PointsQueryService.js';
 import { transition } from '../services/PostService.js';
 import * as tc from '../services/TeacherCommentService.js';
-import type { BulkApproveResult, PendingQueueView } from '../types/api.js';
+import type {
+  BulkApproveResult,
+  PendingCounts,
+  PendingQueueView,
+  ReviewLogView,
+} from '../types/api.js';
 import type { PostStatus, PostType } from '../types/db.js';
 import {
   canAccessClass,
@@ -97,39 +105,128 @@ export function createTeacherRouter(): Router {
         ? ['report', 'diary', 'article']
         : ['report', 'diary'];
 
-  /** 반의 승인 모드 (APR-01): class → grade → school 순으로 덮어쓰기 */
-  async function approvalModeFor(
-    classId: number,
-    grade: number,
-  ): Promise<'two_step' | 'teacher_only'> {
-    const rows = await query<{
-      scope: string;
-      scope_id: number | null;
-      mode: 'two_step' | 'teacher_only';
-    }>(
-      `SELECT scope, scope_id, mode FROM approval_settings
-       WHERE (scope = 'class' AND scope_id = ?) OR (scope = 'grade' AND scope_id = ?) OR scope = 'school'
-       ORDER BY FIELD(scope, 'class', 'grade', 'school') LIMIT 1`,
-      [classId, grade],
-    );
-    return rows[0]?.mode ?? 'two_step';
-  }
+  /** APR-07: pending 상태로 기준 시간을 넘겼는가 (배치가 escalated_at 을 찍기 전에도 시간으로 판정) */
+  const isEscalated = (
+    p: { status: string; submitted_at: Date | null; escalated_at: Date | null },
+    hours: number,
+  ): boolean =>
+    p.status === 'pending' &&
+    (p.escalated_at !== null ||
+      (p.submitted_at !== null && Date.now() - p.submitted_at.getTime() >= hours * 3_600_000));
 
+  const countPending = (
+    posts: Array<{ status: string; submitted_at: Date | null; escalated_at: Date | null }>,
+    hours: number,
+  ): PendingCounts => ({
+    reviewed: posts.filter((p) => p.status === 'reviewed').length,
+    flagged: posts.filter((p) => p.status === 'flagged').length,
+    pending: posts.filter((p) => p.status === 'pending').length,
+    escalated: posts.filter((p) => isEscalated(p, hours)).length,
+  });
+
+  /** 승인 대기함 (TCH-02, APR-05, 07): 1차 통과 / 보류 요청 / 미검토(+48시간 초과) */
   router.get('/classes/:id/pending', requireClassAccess('id'), async (req, res) => {
     const classId = Number(req.params.id);
     const klass = await classRepo.findClassById(classId);
     if (!klass) throw AppError.notFound('반을 찾을 수 없어요.');
+    const setting = await resolveApproval(classId, klass.grade);
     const bundles = await postRepo.listByClass(
       classId,
       ['pending', 'reviewed', 'flagged'],
       postTypes(req.query.type),
     );
+    const posts = bundles.map((b) => b.post);
     const data: PendingQueueView = {
       classId,
-      approvalMode: await approvalModeFor(classId, klass.grade),
+      approvalMode: setting.mode,
+      autoEscalateHours: setting.autoEscalateHours,
+      escalatedIds: posts.filter((p) => isEscalated(p, setting.autoEscalateHours)).map((p) => p.id),
+      counts: countPending(posts, setting.autoEscalateHours),
       items: bundles.map(toTeacherPostView),
     };
     res.json(ok(data));
+  });
+
+  /** 메뉴 배지·대시보드용: 내가 볼 수 있는 반의 대기 건수 (TCH-02) */
+  router.get('/pending-counts', async (req, res) => {
+    const user = currentUser(req);
+    const year = await currentSchoolYear();
+    if (!year) return res.json(ok({ total: 0, byClass: [] }));
+    const all = await classRepo.listClassesByYear(year.id);
+    const grades = advisorGrades(user);
+    const visible = all.filter(
+      (c) =>
+        hasRole(user, 'admin') ||
+        hasRole(user, 'approver') ||
+        user.classIds.includes(c.id) ||
+        grades.includes(c.grade),
+    );
+    if (visible.length === 0) return res.json(ok({ total: 0, byClass: [] }));
+    const settings = await resolveAllClasses(visible.map((c) => ({ id: c.id, grade: c.grade })));
+    const rows = await query<{
+      class_id: number;
+      status: string;
+      submitted_at: Date | null;
+      escalated_at: Date | null;
+    }>(
+      `SELECT class_id, status, submitted_at, escalated_at FROM posts
+       WHERE deleted_at IS NULL AND status IN ('pending','reviewed','flagged')
+         AND class_id IN (${visible.map(() => '?').join(',')})`,
+      visible.map((c) => c.id),
+    );
+    const byClass = visible.map((c) => ({
+      classId: c.id,
+      className: c.name,
+      ...countPending(
+        rows.filter((r) => r.class_id === c.id),
+        settings.get(c.id)?.autoEscalateHours ?? 48,
+      ),
+    }));
+    const total = byClass.reduce((s, c) => s + c.reviewed + c.flagged + c.pending, 0);
+    res.json(ok({ total, byClass }));
+  });
+
+  /** APR-08 검토 이력: 임원 검토·교사 처리·자동 승격 로그 (교사 화면이므로 실명 표시) */
+  router.get('/posts/:id/history', async (req, res) => {
+    const user = currentUser(req);
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) throw AppError.badRequest('글 번호가 올바르지 않아요.');
+    const post = await postRepo.findPostById(id);
+    if (!post) throw AppError.notFound('글을 찾을 수 없어요.');
+    if (!(await canAccessClass(user, post.class_id)))
+      throw AppError.forbidden('이 반의 글을 볼 권한이 없어요.');
+    const logs = await listReviewLogs(id);
+    const data: ReviewLogView[] = logs.map((l) => ({
+      id: l.id,
+      action: l.action,
+      actorRole: l.actor_role,
+      actorName: l.actor_role === 'system' ? null : l.actor_name,
+      checklist: l.checklist,
+      note: l.note,
+      createdAt: l.created_at.toISOString(),
+    }));
+    res.json(ok(data));
+  });
+
+  /** PT-04 교사 칭찬 포인트 */
+  router.post('/students/:id/bonus', async (req, res) => {
+    const studentId = Number(req.params.id);
+    if (!Number.isInteger(studentId)) throw AppError.badRequest('학생 번호가 올바르지 않아요.');
+    const body = z
+      .object({ amount: z.number().int(), reason: z.string().max(100) })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('포인트와 칭찬 이유를 적어 주세요.');
+    res.json(
+      ok(
+        await teacherBonus(
+          currentUser(req),
+          studentId,
+          body.data.amount,
+          body.data.reason,
+          clientIp(req),
+        ),
+      ),
+    );
   });
 
   router.get('/classes/:id/posts', requireClassAccess('id'), async (req, res) => {
@@ -292,15 +389,34 @@ export function createTeacherRouter(): Router {
     res.json(ok({ handled: true }));
   });
 
-  /** 선택 일괄 승인 (TCH-02). 실패한 글은 이유와 함께 돌려주고 나머지는 계속 */
+  /**
+   * 일괄 승인 (TCH-02, APR-05). {ids} 선택 승인 또는 {stage:'reviewed', classId} 1차 통과 전체 승인.
+   * 실패한 글은 이유와 함께 돌려주고 나머지는 계속
+   */
   router.post('/posts/bulk-approve', async (req, res) => {
     const body = z
-      .object({ ids: z.array(z.number().int().positive()).min(1).max(100) })
+      .union([
+        z.object({ ids: z.array(z.number().int().positive()).min(1).max(100) }),
+        z.object({ stage: z.literal('reviewed'), classId: z.number().int().positive() }),
+      ])
       .safeParse(req.body);
     if (!body.success) throw AppError.badRequest('승인할 글을 골라 주세요.');
     const user = currentUser(req);
+    let ids: number[];
+    if ('ids' in body.data) {
+      ids = body.data.ids;
+    } else {
+      if (!(await canAccessClass(user, body.data.classId)))
+        throw AppError.forbidden('이 반을 관리할 권한이 없어요.');
+      const bundles = await postRepo.listByClass(
+        body.data.classId,
+        ['reviewed'],
+        ['report', 'diary', 'article'],
+      );
+      ids = bundles.map((b) => b.post.id);
+    }
     const data: BulkApproveResult = { approved: [], failed: [] };
-    for (const id of body.data.ids) {
+    for (const id of ids) {
       try {
         await transition(id, 'approve', user, { ip: clientIp(req) });
         data.approved.push(id);
