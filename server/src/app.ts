@@ -1,7 +1,6 @@
 import express, { type Express } from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
-import path from 'node:path';
 import { pinoHttp } from 'pino-http';
 import { env, isProd } from './config/env.js';
 import { pingDb } from './db/pool.js';
@@ -11,6 +10,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { createSessionMiddleware } from './middleware/session.js';
 import type { UserLoader } from './middleware/auth.js';
 import { createApiRouter } from './routes/index.js';
+import { createUploadsRouter } from './routes/uploads.js';
 
 export interface CreateAppOptions {
   /**
@@ -70,8 +70,11 @@ export function createApp(opts: CreateAppOptions = {}): Express {
     res.status(db ? 200 : 503).json(ok({ status: db ? 'ok' : 'degraded', db: db ? 'ok' : 'down' }));
   });
 
-  // 업로드된 리사이즈 이미지(원본은 저장하지 않음). 접근 제어는 S2에서 라우트로 감싼다
-  app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR), { index: false, maxAge: '7d' }));
+  // 업로드 이미지는 로그인 + 게시글 열람 권한을 검사한 뒤 제공한다 (routes/uploads.ts, RPT-07)
+  app.use(
+    '/uploads',
+    createUploadsRouter(opts.testAuth ? { userLoader: opts.testAuth.userLoader } : {}),
+  );
 
   app.use(
     '/api/v1',

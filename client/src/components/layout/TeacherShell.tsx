@@ -12,6 +12,7 @@ import { CloseIcon, MenuIcon } from './icons';
 const TEACHER_MENU = [
   { to: '/teacher', label: '반 대시보드', end: true },
   { to: '/teacher/pending', label: '승인 대기함' },
+  { to: '/teacher/posts', label: '반 글 목록' },
   { to: '/teacher/students', label: '학생 관리' },
   { to: '/teacher/comments', label: '댓글 모아보기' },
   { to: '/teacher/reports', label: '신고함' },

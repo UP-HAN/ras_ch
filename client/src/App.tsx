@@ -8,10 +8,15 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
 import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
+import { PostDetailPage } from '@/pages/student/PostDetailPage';
+import { PostListPage } from '@/pages/student/PostListPage';
+import { ReportFormPage } from '@/pages/student/ReportFormPage';
 import { WritePage } from '@/pages/student/WritePage';
 import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
 import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
+import { ClassPostsPage } from '@/pages/teacher/ClassPostsPage';
 import { DashboardPage } from '@/pages/teacher/DashboardPage';
+import { PendingPage } from '@/pages/teacher/PendingPage';
 import { StudentsPage } from '@/pages/teacher/StudentsPage';
 
 /**
@@ -33,6 +38,10 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'write', element: <WritePage /> },
+      { path: 'write/report', element: <ReportFormPage /> },
+      { path: 'posts', element: <PostListPage /> },
+      { path: 'posts/:id', element: <PostDetailPage /> },
+      { path: 'posts/:id/edit', element: <ReportFormPage /> },
       {
         path: 'debate',
         element: <PlaceholderPage title="토론방" sprint="2차 개발" description="곧 열려요." />,
@@ -50,10 +59,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      {
-        path: 'pending',
-        element: <PlaceholderPage title="승인 대기함" sprint="S2 2-7 · S4 4-7" />,
-      },
+      { path: 'pending', element: <PendingPage /> },
+      { path: 'posts', element: <ClassPostsPage /> },
       { path: 'students', element: <StudentsPage /> },
       { path: 'comments', element: <PlaceholderPage title="댓글 모아보기" sprint="S3 3-5" /> },
       { path: 'reports', element: <PlaceholderPage title="신고함" sprint="S3 3-2" /> },

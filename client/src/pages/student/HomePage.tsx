@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { meApi } from '@/api/me';
+import { postsApi } from '@/api/posts';
+import { ReportCard } from '@/components/post/ReportCard';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 
 const TIER_LABEL: Record<string, string> = {
@@ -11,23 +13,71 @@ const TIER_LABEL: Record<string, string> = {
   star: '초롱별',
 };
 
-const REPORT_CARD: Record<
-  string,
-  { text: string; button: string | null; tone: 'default' | 'primary' }
-> = {
-  none: { text: '이번 주 리포트를 아직 안 올렸어요.', button: '리포트 올리기', tone: 'primary' },
-  draft: { text: '쓰다 만 리포트가 있어요.', button: '이어서 쓰기', tone: 'primary' },
-  pending: { text: '선생님이 확인하고 있어요. 조금만 기다려요!', button: null, tone: 'default' },
-  reviewed: { text: '선생님이 확인하고 있어요. 조금만 기다려요!', button: null, tone: 'default' },
-  flagged: { text: '선생님이 확인하고 있어요. 조금만 기다려요!', button: null, tone: 'default' },
-  approved: { text: '이번 주 리포트가 게시됐어요. 잘했어요!', button: null, tone: 'default' },
-  rejected: { text: '리포트를 고쳐서 다시 올려 주세요.', button: '다시 쓰기', tone: 'primary' },
-  hidden: { text: '이 리포트는 선생님이 숨겼어요.', button: null, tone: 'default' },
+type CardSpec = {
+  text: string;
+  button: string | null;
+  tone: 'default' | 'primary';
+  to: (id: number | null) => string;
+};
+const REPORT_CARD: Record<string, CardSpec> = {
+  none: {
+    text: '이번 주 리포트를 아직 안 올렸어요.',
+    button: '리포트 올리기',
+    tone: 'primary',
+    to: () => '/write/report',
+  },
+  draft: {
+    text: '쓰다 만 리포트가 있어요.',
+    button: '이어서 쓰기',
+    tone: 'primary',
+    to: (id) => `/posts/${id}/edit`,
+  },
+  pending: {
+    text: '선생님이 확인하고 있어요. 조금만 기다려요!',
+    button: '내 리포트 보기',
+    tone: 'default',
+    to: (id) => `/posts/${id}`,
+  },
+  reviewed: {
+    text: '선생님이 확인하고 있어요. 조금만 기다려요!',
+    button: '내 리포트 보기',
+    tone: 'default',
+    to: (id) => `/posts/${id}`,
+  },
+  flagged: {
+    text: '선생님이 확인하고 있어요. 조금만 기다려요!',
+    button: '내 리포트 보기',
+    tone: 'default',
+    to: (id) => `/posts/${id}`,
+  },
+  approved: {
+    text: '이번 주 리포트가 게시됐어요. 잘했어요!',
+    button: '내 리포트 보기',
+    tone: 'default',
+    to: (id) => `/posts/${id}`,
+  },
+  rejected: {
+    text: '선생님 말씀을 보고 고쳐서 다시 올려 주세요.',
+    button: '고쳐서 다시 보내기',
+    tone: 'primary',
+    to: (id) => `/posts/${id}/edit`,
+  },
+  hidden: {
+    text: '이 리포트는 선생님이 숨겼어요.',
+    button: '내 리포트 보기',
+    tone: 'default',
+    to: (id) => `/posts/${id}`,
+  },
 };
 
 /** 학생 홈 (6.1, CMN-05): 내 상태 → 리포트 카드 → 알림 → 우리 반 최근 글 */
 export function HomePage() {
+  const navigate = useNavigate();
   const q = useQuery({ queryKey: ['me', 'home'], queryFn: meApi.home });
+  const recent = useQuery({
+    queryKey: ['posts', 'list', 'class', 'home'],
+    queryFn: () => postsApi.list('class'),
+  });
 
   if (q.isLoading) {
     return (
@@ -48,7 +98,7 @@ export function HomePage() {
   }
 
   const { me, weekPoints, report, notifications } = q.data;
-  const card = REPORT_CARD[report.status] ?? REPORT_CARD.none!;
+  const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
 
   return (
     <div className="space-y-4">
@@ -76,7 +126,12 @@ export function HomePage() {
       <Card title="이번 주 리포트" tone={card.tone}>
         <p className="mb-3 text-base">{card.text}</p>
         {card.button && (
-          <Button block size="lg" onClick={() => undefined}>
+          <Button
+            block
+            size="lg"
+            variant={card.tone === 'primary' ? 'primary' : 'secondary'}
+            onClick={() => navigate(card.to(report.postId))}
+          >
             {card.button}
           </Button>
         )}
@@ -100,15 +155,27 @@ export function HomePage() {
         )}
       </Card>
 
-      <Card title="우리 반 최근 글">
-        <EmptyState title="아직 글이 없어요" description="첫 번째 리포트를 올려 볼까요?" />
+      <Card
+        title="우리 반 최근 글"
+        action={
+          <Link
+            to="/posts"
+            className="inline-flex min-h-tap items-center text-base font-semibold text-primary-700 underline"
+          >
+            더 보기
+          </Link>
+        }
+      >
+        {recent.data && recent.data.items.length > 0 ? (
+          <div className="space-y-3">
+            {recent.data.items.slice(0, 3).map((p) => (
+              <ReportCard key={p.id} post={p} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="아직 글이 없어요" description="첫 번째 리포트를 올려 볼까요?" />
+        )}
       </Card>
-
-      <p className="text-center text-base text-ink-muted">
-        <Link to="/me" className="inline-flex min-h-tap items-center underline">
-          내 정보
-        </Link>
-      </p>
     </div>
   );
 }

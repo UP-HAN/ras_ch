@@ -10,6 +10,8 @@ import {
 import { createAdminRouter } from './admin.js';
 import { createAuthRouter } from './auth.js';
 import { createMeRouter } from './me.js';
+import { createPostsRouter } from './posts.js';
+import { createSettingsRouter } from './settings.js';
 import { createTeacherRouter } from './teacher.js';
 
 /**
@@ -40,6 +42,8 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/me', createMeRouter());
   router.use('/admin', createAdminRouter());
   router.use('/teacher', createTeacherRouter());
+  router.use('/posts', createPostsRouter());
+  router.use('/settings', createSettingsRouter());
 
   return router;
 }

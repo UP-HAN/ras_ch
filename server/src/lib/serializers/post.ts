@@ -9,6 +9,7 @@
 import type {
   ArticleDetailView,
   ImageView,
+  MyPostView,
   ReportDetailView,
   ReviewerPostView,
   StudentPostView,
@@ -42,10 +43,13 @@ export interface PostBundle {
   article: ArticleDetailsRow | null;
 }
 
-/** 업로드 파일 경로 → 공개 URL. 파일 시스템 경로는 응답에 내보내지 않는다 */
+/**
+ * 저장 경로(상대 "yyyy/mm/uuid.webp") → URL. 절대 경로가 섞여 있어도 마지막 3단만 쓴다.
+ * 실제 파일 제공은 routes/uploads.ts 가 로그인·열람 권한을 검사한 뒤 한다(RPT-07).
+ */
 export function imageUrl(path: string): string {
-  const file = path.split(/[\\/]/).pop() ?? path;
-  return `/uploads/${file}`;
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return `/uploads/${parts.slice(-3).join('/')}`;
 }
 
 function iso(d: Date | null | undefined): string | null {
@@ -175,6 +179,21 @@ export function toTeacherPostView(b: PostBundle): TeacherPostView {
     rejectReason: post.reject_reason,
     hiddenReason: post.hidden_reason,
     deletedAt: iso(post.deleted_at),
+  };
+}
+
+/** 본인 글: 학생 뷰 + 반려·숨김 사유, 제출 시각 (실명은 여전히 없음) */
+export function toMyPostView(
+  b: PostBundle,
+  viewerId: number,
+  prevGoalText: string | null = null,
+): MyPostView {
+  return {
+    ...toStudentPostView(b, viewerId),
+    rejectReason: b.post.reject_reason,
+    hiddenReason: b.post.hidden_reason,
+    submittedAt: iso(b.post.submitted_at),
+    prevGoalText,
   };
 }
 

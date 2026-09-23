@@ -243,3 +243,63 @@ export interface ImportResult {
 export interface ResetPasswordResult {
   tempPassword: string;
 }
+
+// ---------- S2: 리포트 ----------
+
+export type RejectReasonCode = 'capture_mismatch' | 'too_short' | 'inappropriate' | 'other';
+
+/** 작성 화면에 필요한 맥락 (RPT-01 주차, RPT-03 지난주 목표, AUTH-08 유형) */
+export interface WeekContextView {
+  currentWeekKey: string;
+  previousWeekKey: string;
+  defaultWeekKey: string;
+  /** 주차별로 이미 쓴 글이 있으면 그 id */
+  existing: Record<string, { postId: number; status: PostStatus } | null>;
+  canUseCapture: boolean;
+  prevGoalText: string | null;
+  prevAvgMinutes: number | null;
+  topCategories: string[];
+  limits: {
+    bodyMin: number;
+    bodyMax: number;
+    goalMax: number;
+    goalReasonMax: number;
+    topAppMax: number;
+  };
+}
+
+/** 본인 글 상세: 학생 뷰 + 반려 사유·지난주 목표 */
+export interface MyPostView extends StudentPostView {
+  rejectReason: string | null;
+  hiddenReason: string | null;
+  submittedAt: string | null;
+  prevGoalText: string | null;
+}
+
+export interface PostListPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export interface CaptureGuideView {
+  android_samsung: string;
+  iphone: string;
+  warning: string;
+}
+
+export interface PendingQueueView {
+  classId: number;
+  approvalMode: 'two_step' | 'teacher_only';
+  items: TeacherPostView[];
+}
+
+export interface BulkApproveResult {
+  approved: number[];
+  failed: Array<{ id: number; message: string }>;
+}
+
+export interface PublicSettingsView {
+  captureGuide: CaptureGuideView;
+  reportText: { reflection_min: number; reflection_max: number; goal_max: number };
+  goodCommentGuide: string;
+}

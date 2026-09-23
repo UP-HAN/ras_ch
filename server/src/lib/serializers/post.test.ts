@@ -59,7 +59,7 @@ const bundle: PostBundle = {
       id: 2,
       post_id: 10,
       kind: 'app_capture',
-      path: 'C:/srv/uploads/abc.webp',
+      path: '2026/09/abc.webp',
       width: 720,
       height: 1280,
       sort: 1,
@@ -69,7 +69,7 @@ const bundle: PostBundle = {
       id: 1,
       post_id: 10,
       kind: 'category_capture',
-      path: '/var/app/uploads/def.webp',
+      path: '/var/app/ras/uploads/2026/09/def.webp',
       width: 720,
       height: 1280,
       sort: 0,
@@ -176,7 +176,10 @@ describe('toTeacherPostView', () => {
 describe('이미지', () => {
   it('파일 시스템 경로 대신 /uploads URL, sort 순 정렬', () => {
     const view = toReviewerPostView(bundle);
-    expect(view.images.map((i) => i.url)).toEqual(['/uploads/def.webp', '/uploads/abc.webp']);
+    expect(view.images.map((i) => i.url)).toEqual([
+      '/uploads/2026/09/def.webp',
+      '/uploads/2026/09/abc.webp',
+    ]);
     expect(JSON.stringify(view)).not.toContain('/var/app');
   });
 });
