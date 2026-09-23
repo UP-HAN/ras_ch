@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  /* 학생 화면: 큰 글자·큰 버튼. 어떤 글자도 16px 아래로 내려가지 않게 */
+  small,
+  .text-sm,
+  .text-xs {
+    font-size: var(--text-base);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-info-600);
+    outline-offset: 2px;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

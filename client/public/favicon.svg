@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="초롱 RAS 포인트">
+  <rect width="64" height="64" rx="14" fill="#1E3A5F"/>
+  <path d="M32 10c-9 0-15 7-15 16 0 7 4 11 8 15h14c4-4 8-8 8-15 0-9-6-16-15-16z" fill="#F28C28"/>
+  <path d="M25 41h14v5H25zM27 47h10v4H27z" fill="#FFE1BF"/>
+  <circle cx="32" cy="26" r="6" fill="#FFF3E0"/>
+</svg>

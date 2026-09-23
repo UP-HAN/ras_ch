@@ -1,0 +1,42 @@
+{
+  "name": "ras-point",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "초롱 RAS 포인트 — 초롱초등학교 3~6학년 폰프리·RAS 활동 포인트 웹앱",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm:dev -w server\" \"npm:dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:migrate:status": "npm run db:migrate:status -w server",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "npm run db:reset -w server && npm run db:seed -- --force"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
+  }
+}

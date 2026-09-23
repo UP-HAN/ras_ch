@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ras-point-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_dev_password}
+      MYSQL_DATABASE: ${DB_NAME:-ras_point}
+      MYSQL_USER: ${DB_USER:-ras}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ras_dev_password}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+09:00
+    ports:
+      - '${DB_PORT:-3306}:3306'
+    volumes:
+      - ras_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-uroot',
+          '-p${DB_ROOT_PASSWORD:-root_dev_password}',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ras_mysql_data:
