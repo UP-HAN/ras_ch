@@ -7,6 +7,9 @@ import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
 import { decodeCsvBuffer } from '../lib/csv.js';
 import { clientIp, currentUser, requireRole } from '../middleware/auth.js';
+import { writeAudit } from '../repos/auditRepo.js';
+import { insertBannedWord, listBannedWords, setBannedWordActive } from '../repos/bannedWordRepo.js';
+import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
@@ -177,6 +180,49 @@ export function createAdminRouter(): Router {
       .safeParse(req.body);
     if (!body.success) throw AppError.badRequest('수정 값을 확인해 주세요.');
     await admin.updateStudent(actor(req), idParam(req.params.id), body.data);
+    res.json(ok({ updated: true }));
+  });
+
+  // ----- 금칙어 (RCT-04, ADM-02) -----
+  router.get('/banned-words', async (_req, res) => {
+    const rows = await listBannedWords();
+    const data: BannedWordView[] = rows.map((r) => ({
+      id: r.id,
+      word: r.word,
+      isActive: r.is_active === 1,
+    }));
+    res.json(ok(data));
+  });
+
+  router.post('/banned-words', async (req, res) => {
+    const body = z.object({ word: z.string().trim().min(1).max(50) }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('금칙어를 1~50자로 적어 주세요.');
+    const id = await insertBannedWord(body.data.word);
+    const a = actor(req);
+    await writeAudit({
+      actorId: a.id,
+      action: 'banned_word.add',
+      targetType: 'banned_word',
+      targetId: id,
+      ip: a.ip,
+    });
+    res.status(201).json(ok({ id }));
+  });
+
+  router.patch('/banned-words/:id', async (req, res) => {
+    const body = z.object({ isActive: z.boolean() }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('값을 확인해 주세요.');
+    const id = idParam(req.params.id);
+    await setBannedWordActive(id, body.data.isActive);
+    const a = actor(req);
+    await writeAudit({
+      actorId: a.id,
+      action: 'banned_word.set_active',
+      targetType: 'banned_word',
+      targetId: id,
+      payload: body.data,
+      ip: a.ip,
+    });
     res.json(ok({ updated: true }));
   });
 

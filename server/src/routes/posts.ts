@@ -7,7 +7,10 @@ import { Router, type Request } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
+import { ARTICLE_LIMITS } from '../lib/articleRules.js';
 import { MAX_IMAGE_BYTES } from '../lib/image.js';
+import { toCommentView } from '../lib/serializers/comment.js';
+import * as reactions from '../services/ReactionService.js';
 import { isTeacherLike, viewerFromAuthUser } from '../lib/postAccess.js';
 import {
   allowedWeekKeys,
@@ -24,12 +27,44 @@ import type { PostListPage, StudentPostView, WeekContextView } from '../types/ap
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_IMAGE_BYTES, files: 2 },
+  limits: { fileSize: MAX_IMAGE_BYTES, files: 3 },
 });
 const captureFields = upload.fields([
   { name: 'category_capture', maxCount: 1 },
   { name: 'app_capture', maxCount: 1 },
 ]);
+const photoFields = upload.fields([{ name: 'photos', maxCount: ARTICLE_LIMITS.photosMax }]);
+
+const articleSchema = z.object({
+  title: z.string(),
+  articleType: z.string(),
+  tags: z.preprocess(
+    (v) =>
+      Array.isArray(v)
+        ? v
+        : typeof v === 'string'
+          ? v
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+    z.array(z.string()),
+  ),
+  body: z.string(),
+  oneLine: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? null : v),
+    z.string().nullable(),
+  ),
+  submit: z.preprocess(
+    (v) => (v === 'true' || v === true ? true : v === 'false' || v === false ? false : undefined),
+    z.boolean().optional(),
+  ),
+});
+
+function photosOf(req: Request): posts.UploadedFile[] {
+  const f = (req.files ?? {}) as Record<string, Express.Multer.File[] | undefined>;
+  return (f.photos ?? []).map((file) => ({ buffer: file.buffer, size: file.size }));
+}
 
 const charLen = (s: string) => Array.from(s).length;
 const optionalStr = z.preprocess(
@@ -116,16 +151,27 @@ function filesOf(req: Request): posts.CaptureFiles {
   return out;
 }
 
-function encodeCursor(approvedAt: Date, id: number): string {
-  return Buffer.from(`${approvedAt.toISOString()}|${id}`, 'utf8').toString('base64url');
+function encodeCursor(
+  sort: 'latest' | 'likes',
+  post: { approved_at: Date | null; like_count: number; id: number },
+): string {
+  const key =
+    sort === 'likes'
+      ? `L|${post.like_count}|${post.id}`
+      : `T|${post.approved_at?.toISOString() ?? ''}|${post.id}`;
+  return Buffer.from(key, 'utf8').toString('base64url');
 }
-function decodeCursor(raw: unknown): { approvedAt: string; id: number } | undefined {
+function decodeCursor(
+  raw: unknown,
+): { approvedAt?: string; likeCount?: number; id: number } | undefined {
   if (typeof raw !== 'string' || !raw) return undefined;
-  const [iso, id] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
-  if (!iso || !id || Number.isNaN(Date.parse(iso)))
+  const [kind, value, id] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
+  if (!kind || value === undefined || !id)
     throw AppError.badRequest('목록 위치가 올바르지 않아요.');
+  if (kind === 'L') return { likeCount: Number(value), id: Number(id) };
+  if (Number.isNaN(Date.parse(value))) throw AppError.badRequest('목록 위치가 올바르지 않아요.');
   // DB 는 KST 벽시계 DATETIME → ISO 를 KST 문자열로
-  const d = new Date(iso);
+  const d = new Date(value);
   const kstStr = new Date(d.getTime() + 9 * 3600 * 1000)
     .toISOString()
     .replace('T', ' ')
@@ -190,10 +236,15 @@ export function createPostsRouter(): Router {
       else if (Number.isInteger(q) && q > 0) classId = q;
       if (classId === undefined) throw AppError.badRequest('반을 알 수 없어요.');
     }
+    const sort = req.query.sort === 'likes' ? 'likes' : 'latest';
+    const tag = typeof req.query.tag === 'string' && req.query.tag ? req.query.tag : undefined;
     const bundles = await postRepo.listApproved({
       type: [...types],
       classId,
       schoolOnly: scope === 'school',
+      sort,
+      tag,
+      reporterOnly: req.query.reporter === '1',
       cursor: decodeCursor(req.query.cursor),
       limit: limit + 1,
     });
@@ -201,12 +252,67 @@ export function createPostsRouter(): Router {
     const last = page[page.length - 1];
     const data: PostListPage<StudentPostView> = {
       items: page.map((b) => toStudentPostView(b, user.row.id)),
-      nextCursor:
-        bundles.length > limit && last?.post.approved_at
-          ? encodeCursor(last.post.approved_at, last.post.id)
-          : null,
+      nextCursor: bundles.length > limit && last ? encodeCursor(sort, last.post) : null,
     };
     res.json(ok(data));
+  });
+
+  // ---------- 기사 (ART-01~03, 07) ----------
+  router.post('/articles', photoFields, async (req, res) => {
+    const user = currentUser(req);
+    const parsed = articleSchema.safeParse(req.body);
+    if (!parsed.success)
+      throw AppError.badRequest('입력 내용을 다시 확인해 주세요.', parsed.error.issues);
+    const bundle = await posts.createArticle(
+      user,
+      { ...parsed.data, submit: parsed.data.submit ?? true },
+      photosOf(req),
+    );
+    res.status(201).json(ok(toMyPostView(bundle, user.row.id)));
+  });
+
+  router.patch('/articles/:id', photoFields, async (req, res) => {
+    const user = currentUser(req);
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) throw AppError.badRequest('글 번호가 올바르지 않아요.');
+    const parsed = articleSchema.safeParse(req.body);
+    if (!parsed.success)
+      throw AppError.badRequest('입력 내용을 다시 확인해 주세요.', parsed.error.issues);
+    const bundle = await posts.updateArticle(
+      user,
+      id,
+      { ...parsed.data, submit: parsed.data.submit ?? true },
+      photosOf(req),
+    );
+    res.json(ok(toMyPostView(bundle, user.row.id)));
+  });
+
+  // ---------- 반응 (RCT-01, 02, 06) ----------
+  router.get('/:id/reactions', async (req, res) => {
+    const user = currentUser(req);
+    res.json(ok(await reactions.reactionsFor(user, Number(req.params.id))));
+  });
+
+  router.post('/:id/like', async (req, res) => {
+    res.json(ok(await reactions.setLike(currentUser(req), 'post', Number(req.params.id), true)));
+  });
+
+  router.delete('/:id/like', async (req, res) => {
+    res.json(ok(await reactions.setLike(currentUser(req), 'post', Number(req.params.id), false)));
+  });
+
+  router.get('/:id/comments', async (req, res) => {
+    const user = currentUser(req);
+    const r = await reactions.reactionsFor(user, Number(req.params.id));
+    res.json(ok(r.comments));
+  });
+
+  router.post('/:id/comments', async (req, res) => {
+    const user = currentUser(req);
+    const body = z.object({ body: z.string().max(1000) }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('댓글 내용을 적어 주세요.');
+    const bundle = await reactions.addComment(user, Number(req.params.id), body.data.body);
+    res.status(201).json(ok(toCommentView(bundle, user.row.id, false)));
   });
 
   // 작성 (RPT-01, 02, 09): multipart (category_capture, app_capture + 필드)
@@ -245,6 +351,8 @@ export function createPostsRouter(): Router {
     const parsed = baseSchema.safeParse(req.body);
     if (!parsed.success)
       throw AppError.badRequest('입력 내용을 다시 확인해 주세요.', parsed.error.issues);
+    if (post.type === 'article')
+      throw AppError.badRequest('기사는 /posts/articles/:id 로 고쳐 주세요.');
     validateText(parsed.data, post.type === 'diary' ? 'diary' : 'report');
     const bundle = await posts.updateReport(user, id, toInput(parsed.data), filesOf(req));
     res.json(ok(toMyPostView(bundle, user.row.id)));

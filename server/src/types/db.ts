@@ -140,10 +140,11 @@ export interface CommentRow {
   target_id: number;
   author_id: number;
   body: string;
-  status: 'visible' | 'hidden';
+  status: 'visible' | 'hidden' | 'deleted';
   hidden_by: number | null;
   hidden_reason: string | null;
   like_count: number;
+  deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }

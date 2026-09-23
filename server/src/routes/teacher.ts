@@ -9,6 +9,7 @@ import { toTeacherPostView } from '../lib/serializers/post.js';
 import { toTeacherUser } from '../lib/serializers/user.js';
 import * as postRepo from '../repos/postRepo.js';
 import { transition } from '../services/PostService.js';
+import * as tc from '../services/TeacherCommentService.js';
 import type { BulkApproveResult, PendingQueueView } from '../types/api.js';
 import type { PostStatus, PostType } from '../types/db.js';
 import {
@@ -196,6 +197,99 @@ export function createTeacherRouter(): Router {
       ip: clientIp(req),
     });
     res.json(ok(toTeacherPostView(bundle)));
+  });
+
+  // ---------- S3: 댓글 모아보기 (TCH-06, 07) ----------
+  const scopeSchema = z.object({
+    scope: z.enum(['class', 'grade', 'group']),
+    id: z.string().min(1).max(10),
+  });
+
+  router.get('/comments', async (req, res) => {
+    const user = currentUser(req);
+    let scope: tc.CommentScope;
+    let scopeId: string;
+    const parsed = scopeSchema.safeParse({ scope: req.query.scope, id: req.query.id });
+    if (parsed.success) {
+      scope = parsed.data.scope;
+      scopeId = parsed.data.id;
+    } else {
+      const d = tc.defaultScope(user);
+      if (!d) throw AppError.badRequest('볼 수 있는 반이 없어요.');
+      scope = d.scope;
+      scopeId = d.scopeId;
+    }
+    const flag =
+      req.query.flag === 'reported' || req.query.flag === 'banned' ? req.query.flag : 'all';
+    const since =
+      typeof req.query.since === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.since)
+        ? `${req.query.since} 00:00:00`
+        : undefined;
+    const beforeId = req.query.cursor ? Number(req.query.cursor) : undefined;
+    res.json(
+      ok(
+        await tc.listComments(user, scope, scopeId, {
+          since,
+          flag,
+          beforeId: Number.isInteger(beforeId) ? beforeId : undefined,
+        }),
+      ),
+    );
+  });
+
+  router.post('/comments/:id/hide', async (req, res) => {
+    const body = z.object({ reason: z.string().max(200).optional() }).safeParse(req.body);
+    await tc.hideComment(
+      currentUser(req),
+      postIdParam(req.params.id),
+      body.success ? body.data.reason : undefined,
+      clientIp(req),
+    );
+    res.json(ok({ hidden: true }));
+  });
+
+  router.post('/comments/:id/unhide', async (req, res) => {
+    await tc.unhideComment(currentUser(req), postIdParam(req.params.id), clientIp(req));
+    res.json(ok({ hidden: false }));
+  });
+
+  router.post('/comments/:id/notify', async (req, res) => {
+    const body = z
+      .object({ code: z.enum(['kind', 'privacy', 'spam', 'hidden']) })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('안내 문구를 골라 주세요.');
+    await tc.notifyCommentAuthor(
+      currentUser(req),
+      postIdParam(req.params.id),
+      body.data.code,
+      clientIp(req),
+    );
+    res.json(ok({ notified: true }));
+  });
+
+  router.post('/comments/checked', async (req, res) => {
+    const body = scopeSchema.safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('범위를 확인해 주세요.');
+    await tc.markChecked(currentUser(req), body.data.scope, body.data.id);
+    res.json(ok({ checked: true }));
+  });
+
+  // ---------- S3: 신고함 (TCH-04, RCT-05) ----------
+  router.get('/reports', async (req, res) => {
+    const status = req.query.status === 'all' ? 'all' : 'open';
+    res.json(ok(await tc.listReports(currentUser(req), status)));
+  });
+
+  router.post('/reports/:id/handle', async (req, res) => {
+    const body = z.object({ action: z.enum(['keep', 'hide', 'delete']) }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('처리 방법을 골라 주세요.');
+    await tc.handleReport(
+      currentUser(req),
+      postIdParam(req.params.id),
+      body.data.action,
+      clientIp(req),
+    );
+    res.json(ok({ handled: true }));
   });
 
   /** 선택 일괄 승인 (TCH-02). 실패한 글은 이유와 함께 돌려주고 나머지는 계속 */

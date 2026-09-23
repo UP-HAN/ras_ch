@@ -10,13 +10,17 @@ import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
 import { PostDetailPage } from '@/pages/student/PostDetailPage';
 import { PostListPage } from '@/pages/student/PostListPage';
+import { ArticleFormPage } from '@/pages/student/ArticleFormPage';
 import { ReportFormPage } from '@/pages/student/ReportFormPage';
 import { WritePage } from '@/pages/student/WritePage';
 import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
 import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
+import { BannedWordsPage } from '@/pages/teacher/admin/BannedWordsPage';
 import { ClassPostsPage } from '@/pages/teacher/ClassPostsPage';
+import { CommentsPage } from '@/pages/teacher/CommentsPage';
 import { DashboardPage } from '@/pages/teacher/DashboardPage';
 import { PendingPage } from '@/pages/teacher/PendingPage';
+import { ReportsPage } from '@/pages/teacher/ReportsPage';
 import { StudentsPage } from '@/pages/teacher/StudentsPage';
 
 /**
@@ -39,9 +43,11 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'write', element: <WritePage /> },
       { path: 'write/report', element: <ReportFormPage /> },
+      { path: 'write/article', element: <ArticleFormPage /> },
       { path: 'posts', element: <PostListPage /> },
       { path: 'posts/:id', element: <PostDetailPage /> },
       { path: 'posts/:id/edit', element: <ReportFormPage /> },
+      { path: 'posts/:id/edit-article', element: <ArticleFormPage /> },
       {
         path: 'debate',
         element: <PlaceholderPage title="토론방" sprint="2차 개발" description="곧 열려요." />,
@@ -62,11 +68,12 @@ const router = createBrowserRouter([
       { path: 'pending', element: <PendingPage /> },
       { path: 'posts', element: <ClassPostsPage /> },
       { path: 'students', element: <StudentsPage /> },
-      { path: 'comments', element: <PlaceholderPage title="댓글 모아보기" sprint="S3 3-5" /> },
-      { path: 'reports', element: <PlaceholderPage title="신고함" sprint="S3 3-2" /> },
+      { path: 'comments', element: <CommentsPage /> },
+      { path: 'reports', element: <ReportsPage /> },
       { path: 'stats', element: <PlaceholderPage title="통계" sprint="S5 5-5" /> },
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
+      { path: 'admin/banned-words', element: <BannedWordsPage /> },
       {
         path: 'admin/point-rules',
         element: <PlaceholderPage title="포인트 규칙" sprint="S4 4-4" />,

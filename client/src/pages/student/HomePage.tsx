@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
+import { reactionsApi } from '@/api/reactions';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 
@@ -73,7 +74,9 @@ const REPORT_CARD: Record<string, CardSpec> = {
 /** 학생 홈 (6.1, CMN-05): 내 상태 → 리포트 카드 → 알림 → 우리 반 최근 글 */
 export function HomePage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['me', 'home'], queryFn: meApi.home });
+  const attendance = useQuery({ queryKey: ['me', 'attendance'], queryFn: reactionsApi.attendance });
   const recent = useQuery({
     queryKey: ['posts', 'list', 'class', 'home'],
     queryFn: () => postsApi.list('class'),
@@ -99,6 +102,11 @@ export function HomePage() {
 
   const { me, weekPoints, report, notifications } = q.data;
   const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
+  const openNotification = async (id: number, link?: string) => {
+    await meApi.readNotification(id).catch(() => undefined);
+    await qc.invalidateQueries({ queryKey: ['me', 'home'] });
+    if (link) navigate(link);
+  };
 
   return (
     <div className="space-y-4">
@@ -119,6 +127,13 @@ export function HomePage() {
           <div className="text-right">
             <p className="text-base text-ink-muted">이번 주 포인트</p>
             <p className="text-3xl font-extrabold text-primary-700">{weekPoints}P</p>
+            {attendance.data && (
+              <p className="text-base text-ink-muted">
+                {attendance.data.streak >= 2
+                  ? `🔥 ${attendance.data.streak}일 연속 출석`
+                  : '✅ 오늘 출석'}
+              </p>
+            )}
           </div>
         </div>
       </Card>
@@ -146,11 +161,21 @@ export function HomePage() {
           />
         ) : (
           <ul className="space-y-2">
-            {notifications.map((n) => (
-              <li key={n.id} className="rounded-md bg-primary-50 px-3 py-2 text-base">
-                {String((n.payload as { message?: string }).message ?? n.type)}
-              </li>
-            ))}
+            {notifications.map((n) => {
+              const payload = n.payload as { message?: string; link?: string };
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => openNotification(n.id, payload.link)}
+                    className={`flex min-h-tap w-full items-center rounded-md px-3 py-2 text-left text-base ${n.readAt ? 'bg-paper text-ink-muted' : 'bg-primary-50 font-semibold'}`}
+                  >
+                    {n.readAt ? '' : '🔔 '}
+                    {String(payload.message ?? n.type)}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

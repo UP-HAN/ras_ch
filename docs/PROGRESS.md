@@ -33,3 +33,10 @@
 - 충족한 PRD ID: RPT-01, 02, 03, 04, 05, 06(교사 단독 흐름), 07, 08, 09, AUTH-08(캡처형 서버 거부), APR-06(교사 직접 승인), TCH-02 기본형, TCH-04(숨김), 9.2 /posts·/teacher/posts, 부록 B, 절대 규칙 3·4·5·6·8.
 - 남은 것: 포인트 실제 지급은 S4(지금은 NOT_IMPLEMENTED 를 warn 으로 넘김). 임원 1차 검토·익명 화면·이미지 상단 마스크(S4 4-6), 대기함 3구간(S4 4-7), 좋아요·댓글(S3), 리포트 그래프(RPT-10).
 - 다음 스프린트 리스크: S3 기사는 같은 posts 테이블·같은 transition 을 쓰므로 `type='article'` 분기와 article_details 만 추가하면 됨. 댓글·좋아요는 target_type 로 일반화되어 있으니 리포트·기사 공통 파이프라인으로 한 번에 만들 것. 신고 3회 자동 숨김은 transition('hide', system) 경로 필요 → actor 에 system 허용.
+
+### 2026-09-24 — S3 기사·반응·댓글 점검 (3-1 ~ 3-6)
+
+- 만든 것: 기사 작성·수정(유형 템플릿·태그·사진 0~3장·한 줄 소감, 승인 시 전교 공개, 기자단 보너스 훅), 기사 목록(최신/엄지척순·영역·기자단 필터). 좋아요(글·댓글, 1회·취소)·댓글(10~300자, 글당 3개, 금칙어 필터, 작성자 삭제)·신고(1인 1회, 3명 신고 시 자동 숨김)를 `target_type/target_id`로 일반화. 출석(하루 첫 호출 login_days + 연속 일수)·읽기(서버 열람 시각 대조, 10초+끝까지 스크롤, 글당 1회). 교사 댓글 모아보기(반/학년/학년군, 신고됨·금칙어 근접 필터, 오늘/미확인 수·마지막 확인자, 숨김·정형 안내·확인 기록), 신고함(유지/숨김/삭제), 금칙어 관리, 인앱 알림(승인·반려·숨김·안내, 홈에서 읽음 처리). 테스트 149개, e2e 55건.
+- 충족한 PRD ID: ART-01, 02, 03, 04, 07(배지·필터·보너스 훅), RCT-01, 02, 03(상한은 규칙표 caps), 04, 05, 06, 07(안내 문구 표시), PT-09, PT-10, TCH-04(신고함·숨김), TCH-06, TCH-07, CMN-03, ADM-02(금칙어), 8.1(댓글·좋아요·신고 일반화), 9.2.
+- 남은 것: 포인트 실제 지급은 S4(모든 이벤트가 PointService 훅으로 연결됨: REPORT__, ARTICLE_APPROVED, REPORTER_BONUS, COMMENT_WRITTEN, LIKE__, DAILY_LOGIN, STREAK_7, POST_READ). like_count·comment_count 재검증 배치(S5). 추천 기사(ART-05).
+- 다음 스프린트 리스크: S4의 원장 집계 상한 검사에서 share_codes·per_object(좋아요는 like.id, 읽기는 post.id, 출석은 login_day.id)·granter 기준을 이벤트 refType/eventKey 와 정확히 맞춰야 함. 회수는 reverse(refType, refId)로 호출되므로 원장 ref 컬럼이 그대로 키가 됨.

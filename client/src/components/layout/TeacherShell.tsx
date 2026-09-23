@@ -22,6 +22,7 @@ const TEACHER_MENU = [
 const ADMIN_MENU = [
   { to: '/teacher/admin/school', label: '학교 설정' },
   { to: '/teacher/admin/students-import', label: '학생 CSV 등록' },
+  { to: '/teacher/admin/banned-words', label: '금칙어' },
   { to: '/teacher/admin/point-rules', label: '포인트 규칙' },
   { to: '/teacher/admin/settlements', label: '월간 결산' },
   { to: '/teacher/admin/content', label: '공지·문구' },

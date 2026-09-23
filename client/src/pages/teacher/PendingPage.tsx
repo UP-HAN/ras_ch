@@ -5,6 +5,7 @@ import { errorMessage } from '@/api/client';
 import { teacherApi } from '@/api/teacher';
 import { teacherPostsApi } from '@/api/teacherPosts';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { tagLabel, typeLabel } from '@/components/post/articleMeta';
 import { minutesLabel, UsageDiff } from '@/components/post/UsageDiff';
 import { Badge, Button, Card, EmptyState, Spinner, Textarea } from '@/components/ui';
 
@@ -196,8 +197,21 @@ export function PendingPage() {
                   {p.report.topApp && <span>· {p.report.topApp}</span>}
                 </p>
               )}
+              {p.type === 'article' && (
+                <p className="mb-1 text-lg font-bold">
+                  📰 {p.title}
+                  {p.article && (
+                    <span className="ml-2 text-base font-normal text-ink-muted">
+                      {typeLabel(p.article.articleType)} · {p.article.tags.map(tagLabel).join(' ')}
+                    </span>
+                  )}
+                </p>
+              )}
               <p className="mb-1 whitespace-pre-wrap text-base">{p.body}</p>
-              <p className="mb-3 text-base text-ink-muted">🎯 {p.goalText}</p>
+              {p.goalText && <p className="mb-3 text-base text-ink-muted">🎯 {p.goalText}</p>}
+              {p.article?.oneLine && (
+                <p className="mb-3 text-base text-ink-muted">💬 {p.article.oneLine}</p>
+              )}
               {p.councilReview.note && (
                 <p className="mb-2 rounded-md bg-warn-50 px-3 py-1 text-base text-warn-600">
                   임원 메모: {p.councilReview.note}

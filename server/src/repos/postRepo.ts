@@ -353,11 +353,17 @@ export interface ApprovedListQuery {
   classId?: number;
   /** 전교 공개 글 */
   schoolOnly?: boolean;
-  cursor?: { approvedAt: string; id: number };
+  /** latest: approved_at·id 내림차순 / likes: like_count·id 내림차순 (ART-04) */
+  sort?: 'latest' | 'likes';
+  /** 기사 영역 태그 필터 (article_details.tags JSON) */
+  tag?: string;
+  /** 기자단 학생 글만 (ART-07) */
+  reporterOnly?: boolean;
+  cursor?: { approvedAt?: string; likeCount?: number; id: number };
   limit: number;
 }
 
-/** 승인된 글 목록, approved_at·id 내림차순 커서 (CMN-04) */
+/** 승인된 글 목록, 커서 페이지네이션 (CMN-04) */
 export async function listApproved(q: ApprovedListQuery): Promise<PostBundle[]> {
   const where: string[] = ['p.deleted_at IS NULL', "p.status = 'approved'"];
   const params: unknown[] = [];
@@ -368,16 +374,64 @@ export async function listApproved(q: ApprovedListQuery): Promise<PostBundle[]> 
     params.push(q.classId);
   }
   if (q.schoolOnly) where.push("p.visibility = 'school'");
+  if (q.tag) {
+    where.push(
+      'p.id IN (SELECT post_id FROM article_details WHERE JSON_CONTAINS(tags, JSON_QUOTE(?)))',
+    );
+    params.push(q.tag);
+  }
+  if (q.reporterOnly) where.push('u.is_reporter = 1');
+  const sort = q.sort ?? 'latest';
   if (q.cursor) {
-    where.push('(p.approved_at < ? OR (p.approved_at = ? AND p.id < ?))');
-    params.push(q.cursor.approvedAt, q.cursor.approvedAt, q.cursor.id);
+    if (sort === 'likes') {
+      where.push('(p.like_count < ? OR (p.like_count = ? AND p.id < ?))');
+      params.push(q.cursor.likeCount ?? 0, q.cursor.likeCount ?? 0, q.cursor.id);
+    } else {
+      where.push('(p.approved_at < ? OR (p.approved_at = ? AND p.id < ?))');
+      params.push(q.cursor.approvedAt, q.cursor.approvedAt, q.cursor.id);
+    }
   }
   params.push(q.limit);
+  const order = sort === 'likes' ? 'p.like_count DESC, p.id DESC' : 'p.approved_at DESC, p.id DESC';
   const rows = await query<BundleRow>(
-    `${BUNDLE_SELECT} WHERE ${where.join(' AND ')} ORDER BY p.approved_at DESC, p.id DESC LIMIT ?`,
+    `${BUNDLE_SELECT} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ?`,
     params,
   );
   return attachDetails(rows, getPool());
+}
+
+// ---------- S3: 기사·댓글 수 ----------
+
+export interface ArticleDetailsInput {
+  articleType: string;
+  tags: string[];
+  oneLine: string | null;
+}
+
+export async function upsertArticleDetails(
+  postId: number,
+  d: ArticleDetailsInput,
+  conn: Executor = getPool(),
+): Promise<void> {
+  await execute(
+    `INSERT INTO article_details (post_id, article_type, tags, one_line)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE article_type = VALUES(article_type), tags = VALUES(tags), one_line = VALUES(one_line)`,
+    [postId, d.articleType, JSON.stringify(d.tags), d.oneLine],
+    conn,
+  );
+}
+
+export async function bumpCommentCount(
+  postId: number,
+  delta: number,
+  conn: Executor = getPool(),
+): Promise<void> {
+  await execute(
+    'UPDATE posts SET comment_count = GREATEST(0, comment_count + ?) WHERE id = ?',
+    [delta, postId],
+    conn,
+  );
 }
 
 /** 교사용: 반의 글을 상태별로 (대기함·반 글 목록) */

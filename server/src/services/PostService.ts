@@ -16,7 +16,8 @@ import {
   sniffImageType,
   MAX_IMAGE_BYTES,
 } from '../lib/image.js';
-import { logger } from '../lib/logger.js';
+import { ARTICLE_LIMITS, validateArticle } from '../lib/articleRules.js';
+import { notify } from '../lib/notify.js';
 import { canManagePost, canViewPost, viewerFromAuthUser } from '../lib/postAccess.js';
 import {
   diffMinutes,
@@ -31,8 +32,8 @@ import * as postRepo from '../repos/postRepo.js';
 import { insert } from '../db/query.js';
 import type { AuthUser } from '../types/auth.js';
 import type { ImageKind, PostStatus, Visibility } from '../types/db.js';
-import { getPointService } from './points/PointService.js';
-import { buildEventKey } from './points/types.js';
+import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
+import { buildEventKey, type RuleCode } from './points/types.js';
 
 export type PostAction =
   'submit' | 'resubmit' | 'approve' | 'reject' | 'hide' | 'unhide' | 'delete';
@@ -83,114 +84,151 @@ export function resolveRejectReason(opts: TransitionOptions): string {
   return REJECT_REASONS[code];
 }
 
-const actorRole = (u: AuthUser): 'teacher' | 'admin' | 'council' | 'council_teacher' =>
-  u.row.role === 'admin'
-    ? 'admin'
-    : u.row.role === 'council_teacher'
-      ? 'council_teacher'
-      : u.row.role === 'teacher'
-        ? 'teacher'
-        : 'council';
+/** 신고 3회 자동 숨김 등 시스템이 실행하는 전이 (RCT-05) */
+export type SystemActor = 'system';
+export type TransitionActor = AuthUser | SystemActor;
+
+const actorRole = (
+  u: TransitionActor,
+): 'teacher' | 'admin' | 'council' | 'council_teacher' | 'system' =>
+  u === 'system'
+    ? 'system'
+    : u.row.role === 'admin'
+      ? 'admin'
+      : u.row.role === 'council_teacher'
+        ? 'council_teacher'
+        : u.row.role === 'teacher'
+          ? 'teacher'
+          : 'council';
+
+const actorId = (u: TransitionActor): number | null => (u === 'system' ? null : u.row.id);
 
 async function writeReviewLog(
   conn: PoolConnection,
   postId: number,
-  actor: AuthUser,
+  actor: TransitionActor,
   action: 'approve' | 'reject' | 'hide' | 'unhide' | 'reset',
   note: string | null,
 ): Promise<void> {
   await insert(
     'INSERT INTO review_logs (post_id, actor_id, actor_role, action, note) VALUES (?, ?, ?, ?, ?)',
-    [postId, actor.row.id, actorRole(actor), action, note],
+    [postId, actorId(actor), actorRole(actor), action, note],
     conn,
   );
 }
 
-/** 승인 시 포인트 지급 (PT-02). 원장 주차는 리포트 대상 주차 기준 */
-async function grantReportPoints(bundle: PostBundle, conn: PoolConnection): Promise<void> {
-  const { post, report } = bundle;
-  if (post.type !== 'report' && post.type !== 'diary') return;
-  const occurredAt = post.week_key ? weekRange(post.week_key).start.toDate() : new Date();
-  const points = getPointService();
-  const events = [
-    { ruleCode: 'REPORT_APPROVED' as const, cond: true },
-    {
-      ruleCode: 'REPORT_DECREASE' as const,
-      cond:
-        report?.diff_minutes !== null &&
-        report?.diff_minutes !== undefined &&
-        report.diff_minutes < 0,
-    },
-    {
-      ruleCode: 'GOAL_CHECKED' as const,
-      cond:
-        report?.goal_achieved !== null &&
-        report?.goal_achieved !== undefined &&
-        !!report.goal_reason,
-    },
-  ];
+/** 승인 시 포인트 지급 (PT-02). 리포트는 대상 주차 기준, 기사는 승인 시각 기준 */
+async function grantApprovalPoints(bundle: PostBundle, conn: PoolConnection): Promise<void> {
+  const { post, report, author } = bundle;
+  const events: Array<{ ruleCode: RuleCode; cond: boolean }> = [];
+  let occurredAt = new Date();
+  if (post.type === 'report' || post.type === 'diary') {
+    occurredAt = post.week_key ? weekRange(post.week_key).start.toDate() : new Date();
+    events.push(
+      { ruleCode: 'REPORT_APPROVED', cond: true },
+      {
+        ruleCode: 'REPORT_DECREASE',
+        cond:
+          report?.diff_minutes !== null &&
+          report?.diff_minutes !== undefined &&
+          report.diff_minutes < 0,
+      },
+      {
+        ruleCode: 'GOAL_CHECKED',
+        cond:
+          report?.goal_achieved !== null &&
+          report?.goal_achieved !== undefined &&
+          !!report.goal_reason,
+      },
+    );
+  } else if (post.type === 'article') {
+    events.push(
+      { ruleCode: 'ARTICLE_APPROVED', cond: true },
+      { ruleCode: 'REPORTER_BONUS', cond: author.is_reporter === 1 }, // ART-07
+    );
+  }
   for (const e of events) {
     if (!e.cond) continue;
-    try {
-      await points.apply(
-        {
-          ruleCode: e.ruleCode,
-          userId: post.author_id,
-          refType: 'post',
-          refId: post.id,
-          occurredAt,
-          eventKey: buildEventKey(e.ruleCode, 'post', post.id),
-        },
-        conn,
-      );
-    } catch (err) {
-      // TODO(S4 4-1): LedgerPointService 로 교체되면 이 분기는 제거
-      if (err instanceof AppError && err.code === 'NOT_IMPLEMENTED') {
-        logger.warn({ postId: post.id, rule: e.ruleCode }, '포인트 엔진 미구현 — 지급 생략');
-        continue;
-      }
-      throw err;
-    }
+    await applyPointsSafe(
+      {
+        ruleCode: e.ruleCode,
+        userId: post.author_id,
+        refType: 'post',
+        refId: post.id,
+        occurredAt,
+        eventKey: buildEventKey(e.ruleCode, 'post', post.id),
+      },
+      conn,
+    );
   }
 }
 
-async function reversePostPoints(
-  postId: number,
-  note: string,
-  actorId: number,
+const TYPE_LABEL: Record<string, string> = { report: '리포트', diary: '일기', article: '기사' };
+
+/** 작성자에게 인앱 알림 (CMN-03). 본인이 한 일에는 보내지 않는다 */
+async function notifyAuthor(
   conn: PoolConnection,
+  bundle: PostBundle,
+  action: PostAction,
+  actor: TransitionActor,
+  note: string | null,
 ): Promise<void> {
-  try {
-    await getPointService().reverse('post', postId, { note, actorId }, conn);
-  } catch (err) {
-    if (err instanceof AppError && err.code === 'NOT_IMPLEMENTED') {
-      logger.warn({ postId }, '포인트 엔진 미구현 — 회수 생략');
-      return;
-    }
-    throw err;
+  const { post } = bundle;
+  if (actor !== 'system' && actor.row.id === post.author_id) return;
+  const label = TYPE_LABEL[post.type] ?? '글';
+  const link = `/posts/${post.id}`;
+  if (action === 'approve') {
+    await notify(
+      post.author_id,
+      'post_approved',
+      { message: `${label}가 게시됐어요! 잘했어요.`, link, postId: post.id },
+      conn,
+    );
+  } else if (action === 'reject') {
+    await notify(
+      post.author_id,
+      'post_rejected',
+      {
+        message: `${label}를 고쳐서 다시 보내 주세요. ${note ?? ''}`.trim(),
+        link,
+        postId: post.id,
+      },
+      conn,
+    );
+  } else if (action === 'hide') {
+    await notify(
+      post.author_id,
+      'post_hidden',
+      { message: `${label}가 숨겨졌어요. ${note ?? ''}`.trim(), link, postId: post.id },
+      conn,
+    );
   }
 }
 
 export async function transition(
   postId: number,
   action: PostAction,
-  actor: AuthUser,
+  actor: TransitionActor,
   opts: TransitionOptions = {},
 ): Promise<PostBundle> {
   return tx(async (conn) => {
     const post = await postRepo.findPostById(postId, conn, true);
     if (!post || post.deleted_at) throw AppError.notFound('글을 찾을 수 없어요.');
 
-    const viewer = viewerFromAuthUser(actor);
-    const isAuthor = post.author_id === actor.row.id;
-    const isStudentAction = STUDENT_ACTIONS.includes(action) && actor.row.role === 'student';
-    if (isStudentAction) {
-      if (!isAuthor) throw AppError.forbidden('내 글만 바꿀 수 있어요.');
-    } else if (TEACHER_ACTIONS.includes(action)) {
-      if (!canManagePost(viewer, post))
-        throw AppError.forbidden('이 반의 글을 처리할 권한이 없어요.');
+    if (actor === 'system') {
+      if (action !== 'hide') throw AppError.forbidden();
     } else {
-      throw AppError.forbidden();
+      const viewer = viewerFromAuthUser(actor);
+      const isAuthor = post.author_id === actor.row.id;
+      const isStudentAction = STUDENT_ACTIONS.includes(action) && actor.row.role === 'student';
+      if (isStudentAction) {
+        if (!isAuthor) throw AppError.forbidden('내 글만 바꿀 수 있어요.');
+      } else if (TEACHER_ACTIONS.includes(action)) {
+        if (!canManagePost(viewer, post))
+          throw AppError.forbidden('이 반의 글을 처리할 권한이 없어요.');
+      } else {
+        throw AppError.forbidden();
+      }
     }
 
     const wasApproved = post.status === 'approved';
@@ -209,13 +247,13 @@ export async function transition(
       case 'approve':
         patch.status = 'approved';
         patch.approvedNow = true;
-        patch.reviewedBy = actor.row.id;
+        patch.reviewedBy = actorId(actor);
         patch.reviewedNow = true;
         break;
       case 'reject':
         patch.status = 'rejected';
         patch.rejectReason = resolveRejectReason(opts);
-        patch.reviewedBy = actor.row.id;
+        patch.reviewedBy = actorId(actor);
         patch.reviewedNow = true;
         logNote = patch.rejectReason;
         break;
@@ -240,7 +278,7 @@ export async function transition(
     }
     await writeAudit(
       {
-        actorId: actor.row.id,
+        actorId: actorId(actor),
         action: `post.${action}`,
         targetType: 'post',
         targetId: post.id,
@@ -253,12 +291,166 @@ export async function transition(
     const bundle = await postRepo.loadBundle(post.id, conn);
     if (!bundle) throw AppError.notFound('글을 찾을 수 없어요.');
 
-    if (action === 'approve') await grantReportPoints(bundle, conn);
+    if (action === 'approve') await grantApprovalPoints(bundle, conn);
     if ((action === 'reject' || action === 'hide' || action === 'delete') && wasApproved) {
-      await reversePostPoints(post.id, `post.${action}`, actor.row.id, conn);
+      await reversePointsSafe(
+        'post',
+        post.id,
+        { note: `post.${action}`, actorId: actorId(actor) ?? undefined },
+        conn,
+      );
     }
+    await notifyAuthor(conn, bundle, action, actor, logNote);
     return bundle;
   });
+}
+
+// ---------- 기사 (ART-01, 02, 03, 07) ----------
+
+export interface ArticleWriteInput {
+  title: string;
+  tags: string[];
+  articleType: string;
+  body: string;
+  oneLine: string | null;
+  submit: boolean;
+}
+
+async function processPhotos(
+  files: UploadedFile[],
+): Promise<Array<{ path: string; width: number; height: number }>> {
+  if (files.length > ARTICLE_LIMITS.photosMax)
+    throw AppError.badRequest(`사진은 ${ARTICLE_LIMITS.photosMax}장까지만 올릴 수 있어요.`);
+  const out: Array<{ path: string; width: number; height: number }> = [];
+  for (const f of files) {
+    if (f.size > MAX_IMAGE_BYTES)
+      throw AppError.badRequest('사진이 너무 커요. 5MB 이하로 올려 주세요.');
+    if (!sniffImageType(f.buffer))
+      throw AppError.badRequest('jpg, png, webp 사진만 올릴 수 있어요.');
+    let processed;
+    try {
+      processed = await processCapture(f.buffer);
+    } catch {
+      throw AppError.badRequest('사진을 읽을 수 없어요. 다른 사진으로 다시 올려 주세요.');
+    }
+    out.push({
+      path: await saveImage(processed),
+      width: processed.width,
+      height: processed.height,
+    });
+  }
+  return out;
+}
+
+export async function createArticle(
+  user: AuthUser,
+  input: ArticleWriteInput,
+  files: UploadedFile[],
+): Promise<PostBundle> {
+  if (user.row.role !== 'student' || !user.klass)
+    throw AppError.forbidden('학생만 기사를 쓸 수 있어요.');
+  const problem = validateArticle(input);
+  if (problem) throw AppError.badRequest(problem);
+  const saved = await processPhotos(files);
+  try {
+    return await tx(async (conn) => {
+      const postId = await postRepo.insertPost(
+        {
+          type: 'article',
+          authorId: user.row.id,
+          classId: user.klass?.id as number,
+          grade: user.klass?.grade as number,
+          status: input.submit ? 'pending' : 'draft',
+          visibility: 'school',
+          title: input.title.trim(),
+          body: input.body.trim(),
+          goalText: null,
+          weekKey: null,
+          submitted: input.submit,
+        },
+        conn,
+      );
+      await postRepo.upsertArticleDetails(
+        postId,
+        {
+          articleType: input.articleType,
+          tags: [...new Set(input.tags)],
+          oneLine: input.oneLine?.trim() || null,
+        },
+        conn,
+      );
+      let sort = 0;
+      for (const img of saved)
+        await postRepo.insertImage(postId, 'photo', img.path, img.width, img.height, sort++, conn);
+      const bundle = await postRepo.loadBundle(postId, conn);
+      if (!bundle) throw AppError.notFound('글을 찾을 수 없어요.');
+      return bundle;
+    });
+  } catch (err) {
+    for (const img of saved) await deleteImage(img.path);
+    throw err;
+  }
+}
+
+/** 승인 전 본인 수정. 사진을 새로 올리면 기존 사진을 모두 교체한다 */
+export async function updateArticle(
+  user: AuthUser,
+  postId: number,
+  input: ArticleWriteInput,
+  files: UploadedFile[],
+): Promise<PostBundle> {
+  const post = await postRepo.findPostById(postId);
+  if (!post || post.deleted_at) throw AppError.notFound('글을 찾을 수 없어요.');
+  if (post.author_id !== user.row.id) throw AppError.forbidden('내 글만 고칠 수 있어요.');
+  if (!EDITABLE.includes(post.status))
+    throw AppError.conflict('선생님이 승인한 글은 고칠 수 없어요.');
+  if (post.type !== 'article') throw AppError.badRequest('기사가 아니에요.');
+  const problem = validateArticle(input);
+  if (problem) throw AppError.badRequest(problem);
+  const saved = await processPhotos(files);
+  const removed: string[] = [];
+  try {
+    await tx(async (conn) => {
+      await postRepo.updatePost(
+        post.id,
+        { title: input.title.trim(), body: input.body.trim() },
+        conn,
+      );
+      await postRepo.upsertArticleDetails(
+        post.id,
+        {
+          articleType: input.articleType,
+          tags: [...new Set(input.tags)],
+          oneLine: input.oneLine?.trim() || null,
+        },
+        conn,
+      );
+      if (saved.length > 0) {
+        const old = await postRepo.deleteImagesByKind(post.id, 'photo', conn);
+        removed.push(...old.map((o) => o.path));
+        let sort = 0;
+        for (const img of saved)
+          await postRepo.insertImage(
+            post.id,
+            'photo',
+            img.path,
+            img.width,
+            img.height,
+            sort++,
+            conn,
+          );
+      }
+    });
+  } catch (err) {
+    for (const img of saved) await deleteImage(img.path);
+    throw err;
+  }
+  for (const p of removed) await deleteImage(p);
+  if (input.submit)
+    return transition(post.id, post.status === 'draft' ? 'submit' : 'resubmit', user);
+  const bundle = await postRepo.loadBundle(post.id);
+  if (!bundle) throw AppError.notFound('글을 찾을 수 없어요.');
+  return bundle;
 }
 
 // ---------- 작성·수정 ----------
@@ -391,7 +583,7 @@ export async function createReport(
 
 export type ReportUpdate = Omit<ReportInput, 'type' | 'weekKey'>;
 
-const EDITABLE: PostStatus[] = ['draft', 'pending', 'reviewed', 'flagged', 'rejected'];
+export const EDITABLE: PostStatus[] = ['draft', 'pending', 'reviewed', 'flagged', 'rejected'];
 
 export async function updateReport(
   user: AuthUser,

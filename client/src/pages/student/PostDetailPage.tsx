@@ -5,8 +5,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { postsApi } from '@/api/posts';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ArticleDetail } from '@/components/post/ArticleDetail';
+import { ReactionsSection } from '@/components/post/Reactions';
 import { ReportDetail } from '@/components/post/ReportDetail';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { useReadTracker } from '@/hooks/useReadTracker';
 
 const STATUS: Record<
   string,
@@ -26,7 +29,7 @@ function isMine(p: StudentPostView | MyPostView): p is MyPostView {
   return p.isMine && 'rejectReason' in p;
 }
 
-/** 리포트 상세 (RPT-07, RPT-08). 본인 글이면 상태·반려 사유·수정·삭제 */
+/** 글 상세 (RPT-07/08, ART-01, RCT-01~06, PT-10). 리포트/기사 분기, 좋아요·댓글·신고·읽기 추적 */
 export function PostDetailPage() {
   const { id } = useParams();
   const postId = Number(id);
@@ -38,6 +41,11 @@ export function PostDetailPage() {
     enabled: Number.isInteger(postId),
   });
   const [error, setError] = useState<string | null>(null);
+  const post = q.data as StudentPostView | MyPostView | undefined;
+  const mine = post ? isMine(post) : false;
+  const my = post && isMine(post) ? post : null;
+  // 읽기 이벤트: 남의 승인된 글만 (서버도 다시 검사)
+  useReadTracker(post && !mine && post.status === 'approved' ? post.id : null, true);
 
   if (q.isLoading) {
     return (
@@ -46,7 +54,7 @@ export function PostDetailPage() {
       </div>
     );
   }
-  if (!q.data) {
+  if (!post) {
     return (
       <EmptyState
         icon="🙈"
@@ -60,12 +68,12 @@ export function PostDetailPage() {
       />
     );
   }
-  const post = q.data as StudentPostView | MyPostView;
-  const mine = isMine(post);
   const status = STATUS[post.status] ?? STATUS.pending!;
+  const isArticle = post.type === 'article';
+  const editPath = isArticle ? `/posts/${post.id}/edit-article` : `/posts/${post.id}/edit`;
 
   const remove = async () => {
-    if (!window.confirm('이 리포트를 지울까요? 받은 포인트도 함께 없어져요.')) return;
+    if (!window.confirm('이 글을 지울까요? 받은 포인트도 함께 없어져요.')) return;
     try {
       await postsApi.remove(post.id);
       await qc.invalidateQueries({ queryKey: ['posts'] });
@@ -79,27 +87,39 @@ export function PostDetailPage() {
   return (
     <>
       <PageHeader
-        title={post.type === 'diary' ? '폰 없는 일주일 일기' : '폰프리 주간 리포트'}
+        title={
+          isArticle
+            ? 'RAS 기사'
+            : post.type === 'diary'
+              ? '폰 없는 일주일 일기'
+              : '폰프리 주간 리포트'
+        }
         action={mine ? <Badge tone={status.tone}>{status.label}</Badge> : undefined}
       />
-      {mine && post.status === 'rejected' && post.rejectReason && (
+      {my && my.status === 'rejected' && my.rejectReason && (
         <Card tone="primary" className="mb-4" title="선생님 말씀">
-          <p className="text-base">{post.rejectReason}</p>
+          <p className="text-base">{my.rejectReason}</p>
           <p className="mt-1 text-base text-ink-muted">고쳐서 다시 보내면 돼요.</p>
         </Card>
       )}
       {mine && post.status === 'hidden' && (
         <p className="mb-4 rounded-md bg-warn-50 px-3 py-2 text-base text-warn-600">
-          {post.hiddenReason ?? '선생님이 숨긴 글이에요.'}
+          {my?.hiddenReason ?? '선생님이 숨긴 글이에요.'}
         </p>
       )}
 
-      <ReportDetail post={post} />
+      {isArticle ? <ArticleDetail post={post} /> : <ReportDetail post={post} />}
+
+      {post.status === 'approved' && (
+        <div className="mt-4">
+          <ReactionsSection postId={post.id} isMine={mine} />
+        </div>
+      )}
 
       {mine && (
         <div className="mt-4 space-y-2">
           {EDITABLE.includes(post.status) && (
-            <Button block variant="secondary" onClick={() => navigate(`/posts/${post.id}/edit`)}>
+            <Button block variant="secondary" onClick={() => navigate(editPath)}>
               {post.status === 'rejected' ? '고쳐서 다시 보내기' : '고치기'}
             </Button>
           )}
@@ -112,11 +132,6 @@ export function PostDetailPage() {
             </p>
           )}
         </div>
-      )}
-      {!mine && (
-        <Card className="mt-4">
-          <p className="text-base text-ink-muted">👍 좋아요와 💬 댓글은 곧 열려요. (S3)</p>
-        </Card>
       )}
     </>
   );

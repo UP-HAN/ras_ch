@@ -9,8 +9,10 @@ import {
 } from '../middleware/auth.js';
 import { createAdminRouter } from './admin.js';
 import { createAuthRouter } from './auth.js';
+import { attendance } from '../middleware/attendance.js';
 import { createMeRouter } from './me.js';
 import { createPostsRouter } from './posts.js';
+import { createReactionsRouter } from './reactions.js';
 import { createSettingsRouter } from './settings.js';
 import { createTeacherRouter } from './teacher.js';
 
@@ -33,6 +35,7 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use(requireFetchHeader); // CSRF (10장)
   router.use(opts.userLoader ? loadUserWith(opts.userLoader) : loadUser);
   router.use(requirePasswordChanged); // AUTH-02
+  router.use(attendance); // PT-09 하루 첫 호출 출석
 
   router.get('/ping', (_req, res) => {
     res.json(ok({ pong: true, time: new Date().toISOString() }));
@@ -44,6 +47,7 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/teacher', createTeacherRouter());
   router.use('/posts', createPostsRouter());
   router.use('/settings', createSettingsRouter());
+  router.use('/', createReactionsRouter());
 
   return router;
 }

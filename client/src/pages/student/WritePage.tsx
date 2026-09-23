@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card } from '@/components/ui';
 
-/** 글쓰기 두 갈래 (PRD 6.1). 기사 작성 폼은 S3 */
+/** 글쓰기 두 갈래 (PRD 6.1): 리포트 / 기사 */
 export function WritePage() {
   const navigate = useNavigate();
   return (
@@ -19,9 +19,9 @@ export function WritePage() {
         </Card>
         <Card title="📰 RAS 기사">
           <p className="mb-3 text-base">
-            학교에서 겪은 독서·예술·스포츠 활동을 기사로 써요. (곧 열려요)
+            학교에서 겪은 독서·예술·스포츠·폰프리 활동을 기사로 써요. 승인되면 전교에 게시돼요.
           </p>
-          <Button block size="lg" variant="secondary" disabled>
+          <Button block size="lg" variant="secondary" onClick={() => navigate('/write/article')}>
             기사 쓰기
           </Button>
         </Card>

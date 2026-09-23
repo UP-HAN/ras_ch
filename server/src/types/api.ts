@@ -303,3 +303,109 @@ export interface PublicSettingsView {
   reportText: { reflection_min: number; reflection_max: number; goal_max: number };
   goodCommentGuide: string;
 }
+
+// ---------- S3: 기사·반응·출석·읽기·댓글 점검 ----------
+
+export interface CommentView {
+  id: number;
+  body: string;
+  likeCount: number;
+  likedByMe: boolean;
+  isMine: boolean;
+  createdAt: string;
+  author: StudentAuthorView;
+}
+
+export interface TeacherCommentView {
+  id: number;
+  body: string;
+  status: 'visible' | 'hidden' | 'deleted';
+  likeCount: number;
+  reportCount: number;
+  bannedHits: string[];
+  createdAt: string;
+  hiddenReason: string | null;
+  author: {
+    id: number;
+    name: string;
+    displayName: string;
+    classId: number | null;
+    className: string | null;
+    grade: number | null;
+    studentNo: number | null;
+  };
+  target: {
+    type: string;
+    id: number;
+    postType: string | null;
+    title: string | null;
+    authorDisplayName: string | null;
+  };
+}
+
+export interface TeacherCommentsPage {
+  scope: 'class' | 'grade' | 'group';
+  scopeId: string;
+  items: TeacherCommentView[];
+  nextCursor: string | null;
+  counts: {
+    today: number;
+    unchecked: number;
+    lastCheckedAt: string | null;
+    lastCheckedBy: string | null;
+  };
+}
+
+export interface LikeResult {
+  liked: boolean;
+  likeCount: number;
+}
+
+export interface ReportResult {
+  reported: boolean;
+  autoHidden: boolean;
+}
+
+export interface AttendanceView {
+  days: number;
+  streak: number;
+  todayDone: boolean;
+}
+
+export interface ReadResult {
+  completed: boolean;
+  reason?: 'TOO_FAST' | 'NOT_SCROLLED' | 'ALREADY_DONE' | 'NOT_ELIGIBLE';
+}
+
+export interface ReportItemView {
+  id: number;
+  targetType: string;
+  targetId: number;
+  postId: number | null;
+  reason: string;
+  status: 'open' | 'kept' | 'hidden' | 'deleted';
+  createdAt: string;
+  reportCount: number;
+  reporter: { displayName: string; className: string | null };
+  target: {
+    preview: string | null;
+    status: string | null;
+    authorName: string | null;
+    className: string | null;
+  };
+}
+
+export interface BannedWordView {
+  id: number;
+  word: string;
+  isActive: boolean;
+}
+
+/** 상세 화면에서 좋아요·댓글 상태를 함께 내려준다 */
+export interface PostReactionsView {
+  likedByMe: boolean;
+  likeCount: number;
+  comments: CommentView[];
+  myCommentCount: number;
+  goodCommentGuide: string;
+}
