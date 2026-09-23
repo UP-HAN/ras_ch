@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { authApi } from '@/api/auth';
+import { useMe, useMeCache } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 import { CloseIcon, MenuIcon } from './icons';
 
 /**
  * 교사 셸 (PRD 6.2, 6.3): PC 우선 좌측 메뉴 240px. 1024px 미만은 상단 햄버거 드로어.
- * 관리자 전용 섹션은 자리만 두고 S1(역할 조회) 이후 역할에 따라 숨긴다.
+ * 관리자 섹션은 role=admin 일 때만 보인다(서버도 별도로 403 검사).
  */
 const TEACHER_MENU = [
   { to: '/teacher', label: '반 대시보드', end: true },
@@ -18,6 +20,7 @@ const TEACHER_MENU = [
 
 const ADMIN_MENU = [
   { to: '/teacher/admin/school', label: '학교 설정' },
+  { to: '/teacher/admin/students-import', label: '학생 CSV 등록' },
   { to: '/teacher/admin/point-rules', label: '포인트 규칙' },
   { to: '/teacher/admin/settlements', label: '월간 결산' },
   { to: '/teacher/admin/content', label: '공지·문구' },
@@ -50,8 +53,16 @@ function MenuList({ items, onNavigate }: { items: typeof TEACHER_MENU; onNavigat
 export function TeacherShell() {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const { me } = useMe();
+  const cache = useMeCache();
+  const navigate = useNavigate();
 
-  // 드로어에서 메뉴를 고르면 닫는다(onNavigate). PC 사이드바에서는 열림 상태가 없다
+  const logout = async () => {
+    await authApi.logout();
+    cache.clear();
+    navigate('/login', { replace: true });
+  };
+
   const nav = (
     <nav aria-label="교사 메뉴" className="flex h-full flex-col gap-6 p-4">
       <div className="text-xl font-extrabold text-accent-700">
@@ -59,21 +70,45 @@ export function TeacherShell() {
         <div className="text-base font-medium text-ink-muted">교사 화면</div>
       </div>
       <MenuList items={TEACHER_MENU} onNavigate={close} />
-      <div>
-        <p className="mb-1 px-3 text-base font-bold text-ink-muted">관리자</p>
-        <MenuList items={ADMIN_MENU} onNavigate={close} />
+      {me?.role === 'admin' && (
+        <div>
+          <p className="mb-1 px-3 text-base font-bold text-ink-muted">관리자</p>
+          <MenuList items={ADMIN_MENU} onNavigate={close} />
+        </div>
+      )}
+      <div className="mt-auto border-t border-line pt-4">
+        <p className="px-3 text-base font-semibold">{me?.name}</p>
+        <p className="px-3 text-base text-ink-muted">
+          {me?.role === 'admin' ? '관리자' : '교사'}
+          {me?.isApprover ? ' · 승인 권한' : ''}
+          {me?.advisorGradeGroup ? ` · ${me.advisorGradeGroup}학년군 지도` : ''}
+        </p>
+        <div className="mt-2 flex gap-1 px-1">
+          <button
+            type="button"
+            onClick={() => navigate('/change-password')}
+            className="min-h-tap flex-1 rounded-md px-2 text-base text-accent-900 hover:bg-accent-100"
+          >
+            비밀번호
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="min-h-tap flex-1 rounded-md px-2 text-base text-accent-900 hover:bg-accent-100"
+          >
+            로그아웃
+          </button>
+        </div>
       </div>
     </nav>
   );
 
   return (
     <div className="min-h-dvh bg-paper lg:flex">
-      {/* PC: 고정 사이드바 */}
       <aside className="hidden w-sidebar shrink-0 border-r border-line bg-surface lg:block">
         {nav}
       </aside>
 
-      {/* 모바일·태블릿: 상단 바 + 드로어 */}
       <div className="flex-1">
         <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-surface px-4 lg:hidden">
           <button

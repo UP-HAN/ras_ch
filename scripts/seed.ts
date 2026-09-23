@@ -18,6 +18,7 @@ const TEACHER_PW = 'teacher1234!';
 
 // 시드 후 TRUNCATE 순서와 무관하게 지우기 위해 FK 검사를 잠시 끈다
 const ALL_TABLES = [
+  'audit_logs',
   'review_logs',
   'review_assignments',
   'approval_settings',

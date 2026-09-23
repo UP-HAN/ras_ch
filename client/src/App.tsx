@@ -1,22 +1,35 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 import { StudentShell } from '@/components/layout/StudentShell';
 import { TeacherShell } from '@/components/layout/TeacherShell';
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
+import { LoginPage } from '@/pages/LoginPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
 import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
 import { WritePage } from '@/pages/student/WritePage';
+import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
+import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
 import { DashboardPage } from '@/pages/teacher/DashboardPage';
+import { StudentsPage } from '@/pages/teacher/StudentsPage';
 
 /**
- * 라우트 골격. 로그인 가드·역할 분기는 S1(1-1, 1-2)에서 붙인다.
+ * 라우트. 로그인·역할 가드는 RequireAuth(클라이언트 편의), 실제 권한은 서버(AUTH-07).
+ *  "/login", "/change-password"  셸 없음
  *  "/"         학생 셸 (모바일 하단 탭)
  *  "/teacher"  교사 셸 (PC 좌측 메뉴)
  */
 const router = createBrowserRouter([
+  { path: '/login', element: <LoginPage /> },
+  { path: '/change-password', element: <ChangePasswordPage /> },
   {
     path: '/',
-    element: <StudentShell />,
+    element: (
+      <RequireAuth area="student">
+        <StudentShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <HomePage /> },
       { path: 'write', element: <WritePage /> },
@@ -26,26 +39,27 @@ const router = createBrowserRouter([
       },
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'me', element: <MyPage /> },
-      { path: 'login', element: <PlaceholderPage title="로그인" sprint="S1 1-1" /> },
     ],
   },
   {
     path: '/teacher',
-    element: <TeacherShell />,
+    element: (
+      <RequireAuth area="teacher">
+        <TeacherShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       {
         path: 'pending',
         element: <PlaceholderPage title="승인 대기함" sprint="S2 2-7 · S4 4-7" />,
       },
-      { path: 'students', element: <PlaceholderPage title="학생 관리" sprint="S1 1-4 · 1-5" /> },
+      { path: 'students', element: <StudentsPage /> },
       { path: 'comments', element: <PlaceholderPage title="댓글 모아보기" sprint="S3 3-5" /> },
       { path: 'reports', element: <PlaceholderPage title="신고함" sprint="S3 3-2" /> },
       { path: 'stats', element: <PlaceholderPage title="통계" sprint="S5 5-5" /> },
-      {
-        path: 'admin/school',
-        element: <PlaceholderPage title="학교 설정" sprint="S1 1-3 · 1-4" />,
-      },
+      { path: 'admin/school', element: <SchoolSettingsPage /> },
+      { path: 'admin/students-import', element: <StudentImportPage /> },
       {
         path: 'admin/point-rules',
         element: <PlaceholderPage title="포인트 규칙" sprint="S4 4-4" />,

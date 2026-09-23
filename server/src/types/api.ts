@@ -168,3 +168,78 @@ export interface MeView extends PublicUser {
   parentConsent: YesNo;
   actingAs: 'teacher' | 'council' | null;
 }
+
+// ---------- S1: 인증·홈·관리 ----------
+
+export interface LoginResult {
+  me: MeView;
+  mustChangePw: boolean;
+}
+
+export interface NotificationView {
+  id: number;
+  type: string;
+  payload: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+}
+
+/** 학생 홈 (6.1, CMN-05). 리포트 상태는 S2 전까지 'none' */
+export interface HomeView {
+  me: MeView;
+  weekKey: string;
+  weekPoints: number;
+  report: { status: 'none' | PostStatus; postId: number | null };
+  notifications: NotificationView[];
+}
+
+export interface SchoolYearView {
+  id: number;
+  year: number;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+}
+
+export interface ClassView {
+  id: number;
+  grade: number;
+  classNo: number;
+  name: string;
+  homeroomTeacherId: number | null;
+  homeroomTeacherName: string | null;
+  teacherIds: number[];
+  studentCount: number;
+}
+
+export interface TeacherView extends TeacherUser {
+  classIds: number[];
+}
+
+export interface ImportRowError {
+  line: number;
+  message: string;
+}
+
+export interface ImportRowResult {
+  line: number;
+  loginId: string;
+  className: string;
+  studentNo: number;
+  action: 'create' | 'update';
+  /** 자동 생성된 초기 비밀번호(신규·미변경 학생만, 결과 화면에 1회 표시) */
+  initialPassword: string | null;
+}
+
+export interface ImportResult {
+  dryRun: boolean;
+  created: number;
+  updated: number;
+  createdClasses: string[];
+  rows: ImportRowResult[];
+  errors: ImportRowError[];
+}
+
+export interface ResetPasswordResult {
+  tempPassword: string;
+}

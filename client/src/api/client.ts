@@ -1,6 +1,7 @@
 /**
  * fetch 래퍼: 세션 쿠키 포함, { ok, data } | { ok:false, error } 언래핑.
  * 서버 응답 타입은 server/src/types/api.ts 를 `import type` 으로 가져와 쓴다.
+ * 모든 요청에 X-Requested-With: fetch 를 붙인다(서버 CSRF 검사, 10장).
  */
 export interface ApiErrorBody {
   code: string;
@@ -28,10 +29,12 @@ const BASE = '/api/v1';
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers: Record<string, string> = { 'X-Requested-With': 'fetch' };
+  if (!isForm && body !== undefined) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${BASE}${path}`, {
     method,
     credentials: 'include',
-    headers: isForm || body === undefined ? {} : { 'Content-Type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
 
@@ -59,3 +62,7 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
 };
+
+export function errorMessage(err: unknown, fallback = '문제가 생겼어요. 다시 해 주세요.'): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}

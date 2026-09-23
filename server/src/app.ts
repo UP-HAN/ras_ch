@@ -1,4 +1,5 @@
 import express, { type Express } from 'express';
+import session from 'express-session';
 import helmet from 'helmet';
 import path from 'node:path';
 import { pinoHttp } from 'pino-http';
@@ -8,11 +9,15 @@ import { ok } from './lib/apiResponse.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { createSessionMiddleware } from './middleware/session.js';
+import type { UserLoader } from './middleware/auth.js';
 import { createApiRouter } from './routes/index.js';
 
 export interface CreateAppOptions {
-  /** 테스트에서 세션 스토어(DB) 없이 띄울 때 */
-  withSession?: boolean;
+  /**
+   * 테스트 전용(NODE_ENV=test 에서만 동작): 메모리 세션 + `x-test-user-id` 헤더로 로그인 상태를 흉내 내고,
+   * 사용자 로딩은 주입한 loader 로 한다(DB 불필요).
+   */
+  testAuth?: { userLoader: UserLoader };
 }
 
 export function createApp(opts: CreateAppOptions = {}): Express {
@@ -41,7 +46,23 @@ export function createApp(opts: CreateAppOptions = {}): Express {
     }),
   );
 
-  if (opts.withSession !== false) app.use(createSessionMiddleware());
+  if (opts.testAuth && env.NODE_ENV === 'test') {
+    app.use(
+      session({
+        secret: 'test',
+        resave: false,
+        saveUninitialized: false,
+        cookie: { sameSite: 'lax' },
+      }),
+    );
+    app.use((req, _res, next) => {
+      const raw = req.get('x-test-user-id');
+      if (raw) req.session.userId = Number(raw);
+      next();
+    });
+  } else {
+    app.use(createSessionMiddleware());
+  }
 
   // 헬스체크 (11장 모니터링). DB 연결까지 확인
   app.get('/healthz', async (_req, res) => {
@@ -52,7 +73,10 @@ export function createApp(opts: CreateAppOptions = {}): Express {
   // 업로드된 리사이즈 이미지(원본은 저장하지 않음). 접근 제어는 S2에서 라우트로 감싼다
   app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR), { index: false, maxAge: '7d' }));
 
-  app.use('/api/v1', createApiRouter());
+  app.use(
+    '/api/v1',
+    createApiRouter(opts.testAuth ? { userLoader: opts.testAuth.userLoader } : {}),
+  );
 
   app.use(notFoundHandler);
   app.use(errorHandler);
