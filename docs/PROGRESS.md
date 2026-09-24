@@ -88,3 +88,7 @@
 
 - 사용자 결정: 이 사이트의 모든 글·댓글·기사·토론 의견·자치회 글은 존댓말. CLAUDE.md 절대 규칙 9.
 - 구현: `lib/politeness.ts`(서버·클라이언트 동일 규칙, 반말 어미 문장 찾기 — 차단 없이 안내), 글쓰기·기사·자치회 폼에 `PoliteNotice` 배너와 입력 중 `PoliteWarning`, 댓글·토론 의견 입력 힌트, 리포트 문장 도우미 존댓말화, 교사 반려 사유 `not_polite`, 임원 체크리스트 `polite`·보류 사유, 좋은 댓글 기준 문구. 시연·데모 시드의 리포트·일기·기사·카드뉴스 본문 전부 존댓말로 변환(검사 0건), 토론 의견은 찬성·반대 접두사를 일부에만 다양하게.
+
+### 2026-09-25 — 시연 전용 두 번째 사이트 (ras1)
+
+- https://ras1.ches.es.kr: 같은 서버의 별도 인스턴스(/var/app/ras-demo, DB ras_demo, pm2 ras-demo 3301, certbot, noindex). 시연 데이터 스냅샷(/var/backups/ras-point/showcase)을 복원해 두었고 `deploy/demo-refresh.sh [fresh|snapshot]` 로 새로 고친다. 화면에는 시연임을 드러내는 표시가 전혀 없고(사용자 지시), 운영 사이트 관리자 메뉴에만 링크(관리자 /me.demoSiteUrl, 운영 .env DEMO_SITE_URL).
