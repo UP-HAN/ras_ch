@@ -532,7 +532,87 @@ const ARTICLES = [
     oneLine: '사진 대신 눈으로 담았다',
     body: '지난주 목요일 시립미술관에 견학을 갔다. 선생님은 사진을 찍기 전에 그림을 1분 동안 보라고 하셨다. 처음엔 길게 느껴졌는데 자세히 보니 그림 속에 숨은 고양이가 보였다. 폰으로 찍기만 했으면 못 봤을 것이다. 제일 기억에 남는 작품은 바다를 그린 큰 그림이었다. 견학 뒤에는 각자 좋아하는 그림을 따라 그렸다. 다음에는 가족과 다시 가고 싶다.',
   },
+  {
+    title: '급식실 영양 선생님께 물었다, 채소 반찬의 비밀',
+    type: 'interview',
+    tags: ['R'],
+    oneLine: '남기지 않으면 지구도 좋아해요',
+    body: '급식실 영양 선생님을 찾아가 채소 반찬이 자주 나오는 이유를 여쭤보았다. 선생님은 "자라는 몸에는 골고루 먹는 게 제일 중요하다"고 하셨다. 제일 인기 없는 반찬은 나물이고 제일 인기 있는 반찬은 닭강정이라고 한다. 잔반이 줄어들면 급식실에서 특별 메뉴를 준비한다는 약속도 받았다. 선생님은 "한 입만 먼저 먹어 보라"는 말을 꼭 전해 달라고 하셨다. 다음 달에는 학생들이 메뉴를 제안하는 날도 생긴다고 한다.',
+  },
+  {
+    title: '방과 후 농구 교실 첫 수업',
+    type: 'coverage',
+    tags: ['S'],
+    oneLine: '레이업 성공!',
+    body: '이번 주부터 체육관에서 방과 후 농구 교실이 시작됐다. 6학년 스물네 명이 신청했고 코치 선생님 두 분이 가르쳐 주신다. 첫 시간에는 드리블과 패스를 배웠다. 공을 놓치는 친구가 많았지만 아무도 웃지 않고 다시 주워 줬다. 마지막에는 레이업 슛 연습을 했는데 처음 성공한 친구가 크게 소리를 질렀다. 코치 선생님은 "폰 대신 공을 잡는 시간이 늘면 키도 큰다"고 농담하셨다. 수업은 매주 화·목요일이다.',
+  },
+  {
+    title: '우리 반 폰 없는 점심시간 일주일 실험',
+    type: 'review',
+    tags: ['phonefree'],
+    oneLine: '밥이 더 맛있었다',
+    body: '우리 반은 일주일 동안 점심시간에 폰을 사물함에 넣어 두기로 했다. 첫날에는 밥 먹고 나서 뭘 해야 할지 몰라 멀뚱멀뚱 앉아 있었다. 둘째 날부터 운동장에 나가 피구를 했다. 셋째 날에는 교실에서 젠가 대회가 열렸다. 일주일이 지나니 폰 생각이 별로 안 났다. 담임 선생님은 "밥 먹는 속도가 빨라지고 대화가 늘었다"고 하셨다. 우리 반은 이 실험을 한 달 더 하기로 투표했다.',
+  },
+  {
+    title: '학교 도서관 신간 코너를 소개합니다',
+    type: 'coverage',
+    tags: ['R'],
+    oneLine: '추리 소설이 열 권이나!',
+    body: '도서관 입구에 신간 코너가 새로 생겼다. 이번 달에는 추리 소설 열 권, 과학 만화 여섯 권, 그림책 다섯 권이 들어왔다. 사서 선생님은 학생들이 신청한 책을 우선으로 샀다고 하셨다. 제일 먼저 빌려 간 책은 탐정 시리즈 3권이었다. 신간은 한 번에 한 권만 빌릴 수 있고 일주일 안에 돌려줘야 한다. 다음 달 신간 신청은 도서관 앞 상자에 쪽지를 넣으면 된다. 읽고 싶은 책이 있으면 미리 적어 두자.',
+  },
+  {
+    title: '합창부 지휘를 맡은 친구 인터뷰',
+    type: 'interview',
+    tags: ['A'],
+    oneLine: '박자보다 마음을 맞춰요',
+    body: '가을 음악회에서 합창부 지휘를 맡은 6학년 친구를 만났다. 지휘는 음악 선생님이 추천해서 맡게 됐다고 한다. 제일 어려운 점은 "친구들이 서로 다른 박자로 부를 때"라고 했다. 연습할 때 폰을 보는 친구가 있으면 노래가 흔들려서 연습 시간에는 폰을 가방에 넣기로 다 같이 정했다. 음악회에서 부를 곡은 세 곡이고 그중 한 곡은 학생들이 직접 골랐다. 긴장되지 않냐고 묻자 "친구들 얼굴을 보면 괜찮다"고 답했다.',
+  },
+  {
+    title: '운동장 조회대 벽 그리기 봉사 후기',
+    type: 'review',
+    tags: ['A', 'phonefree'],
+    oneLine: '페인트가 옷에 묻어도 좋았다',
+    body: '토요일 아침에 운동장 조회대 벽 그리기 봉사에 참여했다. 6학년 열두 명과 선생님 세 분이 모였다. 밑그림은 미술부가 미리 그려 두었고 우리는 색을 칠했다. 페인트가 손과 옷에 묻었지만 아무도 신경 쓰지 않았다. 세 시간 동안 폰을 한 번도 안 봤는데 시간이 금방 갔다. 완성된 벽에는 책 읽는 아이, 공 차는 아이, 그림 그리는 아이가 있다. 월요일에 친구들이 벽 앞에서 사진을 찍는 걸 보니 뿌듯했다.',
+  },
+  {
+    title: '과학실에서 열린 물로켓 대회',
+    type: 'coverage',
+    tags: ['R', 'S'],
+    oneLine: '38미터 신기록',
+    body: '과학 동아리가 준비한 물로켓 대회가 운동장에서 열렸다. 6학년 열 팀이 참가했고 페트병과 종이로 직접 로켓을 만들었다. 물의 양과 공기 압력을 다르게 해서 실험했다. 가장 멀리 날아간 로켓은 38미터를 기록해 작년 기록을 넘었다. 발사 순간마다 아이들이 카운트다운을 외쳤다. 과학 선생님은 "실패한 팀도 왜 실패했는지 적어 오면 점수를 준다"고 하셨다. 다음 대회는 봄에 열린다.',
+  },
+  {
+    title: '우리 학교 텃밭 배추가 김장이 되기까지',
+    type: 'review',
+    tags: ['R'],
+    oneLine: '배추 한 포기의 여행',
+    body: '텃밭에서 키운 배추가 김장 김치가 되는 과정을 따라가 봤다. 9월에 모종을 심고 매주 물을 줬다. 벌레를 잡느라 애를 먹었지만 농약은 쓰지 않았다. 11월에 수확한 배추는 급식실로 갔고 학부모 봉사단과 함께 김장을 했다. 우리는 배추에 양념을 바르는 일을 맡았다. 손이 빨개졌지만 갓 담근 김치를 밥에 얹어 먹으니 정말 맛있었다. 남은 김치는 지역 복지관에 전달했다.',
+  },
 ] as const;
+const CARD_TITLES = [
+  '한 장으로 보는 폰프리 3원칙',
+  '쉬는 시간 10분 활용법 3가지',
+  '자기 전 폰 대신 할 일 5가지',
+  '댓글 예절 3가지',
+  '캡처 리포트 잘 쓰는 법',
+  '주말 폰 사용 줄이기 4단계',
+  '알림 끄기 설정 3단계',
+  '토론방에서 의견 말하는 법',
+  '우리 반 보드게임 TOP 3',
+  '독서 습관 만드는 4가지 방법',
+];
+const CARD_BODIES = [
+  '첫째, 자기 전에는 폰을 거실에 둔다. 둘째, 공부할 때는 방해금지 모드를 켠다. 셋째, 자동 재생은 끈다. 이 세 가지만 지켜도 하루 한 시간이 생긴다.',
+  '하나, 물 마시고 화장실 다녀오기. 둘, 친구랑 공기 한 판. 셋, 다음 수업 준비물 꺼내 두기. 폰은 가방 속에서 쉬어요.',
+  '책 열 쪽 읽기, 스트레칭, 내일 준비물 챙기기, 일기 세 줄 쓰기, 가족과 이야기하기. 폰 없이도 30분은 금방 가요.',
+  '칭찬 먼저, 질문은 부드럽게, 놀리는 말은 절대 금지. 좋은 댓글은 친구를 웃게 해요.',
+  '설정에서 사용시간 화면과 앱 순위 화면을 각각 캡처해요. 성찰 글은 무엇을 얼마나 썼는지, 다음 주 목표는 한 줄로!',
+  '1단계 아침에 폰 사용시간 확인, 2단계 오전엔 밖에서 놀기, 3단계 오후에 한 시간만 보기, 4단계 저녁엔 가족과 시간 보내기.',
+  '설정 → 알림 → 앱별 알림 끄기. 게임과 SNS 알림만 꺼도 폰을 켜는 횟수가 절반으로 줄어요.',
+  '나는 ○○에 찬성/반대해요, 왜냐하면 ○○ 때문이에요. 이유 한 가지만 붙여도 훌륭한 의견이 돼요.',
+  '1위 루미큐브, 2위 할리갈리, 3위 젠가. 점심시간 자치회실에서 빌릴 수 있어요.',
+  '하루 10분 정해진 시간에 읽기, 좋아하는 분야부터, 다 읽으면 한 줄 감상 남기기, 친구에게 추천하기.',
+];
 const REVIEW_OK = { captures_match: true, body_length: true, goal_present: true, clean: true };
 const BONUS_REASONS = [
   '목표를 지키려고 노력했어요',
@@ -610,19 +690,25 @@ function makePersona(u: AuthUser, idx: number): Persona {
   const level: Level = roll < 0.25 ? 'high' : roll < 0.75 ? 'mid' : 'low';
   const base =
     level === 'high'
-      ? { submitP: 0.95, c: [3, 5], l: [6, 10], r: [4, 8], a: [6, 7], d: 0.9, trend: -12 }
+      ? { submitP: 0.95, c: [12, 25], l: [30, 60], r: [15, 30], a: [6, 7], d: 0.9, trend: -12 }
       : level === 'mid'
-        ? { submitP: 0.75, c: [1, 2], l: [3, 5], r: [2, 4], a: [4, 5], d: 0.6, trend: -4 }
-        : { submitP: 0.4, c: [0, 1], l: [0, 2], r: [0, 2], a: [1, 3], d: 0.25, trend: 3 };
+        ? { submitP: 0.75, c: [4, 10], l: [10, 25], r: [6, 14], a: [4, 6], d: 0.6, trend: -4 }
+        : { submitP: 0.4, c: [0, 3], l: [0, 8], r: [0, 5], a: [1, 3], d: 0.25, trend: 3 };
+  const mult = 0.7 + R() * 0.7; // 같은 부류 안에서도 개인차
+  const scale = (r: number[]) =>
+    [Math.round((r[0] as number) * mult), Math.max(1, Math.round((r[1] as number) * mult))] as [
+      number,
+      number,
+    ];
   return {
     u,
     level,
     minutes: between(90, 240),
     trend: base.trend + between(-4, 4),
     submitP: base.submitP,
-    commentsPerWeek: base.c as [number, number],
-    likesPerWeek: base.l as [number, number],
-    readsPerWeek: base.r as [number, number],
+    commentsPerWeek: scale(base.c),
+    likesPerWeek: scale(base.l),
+    readsPerWeek: scale(base.r),
     attendPerWeek: base.a as [number, number],
     debateP: base.d,
     perfectAttendance: level === 'high' && idx % 5 === 0,
@@ -998,42 +1084,66 @@ async function main(): Promise<void> {
     `리포트 ${reportCount}건(반려 후 재제출 ${rejectedCount}) + 이번 주 ${thisWeek.length}건`,
   );
 
-  // 3) 기사: 기자단 + 일반 학생, 승인 10 · 대기 1 · 반려 1, 추천 3
-  const reporters = personas.filter((p) => p.u.row.is_reporter === 1);
-  const writers = shuffle([
-    ...reporters,
-    ...personas.filter((p) => p.u.row.is_reporter !== 1 && p.level !== 'low').slice(0, 5),
-  ]).slice(0, ARTICLES.length);
+  // 3) 기사: 학생마다 글 수가 다르게(열심 1~3, 보통 35% 1, 가끔 10% 1, 기자단 +1). 고유 기사 풀 + 카드뉴스 변형
+  type ArticleSpec = { title: string; type: string; tags: string[]; oneLine: string; body: string };
+  const articleQueue: ArticleSpec[] = shuffle([
+    ...ARTICLES.map((a) => ({ ...a, tags: [...a.tags] })),
+    ...CARD_TITLES.map((title, i) => ({
+      title,
+      type: 'cardnews',
+      tags: [i % 2 ? 'phonefree' : 'R'],
+      oneLine: '한 장으로 정리했어요',
+      body: CARD_BODIES[i] as string,
+    })),
+  ]);
   const articles: Array<{ id: number; authorId: number }> = [];
-  for (const [i, w] of writers.entries()) {
-    const a = ARTICLES[i] as (typeof ARTICLES)[number];
+  const articleJobs: Persona[] = [];
+  for (const p of personas) {
+    let n =
+      p.level === 'high'
+        ? between(1, 3)
+        : p.level === 'mid'
+          ? chance(0.35)
+            ? 1
+            : 0
+          : chance(0.1)
+            ? 1
+            : 0;
+    if (p.u.row.is_reporter === 1) n += 1;
+    for (let k = 0; k < n; k += 1) articleJobs.push(p);
+  }
+  let ai = 0;
+  for (const w of shuffle(articleJobs)) {
+    const a = articleQueue.shift();
+    if (!a) break;
     const bundle = await createArticle(
       w.u,
       {
         title: a.title,
-        tags: [...a.tags],
+        tags: a.tags,
         articleType: a.type,
         body:
           a.type !== 'cardnews' && Array.from(a.body).length < 200
             ? a.body + ' 다음에도 이런 행사가 또 열리면 꼭 참여하고 싶다.'
-            : a.body,
+            : a.type === 'cardnews' && Array.from(a.body).length < 50
+              ? a.body + ' 친구들과 함께 지켜 봐요!'
+              : a.body,
         oneLine: a.oneLine,
         submit: true,
       },
-      a.type === 'cardnews' ? [await photo(i)] : [await photo(i), await photo(i + 3)],
+      a.type === 'cardnews' ? [await photo(ai)] : [await photo(ai), await photo(ai + 3)],
     );
-    const wk = WEEKS[
-      Math.min(WEEKS.length - 1, Math.floor((i * WEEKS.length) / ARTICLES.length))
-    ] as string;
+    const wk = WEEKS[ai % WEEKS.length] as string;
     const submittedAt = wkAt(wk, between(1, 5), between(15, 20));
-    if (i === ARTICLES.length - 1) {
+    const remaining = articleQueue.length;
+    if (remaining === 0) {
       await setPostTimes(
         bundle.post.id,
         db(today.subtract(1, 'day').hour(15)),
         db(today.subtract(1, 'day').hour(15)),
         null,
       );
-    } else if (i === ARTICLES.length - 2) {
+    } else if (remaining === 1) {
       await transition(bundle.post.id, 'reject', admin, { reasonCode: 'too_short' });
       await setPostTimes(bundle.post.id, db(submittedAt), db(submittedAt), null);
     } else {
@@ -1045,13 +1155,16 @@ async function main(): Promise<void> {
         db(submittedAt.add(1, 'day').hour(9)),
       );
       articles.push({ id: bundle.post.id, authorId: w.u.row.id });
-      if (i < 3)
+      if (ai < 3)
         await execute('UPDATE article_details SET is_featured = 1 WHERE post_id = ?', [
           bundle.post.id,
         ]);
     }
+    ai += 1;
   }
-  console.log(`기사 ${articles.length}건 승인 (+대기 1, 반려 1, 추천 3)`);
+  console.log(
+    `기사 ${articles.length}건 승인 (+대기 1, 반려 1, 추천 3, 쓴 학생 ${new Set(articles.map((x) => x.authorId)).size}명)`,
+  );
 
   // 4) 댓글·엄지척·읽기: 주차별로 그 주와 앞 주의 승인 글에
   let commentCount = 0;
@@ -1059,6 +1172,7 @@ async function main(): Promise<void> {
   let readCount = 0;
   const commentIds: Array<{ id: number; authorId: number; at: ReturnType<typeof kst> }> = [];
   const perPostByAuthor = new Map<string, number>();
+  const levelOf = new Map(personas.map((p) => [p.u.row.id, p.level]));
   for (const [wi, wk] of [...WEEKS, CUR].entries()) {
     const pool = [
       ...(approvedByWeek.get(wk) ?? []),
@@ -1092,7 +1206,15 @@ async function main(): Promise<void> {
         commentIds.push({ id, authorId: p.u.row.id, at });
         commentCount += 1;
       }
-      for (const t of shuffle(visible).slice(0, nL)) {
+      const weighted = visible.flatMap((x) => {
+        const lv = levelOf.get(x.authorId) ?? 'mid';
+        return Array<typeof x>(lv === 'high' ? 3 : lv === 'mid' ? 2 : 1).fill(x);
+      });
+      const likeTargets = [...new Map(shuffle(weighted).map((x) => [x.id, x])).values()].slice(
+        0,
+        nL,
+      );
+      for (const t of likeTargets) {
         await like(
           p.u,
           'post',
