@@ -1,6 +1,6 @@
 # 초롱 RAS 포인트
 
-초롱초등학교 3~6학년 폰프리·RAS 활동 포인트 웹앱.
+초롱초등학교 3~6학년 폰프리·RAS 활동 포인트 웹앱. 시범 운영은 6학년 1~8반으로 시작한다.
 
 - 요구사항: `docs/PRD.md` / 배경·운영: `docs/PLAN.md`
 - 1차 개발 작업 목록: `docs/TASKS-phase1.md` / 진행 기록: `docs/PROGRESS.md`
@@ -25,7 +25,7 @@ cp .env.example .env                  # DB 접속·SESSION_SECRET 등을 채운�
 docker compose up -d mysql            # 로컬 MySQL 8 (스키마 ras_point). Docker가 없으면 아래 참고
 npm install                           # 루트(workspaces: client, server)
 npm run db:migrate                    # server/migrations/*.sql 적용
-npm run db:seed                       # 시범용 반·교사·학생 30명 + 규칙표 + 설정
+npm run db:seed                       # 시범용 6학년 1~8반·교사 8명·학생 58명 + 규칙표 + 설정
 npm run db:seed:demo                  # (선택) 시연용 일주일치 활동: 리포트·기사·댓글·좋아요·검토·승인·출석·공지
 ```
 

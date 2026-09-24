@@ -1,6 +1,6 @@
 # 초롱 RAS 포인트 — 프로젝트 지침 (CLAUDE.md)
 
-초롱초등학교 3~6학년 학생의 폰프리 실천·RAS 활동을 포인트로 모아 보상하는 웹앱.
+초롱초등학교 3~6학년 학생의 폰프리 실천·RAS 활동을 포인트로 모아 보상하는 웹앱. **시범 운영(2026-09-24 결정)은 6학년 1~8반만**(임원도 6학년), 3~5학년은 전체 오픈 때 CSV 로 등록.
 모든 요구사항의 원본은 `docs/PRD.md`(개발요구계획서)이고, 배경·운영 방식은 `docs/PLAN.md`에 있다.
 **요구사항 ID(RPT-06, APR-02c 등)를 코드 주석·커밋 메시지·테스트 이름에 그대로 인용한다.**
 
@@ -54,7 +54,7 @@
 docker compose up -d mysql            # 로컬 MySQL 8 (ras_point)
 npm install                           # 루트(workspaces: client, server)
 npm run db:migrate                    # server/migrations 적용
-npm run db:seed                       # 시범용 반·교사·학생 30명 + 규칙표 + 설정
+npm run db:seed                       # 시범용 6학년 1~8반·교사 8명·학생 58명 + 규칙표 + 설정
 
 # 개발
 npm run dev                           # client(5173) + server(3000) 동시 실행

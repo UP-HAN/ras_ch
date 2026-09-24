@@ -210,22 +210,24 @@ export async function schoolStats(): Promise<SchoolStatsView> {
     newsVoters: Number(c.news_voters ?? 0),
     newsCommenters: Number(c.news_commenters ?? 0),
   }));
-  const grades = [3, 4, 5, 6].map((grade) => {
-    const list = classes.filter((c) => c.grade === grade);
-    const students = list.reduce((a, c) => a + Number(c.students), 0);
-    return {
-      grade,
-      students,
-      weekSubmissionRate: pct(
-        list.reduce((a, c) => a + Number(c.week_submitted ?? 0), 0),
+  const grades = [...new Set(classes.map((c) => c.grade))]
+    .sort((a, b) => a - b)
+    .map((grade) => {
+      const list = classes.filter((c) => c.grade === grade);
+      const students = list.reduce((a, c) => a + Number(c.students), 0);
+      return {
+        grade,
         students,
-      ),
-      monthParticipationRate: pct(
-        list.reduce((a, c) => a + Number(c.month_participated ?? 0), 0),
-        students,
-      ),
-    };
-  });
+        weekSubmissionRate: pct(
+          list.reduce((a, c) => a + Number(c.week_submitted ?? 0), 0),
+          students,
+        ),
+        monthParticipationRate: pct(
+          list.reduce((a, c) => a + Number(c.month_participated ?? 0), 0),
+          students,
+        ),
+      };
+    });
   const weeks: string[] = [];
   let w = wk;
   for (let i = 0; i < 12; i += 1) {

@@ -131,19 +131,21 @@ async function main(): Promise<void> {
       '이미 글이 있습니다. `npm run db:seed -- --force` 로 기본 시드부터 다시 넣은 뒤 실행하세요.',
     );
 
-  const teachers = {
-    t3: await student('t3@ches.es.kr'),
-    t4: await student('t4@ches.es.kr'),
-    t5: await student('t5@ches.es.kr'),
-    admin: await student('admin@ches.es.kr'),
-  };
-  const homeroom: Record<number, AuthUser> = {
-    3: teachers.t3,
-    4: teachers.t4,
-    5: teachers.t5,
-    6: teachers.admin,
-  };
-  const council = { g34: await student('265101'), g56: await student('266101') };
+  // 시범: 6학년 1~8반. 담임은 반 id 로 찾는다
+  const teachers = { t4: await student('t4@ches.es.kr'), admin: await student('admin@ches.es.kr') };
+  const homeroom: Record<number, AuthUser> = {};
+  for (const c of await query<{ id: number; homeroom_teacher_id: number | null }>(
+    'SELECT id, homeroom_teacher_id FROM classes',
+  )) {
+    if (c.homeroom_teacher_id) {
+      const t = await loadAuthUser(c.homeroom_teacher_id);
+      if (t) homeroom[c.id] = t;
+    }
+  }
+  const homeroomOf = (u: AuthUser): AuthUser =>
+    (u.row.class_id && homeroom[u.row.class_id]) || teachers.admin;
+  // 임원(6학년): 6-1 회장, 6-2 부회장 — 검토는 본인 반이 아닌 임원이 맡는다
+  const council = { a: await student('266101'), b: await student('266201') };
   const students = await query<{
     login_id: string;
     grade: number;
@@ -154,7 +156,8 @@ async function main(): Promise<void> {
   );
   const all: AuthUser[] = [];
   for (const s of students) all.push(await student(s.login_id));
-  const reviewerFor = (u: AuthUser) => (u.klass && u.klass.grade <= 4 ? council.g34 : council.g56);
+  const reviewerFor = (u: AuthUser) =>
+    council.a.row.class_id !== u.row.class_id ? council.a : council.b;
 
   // 1) 출석 7일 (오늘 포함) — login_days + DAILY_LOGIN(원장, 그날 날짜로)
   for (const [i, u] of all.entries()) {
@@ -218,7 +221,7 @@ async function main(): Promise<void> {
       }
     }
     if (n % 7 !== 0) {
-      await transition(post.id, 'approve', homeroom[u.klass?.grade ?? 6] as AuthUser);
+      await transition(post.id, 'approve', homeroomOf(u));
       lastWeekPosts.push({ id: post.id, author: u });
     }
     // 시간을 지난주로 보정
@@ -273,7 +276,7 @@ async function main(): Promise<void> {
         note: '캡처가 안내한 화면과 달라요. 사용시간 화면과 앱 순위 화면을 올려 주세요.',
       }).catch(() => undefined);
     if (post.status === 'pending' && m % 9 === 10)
-      await transition(post.id, 'reject', homeroom[u.klass?.grade ?? 6] as AuthUser, {
+      await transition(post.id, 'reject', homeroomOf(u), {
         reasonCode: 'too_short',
       });
     const d = m % 3; // 0~2일 전
@@ -283,12 +286,12 @@ async function main(): Promise<void> {
     );
   }
   // 반려 1건 (미검토 글 중 하나)
-  const pendingOne = await queryOne<{ id: number; grade: number }>(
-    "SELECT id, grade FROM posts WHERE status = 'pending' AND week_key = ? ORDER BY id LIMIT 1",
+  const pendingOne = await queryOne<{ id: number; class_id: number }>(
+    "SELECT id, class_id FROM posts WHERE status = 'pending' AND week_key = ? ORDER BY id LIMIT 1",
     [CUR],
   );
   if (pendingOne)
-    await transition(pendingOne.id, 'reject', homeroom[pendingOne.grade] as AuthUser, {
+    await transition(pendingOne.id, 'reject', homeroom[pendingOne.class_id] ?? teachers.admin, {
       reasonCode: 'too_short',
     });
   console.log('이번 주 리포트 대기함 구성');
@@ -297,7 +300,7 @@ async function main(): Promise<void> {
   const reporters = all.filter((u) => u.row.is_reporter === 1).slice(0, 2);
   const writers = [
     ...reporters,
-    all.find((u) => u.row.is_reporter !== 1 && (u.klass?.grade ?? 0) >= 5) as AuthUser,
+    all.find((u) => u.row.is_reporter !== 1 && u.klass?.name === '6-5') as AuthUser,
   ];
   const articleIds: number[] = [];
   for (const [i, w] of writers.entries()) {
@@ -408,7 +411,7 @@ async function main(): Promise<void> {
   }
 
   // 7) 교사 칭찬 2건
-  const g4 = all.filter((u) => u.klass?.grade === 4);
+  const g4 = all.filter((u) => u.klass?.name === '6-4');
   if (g4[0])
     await teacherBonus(teachers.t4, g4[0].row.id, 10, '목표를 지키려고 노력했어요').catch(
       () => undefined,
@@ -462,7 +465,7 @@ async function main(): Promise<void> {
       }
       await execute("UPDATE news_topics SET status = 'closed' WHERE id = ?", [closedT.id]);
       const bestable = await query<{ id: number }>(
-        "SELECT c.id FROM comments c JOIN users u ON u.id = c.author_id JOIN classes k ON k.id = u.class_id WHERE c.target_type = 'news_topic' AND c.target_id = ? AND k.grade = 4 ORDER BY c.id LIMIT 1",
+        "SELECT c.id FROM comments c JOIN users u ON u.id = c.author_id JOIN classes k ON k.id = u.class_id WHERE c.target_type = 'news_topic' AND c.target_id = ? AND k.name = '6-4' ORDER BY c.id LIMIT 1",
         [closedT.id],
       );
       if (bestable[0])
@@ -499,7 +502,7 @@ async function main(): Promise<void> {
   console.log('더미 데이터 완료:', stats.map((s) => `${s.t} ${s.n}`).join(', '));
   console.log('글 상태:', byStatus.map((s) => `${s.status} ${s.n}`).join(', '));
   console.log(
-    '로그인: 학생 26학년반번(예 264102) / 1234, 교사 t3@ches.es.kr·t4·t5·admin@ches.es.kr / teacher1234! (첫 로그인 때 새 비밀번호로 변경)',
+    '로그인: 학생 26학년반번(예 266402 = 6학년 4반 2번) / 1234, 교사 admin@ches.es.kr(6-1)·t2~t8@ches.es.kr(6-2~6-8) / teacher1234! (첫 로그인 때 새 비밀번호로 변경)',
   );
 }
 

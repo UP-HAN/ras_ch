@@ -53,15 +53,17 @@ export async function weeklyTop(user: AuthUser, week?: string): Promise<WeeklyTo
     rows.filter((r) => r.points > 0).map((r) => ({ ...r, rankInGrade: r.rank_in_grade })),
     perGrade,
   );
-  const grades = [3, 4, 5, 6].map((grade) => {
-    const students = top
-      .filter((r) => r.grade === grade)
-      .map((r) => ({
-        ...toHallStudent(r, teacher, { rank: r.rank_in_grade, points: r.points }),
-        gifted: gifted.has(r.user_id),
-      }));
-    return { grade, students: teacher ? students : students.sort(byKoreanName) };
-  });
+  const grades = [...new Set(rows.map((r) => r.grade))]
+    .sort((a, b) => a - b)
+    .map((grade) => {
+      const students = top
+        .filter((r) => r.grade === grade)
+        .map((r) => ({
+          ...toHallStudent(r, teacher, { rank: r.rank_in_grade, points: r.points }),
+          gifted: gifted.has(r.user_id),
+        }));
+      return { grade, students: teacher ? students : students.sort(byKoreanName) };
+    });
   return {
     weekKey: wk,
     prevWeekKey: previousWeekKey(wk),

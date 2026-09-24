@@ -74,8 +74,12 @@ interface TeacherSeed {
   role: 'admin' | 'teacher';
   isApprover: boolean;
   advisorGradeGroup: '3-4' | '5-6' | null;
-  homeroomGrade: number;
+  /** 담임 반 (시범: 6학년 1~8반) */
+  homeroomClassNo: number;
 }
+
+/** 시범 운영 범위(2026-09-24 결정): 6학년 1~8반만. 3~5학년은 전체 오픈 때 CSV 로 등록한다 */
+export const PILOT_GRADE = 6;
 
 const TEACHERS: TeacherSeed[] = [
   {
@@ -84,7 +88,15 @@ const TEACHERS: TeacherSeed[] = [
     role: 'admin',
     isApprover: true,
     advisorGradeGroup: null,
-    homeroomGrade: 6,
+    homeroomClassNo: 1,
+  },
+  {
+    loginId: 't2@ches.es.kr',
+    name: '오세훈',
+    role: 'teacher',
+    isApprover: true, // 6학년 부장: 승인 권한 교사 그룹(PLAN 4장)
+    advisorGradeGroup: null,
+    homeroomClassNo: 2,
   },
   {
     loginId: 't3@ches.es.kr',
@@ -92,15 +104,15 @@ const TEACHERS: TeacherSeed[] = [
     role: 'teacher',
     isApprover: false,
     advisorGradeGroup: null,
-    homeroomGrade: 3,
+    homeroomClassNo: 3,
   },
   {
     loginId: 't4@ches.es.kr',
     name: '박용휘',
     role: 'teacher',
     isApprover: false,
-    advisorGradeGroup: '3-4',
-    homeroomGrade: 4,
+    advisorGradeGroup: null,
+    homeroomClassNo: 4,
   },
   {
     loginId: 't5@ches.es.kr',
@@ -108,12 +120,36 @@ const TEACHERS: TeacherSeed[] = [
     role: 'teacher',
     isApprover: false,
     advisorGradeGroup: null,
-    homeroomGrade: 5,
+    homeroomClassNo: 5,
+  },
+  {
+    loginId: 't6@ches.es.kr',
+    name: '정수민',
+    role: 'teacher',
+    isApprover: false,
+    advisorGradeGroup: null,
+    homeroomClassNo: 6,
+  },
+  {
+    loginId: 't7@ches.es.kr',
+    name: '최은영',
+    role: 'teacher',
+    isApprover: false,
+    advisorGradeGroup: null,
+    homeroomClassNo: 7,
+  },
+  {
+    loginId: 't8@ches.es.kr',
+    name: '강태우',
+    role: 'teacher',
+    isApprover: false,
+    advisorGradeGroup: null,
+    homeroomClassNo: 8,
   },
 ];
 
 interface StudentSeed {
-  grade: number;
+  classNo: number;
   no: number;
   name: string;
   consent: 'Y' | 'N';
@@ -121,38 +157,67 @@ interface StudentSeed {
   council?: string; // 직책
 }
 
-// 의도적 케이스: 같은 반 마스킹 중복(김하늘·김보늘 → 김○늘(1)/김○늘(6)), 2글자(강민), 4글자(남궁민수)
+// 6학년 1~8반, 반당 7~8명. 의도적 케이스: 같은 반 마스킹 중복(6-3 김하늘·김보늘 → 김○늘(1)/김○늘(6)), 2글자(강민), 4글자(남궁민수)
+// 임원(6학년): 6-1 회장, 6-2 부회장, 6-5 서기
 const STUDENTS: StudentSeed[] = [
-  { grade: 3, no: 1, name: '김하늘', consent: 'Y' },
-  { grade: 3, no: 2, name: '이서준', consent: 'Y' },
-  { grade: 3, no: 3, name: '박지우', consent: 'N' },
-  { grade: 3, no: 4, name: '최도윤', consent: 'Y' },
-  { grade: 3, no: 5, name: '정하윤', consent: 'Y' },
-  { grade: 3, no: 6, name: '김보늘', consent: 'Y' },
-  { grade: 3, no: 7, name: '강민', consent: 'N' },
-  { grade: 3, no: 8, name: '남궁민수', consent: 'Y' },
-  { grade: 4, no: 1, name: '윤서아', consent: 'Y' },
-  { grade: 4, no: 2, name: '장예준', consent: 'Y', reporter: true },
-  { grade: 4, no: 3, name: '오시우', consent: 'N' },
-  { grade: 4, no: 4, name: '한지호', consent: 'Y' },
-  { grade: 4, no: 5, name: '서유나', consent: 'Y' },
-  { grade: 4, no: 6, name: '신은우', consent: 'Y' },
-  { grade: 4, no: 7, name: '문채원', consent: 'N' },
-  { grade: 4, no: 8, name: '배준서', consent: 'Y' },
-  { grade: 5, no: 1, name: '류다은', consent: 'Y', council: '회장' },
-  { grade: 5, no: 2, name: '조수아', consent: 'Y' },
-  { grade: 5, no: 3, name: '임건우', consent: 'Y' },
-  { grade: 5, no: 4, name: '홍지안', consent: 'N' },
-  { grade: 5, no: 5, name: '권나연', consent: 'Y' },
-  { grade: 5, no: 6, name: '송현우', consent: 'Y' },
-  { grade: 5, no: 7, name: '안서윤', consent: 'Y' },
-  { grade: 6, no: 1, name: '황민준', consent: 'Y', council: '부회장' },
-  { grade: 6, no: 2, name: '전지민', consent: 'Y', reporter: true },
-  { grade: 6, no: 3, name: '백승현', consent: 'Y' },
-  { grade: 6, no: 4, name: '노아린', consent: 'N' },
-  { grade: 6, no: 5, name: '유하준', consent: 'Y' },
-  { grade: 6, no: 6, name: '표소율', consent: 'Y' },
-  { grade: 6, no: 7, name: '심재이', consent: 'N' },
+  { classNo: 1, no: 1, name: '류다은', consent: 'Y', council: '회장' },
+  { classNo: 1, no: 2, name: '김민재', consent: 'Y' },
+  { classNo: 1, no: 3, name: '이수빈', consent: 'N' },
+  { classNo: 1, no: 4, name: '박서연', consent: 'Y', reporter: true },
+  { classNo: 1, no: 5, name: '정우진', consent: 'Y' },
+  { classNo: 1, no: 6, name: '최하린', consent: 'Y' },
+  { classNo: 1, no: 7, name: '한도윤', consent: 'Y' },
+  { classNo: 2, no: 1, name: '황민준', consent: 'Y', council: '부회장' },
+  { classNo: 2, no: 2, name: '오지아', consent: 'Y' },
+  { classNo: 2, no: 3, name: '서준호', consent: 'Y' },
+  { classNo: 2, no: 4, name: '윤아름', consent: 'N' },
+  { classNo: 2, no: 5, name: '장시우', consent: 'Y' },
+  { classNo: 2, no: 6, name: '임채원', consent: 'Y' },
+  { classNo: 2, no: 7, name: '고은채', consent: 'Y' },
+  { classNo: 3, no: 1, name: '김하늘', consent: 'Y' },
+  { classNo: 3, no: 2, name: '이서준', consent: 'Y' },
+  { classNo: 3, no: 3, name: '박지우', consent: 'N' },
+  { classNo: 3, no: 4, name: '최도윤', consent: 'Y' },
+  { classNo: 3, no: 5, name: '정하윤', consent: 'Y' },
+  { classNo: 3, no: 6, name: '김보늘', consent: 'Y' },
+  { classNo: 3, no: 7, name: '강민', consent: 'N' },
+  { classNo: 3, no: 8, name: '남궁민수', consent: 'Y' },
+  { classNo: 4, no: 1, name: '윤서아', consent: 'Y' },
+  { classNo: 4, no: 2, name: '장예준', consent: 'Y', reporter: true },
+  { classNo: 4, no: 3, name: '오시우', consent: 'N' },
+  { classNo: 4, no: 4, name: '한지호', consent: 'Y' },
+  { classNo: 4, no: 5, name: '서유나', consent: 'Y' },
+  { classNo: 4, no: 6, name: '신은우', consent: 'Y' },
+  { classNo: 4, no: 7, name: '문채원', consent: 'N' },
+  { classNo: 4, no: 8, name: '배준서', consent: 'Y' },
+  { classNo: 5, no: 1, name: '조수아', consent: 'Y', council: '서기' },
+  { classNo: 5, no: 2, name: '임건우', consent: 'Y' },
+  { classNo: 5, no: 3, name: '홍지안', consent: 'N' },
+  { classNo: 5, no: 4, name: '권나연', consent: 'Y' },
+  { classNo: 5, no: 5, name: '송현우', consent: 'Y' },
+  { classNo: 5, no: 6, name: '안서윤', consent: 'Y' },
+  { classNo: 5, no: 7, name: '나예은', consent: 'Y' },
+  { classNo: 6, no: 1, name: '전지민', consent: 'Y', reporter: true },
+  { classNo: 6, no: 2, name: '백승현', consent: 'Y' },
+  { classNo: 6, no: 3, name: '노아린', consent: 'N' },
+  { classNo: 6, no: 4, name: '유하준', consent: 'Y' },
+  { classNo: 6, no: 5, name: '표소율', consent: 'Y' },
+  { classNo: 6, no: 6, name: '심재이', consent: 'N' },
+  { classNo: 6, no: 7, name: '구본우', consent: 'Y' },
+  { classNo: 7, no: 1, name: '문서현', consent: 'Y' },
+  { classNo: 7, no: 2, name: '양지훈', consent: 'Y', reporter: true },
+  { classNo: 7, no: 3, name: '손예린', consent: 'Y' },
+  { classNo: 7, no: 4, name: '배현우', consent: 'N' },
+  { classNo: 7, no: 5, name: '차수아', consent: 'Y' },
+  { classNo: 7, no: 6, name: '엄태양', consent: 'Y' },
+  { classNo: 7, no: 7, name: '허윤서', consent: 'Y' },
+  { classNo: 8, no: 1, name: '남지호', consent: 'Y' },
+  { classNo: 8, no: 2, name: '진서우', consent: 'Y' },
+  { classNo: 8, no: 3, name: '위다인', consent: 'N' },
+  { classNo: 8, no: 4, name: '변준영', consent: 'Y' },
+  { classNo: 8, no: 5, name: '탁소민', consent: 'Y' },
+  { classNo: 8, no: 6, name: '석하람', consent: 'Y' },
+  { classNo: 8, no: 7, name: '피지원', consent: 'Y' },
 ];
 
 interface RuleSeed {
@@ -429,15 +494,15 @@ async function seed(): Promise<void> {
     teacherIds.set(t.loginId, id);
   }
 
-  // 반 (3~6학년 각 1반) + 담임 배정
-  const classIdByGrade = new Map<number, number>();
+  // 반 (시범: 6학년 1~8반) + 담임 배정
+  const classIdByNo = new Map<number, number>();
   for (const t of TEACHERS) {
     const teacherId = teacherIds.get(t.loginId) as number;
     const classId = await insert(
-      'INSERT INTO classes (school_year_id, grade, class_no, name, homeroom_teacher_id) VALUES (?, ?, 1, ?, ?)',
-      [yearId, t.homeroomGrade, `${t.homeroomGrade}-1`, teacherId],
+      'INSERT INTO classes (school_year_id, grade, class_no, name, homeroom_teacher_id) VALUES (?, ?, ?, ?, ?)',
+      [yearId, PILOT_GRADE, t.homeroomClassNo, `${PILOT_GRADE}-${t.homeroomClassNo}`, teacherId],
     );
-    classIdByGrade.set(t.homeroomGrade, classId);
+    classIdByNo.set(t.homeroomClassNo, classId);
     await insert('INSERT INTO teacher_classes (teacher_id, class_id) VALUES (?, ?)', [
       teacherId,
       classId,
@@ -448,13 +513,13 @@ async function seed(): Promise<void> {
   const named = assignDisplayNames(
     STUDENTS.map((s) => ({
       ...s,
-      classId: classIdByGrade.get(s.grade) as number,
+      classId: classIdByNo.get(s.classNo) as number,
       studentNo: s.no,
     })),
   );
   const studentIds = new Map<string, number>();
   for (const { item: s, displayName } of named) {
-    const loginId = buildStudentLoginId(SCHOOL_YEAR, s.grade, 1, s.no);
+    const loginId = buildStudentLoginId(SCHOOL_YEAR, PILOT_GRADE, s.classNo, s.no);
     const id = await insert(
       `INSERT INTO users (login_id, password_hash, role, name, display_name, class_id, student_no,
                           parent_consent, consent_updated_at, is_reporter, must_change_pw)
@@ -470,12 +535,14 @@ async function seed(): Promise<void> {
     }
   }
 
-  // 검토 담당 (APR-02a): 회장 → 3·4학년, 부회장 → 5·6학년 (본인·같은 반 글은 시스템이 제외)
+  // 검토 담당 (APR-02a): 임원 3명 모두 6학년 담당 (본인·같은 반 글은 시스템이 제외하므로 다른 반 글만 검토)
   const adminId = teacherIds.get('admin@ches.es.kr') as number;
-  const assignments: Array<{ loginId: string; grades: number[] }> = [
-    { loginId: buildStudentLoginId(SCHOOL_YEAR, 5, 1, 1), grades: [3, 4] },
-    { loginId: buildStudentLoginId(SCHOOL_YEAR, 6, 1, 1), grades: [5, 6] },
-  ];
+  const assignments: Array<{ loginId: string; grades: number[] }> = STUDENTS.filter(
+    (st) => st.council,
+  ).map((st) => ({
+    loginId: buildStudentLoginId(SCHOOL_YEAR, PILOT_GRADE, st.classNo, st.no),
+    grades: [PILOT_GRADE],
+  }));
   for (const a of assignments) {
     await insert(
       `INSERT INTO review_assignments (reviewer_user_id, reviewer_kind, grades, post_types, allowed_results, daily_cap, preset, starts_at, ends_at, is_active, set_by)
