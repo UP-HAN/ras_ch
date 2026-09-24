@@ -98,17 +98,17 @@ cd /var/app/ras && NODE_ENV=development npm run db:seed -- --force && rm -rf ser
 
 ## 8. 시연 전용 인스턴스 (ras-demo, 가상 데이터 소장)
 
-운영 데이터를 리셋해도 시연용 데이터는 따로 살아 있게, 같은 서버에 **두 번째 인스턴스**를 둔다: 디렉터리 `/var/app/ras-demo`, DB `ras_demo`, pm2 `ras-demo`(3301), 주소 `https://ras-demo.ches.es.kr`(검색 색인 금지). 화면 상단에 항상 "시연용 가상 데이터" 배너가 뜨고, 운영 사이트 **관리자 메뉴에만** 링크(🎭 시연 사이트)가 보인다(운영 `.env` 의 `DEMO_SITE_URL`).
+운영 데이터를 리셋해도 시연용 데이터는 따로 살아 있게, 같은 서버에 **두 번째 인스턴스**를 둔다: 디렉터리 `/var/app/ras-demo`, DB `ras_demo`, pm2 `ras-demo`(3301), 주소 `https://ras1.ches.es.kr`(검색 색인 금지). 화면에는 시연용이라는 표시가 전혀 없고(주소도 ras1), 운영 사이트 **관리자 메뉴에만** 링크(🎭 시연 사이트)가 보인다(운영 `.env` 의 `DEMO_SITE_URL`).
 
 ```bash
 # 최초 1회. MySQL root 로: CREATE DATABASE ras_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; GRANT ALL ON ras_demo.* TO 'ras'@'localhost';
 rsync -a --exclude .env --exclude "server/uploads/*" /var/app/ras/ /var/app/ras-demo/
-cp /var/app/ras/.env /var/app/ras-demo/.env   # PORT=3301, DB_NAME=ras_demo, DEMO_MODE=1, UPLOAD_DIR=/var/app/ras-demo/server/uploads, CLIENT_ORIGIN=https://ras-demo.ches.es.kr 로 수정
+cp /var/app/ras/.env /var/app/ras-demo/.env   # PORT=3301, DB_NAME=ras_demo, UPLOAD_DIR=/var/app/ras-demo/server/uploads, CLIENT_ORIGIN=https://ras1.ches.es.kr 로 수정
 mkdir -p /var/log/ras-demo && cd /var/app/ras-demo && npm run db:migrate && ./deploy/demo-refresh.sh snapshot
 pm2 start deploy/ecosystem.demo.config.cjs && pm2 save
-sudo cp deploy/nginx/ras-demo.ches.es.kr.conf /etc/nginx/sites-available/ras-demo.ches.es.kr
-sudo ln -s /etc/nginx/sites-available/ras-demo.ches.es.kr /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx && sudo certbot --nginx -d ras-demo.ches.es.kr
+sudo cp deploy/nginx/ras1.ches.es.kr.conf /etc/nginx/sites-available/ras1.ches.es.kr
+sudo ln -s /etc/nginx/sites-available/ras1.ches.es.kr /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx && sudo certbot --nginx -d ras1.ches.es.kr
 ```
 
 - 시연 전 데이터 새로 고침: `./deploy/demo-refresh.sh` (오늘 기준 6주치를 새로 생성, 약 15분) 또는 `./deploy/demo-refresh.sh snapshot` (보관 스냅샷 그대로 복원, 약 1분). 스냅샷은 `/var/backups/ras-point/showcase/`(DB dump + uploads).

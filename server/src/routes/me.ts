@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { env } from '../config/env.js';
 import * as achievements from '../services/AchievementService.js';
 import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
@@ -16,7 +17,10 @@ export function createMeRouter(): Router {
 
   router.get('/', (req, res) => {
     const user = currentUser(req);
-    res.json(ok(meView(user, req.session.actingAs ?? null)));
+    const me = meView(user, req.session.actingAs ?? null);
+    // 관리자에게만 두 번째 사이트 주소(운영 .env DEMO_SITE_URL). 화면에는 관리자 메뉴 링크 외 아무 표시도 없다
+    if (user.row.role === 'admin') me.demoSiteUrl = env.DEMO_SITE_URL ?? null;
+    res.json(ok(me));
   });
 
   // 학생 홈 카드 묶음 (6.1)

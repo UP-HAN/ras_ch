@@ -56,5 +56,6 @@ export function toMeView(b: UserBundle, actingAs: MeView['actingAs']): MeView {
     parentConsent: user.parent_consent,
     actingAs,
     hasCouncilAccount: user.linked_council_account_id !== null,
+    demoSiteUrl: null,
   };
 }

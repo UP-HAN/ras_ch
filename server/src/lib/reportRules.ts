@@ -30,7 +30,8 @@ export const REJECT_REASONS = {
   capture_mismatch: '캡처가 다른 화면이에요. 안내를 보고 다시 올려 주세요.',
   too_short: '성찰 글이 너무 짧아요. 100자 이상 써 주세요.',
   inappropriate: '올릴 수 없는 내용이 있어요. 고쳐서 다시 올려 주세요.',
-  not_polite: '반말로 쓴 부분이 있어요. 이 사이트의 글은 모두 존댓말이에요. 고쳐서 다시 올려 주세요.',
+  not_polite:
+    '반말로 쓴 부분이 있어요. 이 사이트의 글은 모두 존댓말이에요. 고쳐서 다시 올려 주세요.',
   other: '',
 } as const;
 export type RejectReasonCode = keyof typeof REJECT_REASONS;

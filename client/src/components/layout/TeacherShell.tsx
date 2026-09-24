@@ -4,8 +4,6 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { reviewApi } from '@/api/review';
 import { teacherPostsApi } from '@/api/teacherPosts';
-import { postsApi } from '@/api/posts';
-import { DemoBanner } from './DemoBanner';
 import { useMe, useMeCache } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 import { CloseIcon, MenuIcon } from './icons';
@@ -85,7 +83,6 @@ export function TeacherShell() {
     queryFn: teacherPostsApi.pendingCounts,
     refetchInterval: 60_000,
   });
-  const pub = useQuery({ queryKey: ['settings', 'public'], queryFn: postsApi.settings });
 
   const logout = async () => {
     await authApi.logout();
@@ -113,9 +110,9 @@ export function TeacherShell() {
         <div>
           <p className="mb-1 px-3 text-base font-bold text-ink-muted">관리자</p>
           <MenuList items={ADMIN_MENU} onNavigate={close} />
-          {pub.data?.demoSiteUrl && (
+          {me.demoSiteUrl && (
             <a
-              href={pub.data.demoSiteUrl}
+              href={me.demoSiteUrl}
               target="_blank"
               rel="noreferrer"
               data-testid="demo-site-link"
@@ -165,7 +162,6 @@ export function TeacherShell() {
 
   return (
     <div className="min-h-dvh bg-paper lg:flex">
-      {pub.data?.demoMode && <DemoBanner />}
       <aside className="hidden w-sidebar shrink-0 border-r border-line bg-surface lg:block">
         {nav}
       </aside>
