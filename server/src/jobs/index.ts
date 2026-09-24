@@ -4,13 +4,20 @@
  *  - monthlyDraft     : 매월 1일 00:05     — 월간 결산 초안 (S5 5-2)
  *  - recountCaches    : 매일 03:00         — like_count/comment_count 재검증 (8.1)
  *  - autoEscalate     : 매시 정각          — 48시간 미검토 글 승격 표시 (S4 4-7)
+ *  - councilExpire    : 매일 00:10         — 자치회 글 만료 (P2-2 CNC-07)
  */
 import cron from 'node-cron';
 import { logger } from '../lib/logger.js';
 import { TZ } from '../lib/time.js';
 
 export type JobName =
-  'weeklyTop' | 'monthlyDraft' | 'recountCaches' | 'autoEscalate' | 'newsReserve' | 'newsPublish';
+  | 'weeklyTop'
+  | 'monthlyDraft'
+  | 'recountCaches'
+  | 'autoEscalate'
+  | 'newsReserve'
+  | 'newsPublish'
+  | 'councilExpire';
 
 export const SCHEDULES: Record<JobName, string> = {
   weeklyTop: '5 0 * * 1',
@@ -20,6 +27,8 @@ export const SCHEDULES: Record<JobName, string> = {
   // P2-1 토론 주제: 일 20:00 다음 주 자동 예약, 매일 08:00 게시·마감 (NWS-04, 05)
   newsReserve: '0 20 * * 0',
   newsPublish: '0 8 * * *',
+  // P2-2 자치회 글 만료(게시 기간 종료 → expired, 고정 해제)
+  councilExpire: '10 0 * * *',
 };
 
 export type JobHandler = () => Promise<void>;

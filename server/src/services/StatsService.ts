@@ -1,6 +1,7 @@
 /**
  * 통계 (TCH-01 반 대시보드, TCH-05 반 통계 CSV, ADM-05 전교 통계). 포인트는 항상 원장 SUM.
  */
+import { classMissionFor } from './MissionService.js';
 import { query } from '../db/query.js';
 import { AppError } from '../lib/apiResponse.js';
 import type { CsvCell } from '../lib/csvWrite.js';
@@ -25,6 +26,7 @@ interface StudentWeekRow {
 }
 
 export async function classDashboard(classId: number): Promise<ClassDashboardView> {
+  const classMission = await classMissionFor(classId);
   const klass = await classRepo.findClassById(classId);
   if (!klass) throw AppError.notFound('반을 찾을 수 없어요.');
   const wk = currentWeekKey();
@@ -78,6 +80,7 @@ export async function classDashboard(classId: number): Promise<ClassDashboardVie
     nonParticipants: students
       .filter((s) => Number(s.submitted) === 0)
       .map((s) => ({ userId: s.id, name: s.name, studentNo: s.student_no })),
+    classMission,
   };
 }
 

@@ -3,6 +3,8 @@
  */
 import { CATEGORY_LABEL } from './awards.js';
 import * as settlementRepo from '../../repos/settlementRepo.js';
+import * as weeklyGiftRepo from '../../repos/weeklyGiftRepo.js';
+import { weekKeysInMonth } from '../../lib/weeklyGift.js';
 import type {
   AwardCandidateView,
   HallAward,
@@ -80,8 +82,9 @@ export function toHallAward(a: settlementRepo.AwardRow, teacher: boolean): HallA
   };
 }
 
-function toRankRow(r: settlementRepo.ScoreRow): SettlementRankRow {
+function toRankRow(r: settlementRepo.ScoreRow, gifted: Set<number> = new Set()): SettlementRankRow {
   return {
+    receivedWeeklyGift: gifted.has(r.user_id),
     userId: r.user_id,
     name: r.name,
     displayName: r.display_name,
@@ -97,12 +100,12 @@ function toRankRow(r: settlementRepo.ScoreRow): SettlementRankRow {
 }
 
 /** 성장률 목록: growth_rate 있는 학생을 성장률 내림차순으로, 순위는 즉석 계산 */
-function toGrowthRows(rows: settlementRepo.ScoreRow[]): SettlementGrowthRow[] {
+function toGrowthRows(rows: settlementRepo.ScoreRow[], gifted: Set<number>): SettlementGrowthRow[] {
   const list = rows
     .filter((r) => r.growth_rate !== null)
     .sort((a, b) => num(b.growth_rate) - num(a.growth_rate) || b.points - a.points);
   return list.map((r, i) => ({
-    ...toRankRow(r),
+    ...toRankRow(r, gifted),
     rank: i + 1,
     selected: r.is_growth_target === 1,
     skippedReason: r.skipped_reason?.startsWith('growth:') ? r.skipped_reason.slice(7) : null,
@@ -138,6 +141,7 @@ export async function settlementView(
       status: 'none',
       perGradeGiftCount: 5,
       perGradeGrowthCount: 3,
+      excludeWeeklyGift: false,
       isFirstMonth: true,
       draftedAt: null,
       confirmedAt: null,
@@ -152,6 +156,7 @@ export async function settlementView(
   const scores = await settlementRepo.listScores(row.id);
   const classes = await settlementRepo.listClassScores(row.id);
   const awards = await settlementRepo.listAwards(monthKey);
+  const gifted = await weeklyGiftRepo.giftedUserIdsForWeeks(weekKeysInMonth(monthKey));
   // HOF-08: 같은 학생이 여러 부문 후보/선정
   const byUser = new Map<number, settlementRepo.AwardRow[]>();
   for (const a of awards)
@@ -171,6 +176,7 @@ export async function settlementView(
     status: row.status,
     perGradeGiftCount: row.per_grade_gift_count,
     perGradeGrowthCount: row.per_grade_growth_count,
+    excludeWeeklyGift: row.exclude_weekly_gift === 1,
     isFirstMonth: scores.every((s) => s.growth_rate === null && s.prev_points === null),
     draftedAt: row.drafted_at ? row.drafted_at.toISOString() : null,
     confirmedAt: row.confirmed_at ? row.confirmed_at.toISOString() : null,
@@ -193,8 +199,8 @@ export async function settlementView(
           });
       return {
         grade,
-        ranking: gs.map(toRankRow),
-        growth: toGrowthRows(gs),
+        ranking: gs.map((s) => toRankRow(s, gifted)),
+        growth: toGrowthRows(gs, gifted),
         awards: {
           phonefree: withWarnings('phonefree'),
           reporter: withWarnings('reporter'),

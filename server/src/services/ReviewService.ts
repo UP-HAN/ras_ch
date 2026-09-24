@@ -29,6 +29,7 @@ import type { AuthUser } from '../types/auth.js';
 import type { ReviewQueueItem, ReviewSummaryView } from '../types/api.js';
 import type { PostRow } from '../types/db.js';
 import { applyPointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 import { buildEventKey } from './points/types.js';
 import { transition } from './PostService.js';
 import { queryOne } from '../db/query.js';
@@ -247,6 +248,7 @@ export async function submitReview(
       refId: postId,
       eventKey: `${buildEventKey('REVIEW_DONE', 'review', postId)}:${user.row.id}`,
     });
+    await evaluateAchievements(user.row.id); // 검토 도우미
   }
 
   // APR-14: 교사 검토 계정 통과 + 반 설정 켜짐 + 그 교사가 담당 반 → 자동 2차 승인

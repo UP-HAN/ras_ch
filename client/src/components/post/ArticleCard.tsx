@@ -1,5 +1,6 @@
 import type { StudentPostView } from '@server-types/api';
 import { Link } from 'react-router-dom';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge } from '@/components/ui';
 import { tagLabel, typeLabel } from './articleMeta';
 
@@ -33,12 +34,7 @@ export function ArticleCard({ post }: { post: StudentPostView }) {
             {post.article && <Badge tone="neutral">{typeLabel(post.article.articleType)}</Badge>}
           </div>
           <p className="mt-1 text-base text-ink-muted">
-            {post.author.className} {post.author.displayName}
-            {post.author.isReporter && (
-              <Badge tone="info" className="ml-1">
-                기자단
-              </Badge>
-            )}
+            <AuthorChip author={post.author} />
           </p>
           <p className="mt-1 text-base text-ink-muted">
             👍 {post.likeCount} · 💬 {post.commentCount}

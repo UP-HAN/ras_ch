@@ -4,17 +4,12 @@ import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
 import { reactionsApi } from '@/api/reactions';
 import { reviewApi } from '@/api/review';
+import { MissionGauge } from '@/components/common/MissionGauge';
+import { TierBadge } from '@/components/common/TierBadge';
+import { CouncilCard } from '@/components/council/CouncilCard';
 import { TopicCard } from '@/components/news/TopicCard';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
-
-const TIER_LABEL: Record<string, string> = {
-  seed: '씨앗',
-  sprout: '새싹',
-  flower: '꽃',
-  fruit: '열매',
-  star: '초롱별',
-};
 
 type CardSpec = {
   text: string;
@@ -108,7 +103,18 @@ export function HomePage() {
     );
   }
 
-  const { me, weekPoints, report, notifications, notices, debate } = q.data;
+  const {
+    me,
+    weekPoints,
+    report,
+    notifications,
+    notices,
+    debate,
+    councilPinned,
+    missions,
+    classMission,
+  } = q.data;
+  const missionsDone = missions.filter((m) => m.done).length;
   const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
   const openNotification = async (id: number, link?: string) => {
     await meApi.readNotification(id).catch(() => undefined);
@@ -128,6 +134,14 @@ export function HomePage() {
           <p className="mt-1 whitespace-pre-wrap text-base">{n.body}</p>
         </section>
       ))}
+      {councilPinned.length > 0 && (
+        <section data-testid="council-pinned" className="space-y-2">
+          <p className="text-base font-bold text-accent-700">🏫 학생자치회</p>
+          {councilPinned.map((p) => (
+            <CouncilCard key={p.id} post={p} banner />
+          ))}
+        </section>
+      )}
       {debate && (
         <section data-testid="debate-card">
           <p className="mb-1 text-base font-bold text-accent-700">💬 오늘의 토론</p>
@@ -140,7 +154,12 @@ export function HomePage() {
             <p className="text-base text-ink-muted">안녕하세요</p>
             <p className="text-2xl font-extrabold">
               {me.className ? `${me.className} ` : ''}
-              {me.displayName} <Badge tone="primary">{TIER_LABEL[me.tier] ?? me.tier}</Badge>
+              {me.displayName} <TierBadge tier={me.tier} />
+              {me.title && (
+                <Badge tone="primary" className="ml-1" data-testid="my-title">
+                  {me.title.emoji} {me.title.label}
+                </Badge>
+              )}
               {me.isReporter && (
                 <Badge tone="info" className="ml-1">
                   기자단
@@ -161,6 +180,71 @@ export function HomePage() {
           </div>
         </div>
       </Card>
+
+      <Card
+        title={
+          missionsDone === missions.length && missions.length > 0
+            ? '🎉 이번 주 미션 완료!'
+            : '이번 주 미션'
+        }
+        tone={missionsDone === missions.length && missions.length > 0 ? 'primary' : 'default'}
+        data-testid="missions-card"
+      >
+        <MissionGauge
+          value={missionsDone}
+          max={missions.length}
+          label="이번 주 미션 진행"
+          className="mb-3"
+        />
+        <ul className="space-y-2">
+          {missions.map((m) => (
+            <li
+              key={m.code}
+              className="flex items-center gap-2 text-base"
+              data-testid={`mission-${m.code}`}
+            >
+              <span aria-hidden="true">{m.done ? '✅' : m.emoji}</span>
+              <span className={m.done ? 'text-ink-muted line-through' : 'font-semibold'}>
+                {m.label}
+              </span>
+              <span className="ml-auto text-ink-muted">
+                {m.current}/{m.target}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-base text-ink-muted">
+          {missionsDone === missions.length && missions.length > 0
+            ? '이번 주 미션을 모두 해냈어요. 대단해요!'
+            : `${missions.length - missionsDone}개 남았어요. 미션은 포인트와 상관없이 재미로 해요.`}
+        </p>
+      </Card>
+
+      {classMission && (
+        <Card
+          title={
+            classMission.achieved
+              ? '🎉 우리 반 미션 달성!'
+              : `우리 반 미션 (${classMission.className})`
+          }
+          tone={classMission.achieved ? 'accent' : 'default'}
+          data-testid="class-mission-card"
+        >
+          <p className="mb-2 text-base">
+            이번 주 리포트 제출률 <strong>{classMission.ratePct}%</strong> · 목표{' '}
+            {classMission.targetPct}%
+            <span className="ml-1 text-ink-muted">
+              ({classMission.submitted}/{classMission.students}명)
+            </span>
+          </p>
+          <MissionGauge
+            value={classMission.ratePct}
+            max={100}
+            label="우리 반 리포트 제출률"
+            tone={classMission.achieved ? 'success' : 'accent'}
+          />
+        </Card>
+      )}
 
       {review.data?.hasAssignment && (
         <Card title="리포트 검토" tone="accent" data-testid="review-card">

@@ -7,12 +7,14 @@ import { ArticleCard } from '@/components/post/ArticleCard';
 import { ARTICLE_TAGS } from '@/components/post/articleMeta';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Button, EmptyState, Spinner } from '@/components/ui';
+import { CouncilList } from './CouncilListPage';
 import { cn } from '@/lib/cn';
 
 const TABS = [
   { key: 'class', label: '우리 반' },
   { key: 'school', label: '전교 리포트' },
   { key: 'articles', label: '기사' },
+  { key: 'council', label: '자치회' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
@@ -27,9 +29,10 @@ export function PostListPage() {
     queryFn: ({ pageParam }) =>
       tab === 'articles'
         ? articlesApi.list({ sort, tag, reporter }, pageParam)
-        : postsApi.list(tab, pageParam),
+        : postsApi.list(tab === 'council' ? 'school' : tab, pageParam),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
+    enabled: tab !== 'council',
   });
   const items = q.data?.pages.flatMap((p) => p.items) ?? [];
   // CMN-04 무한 스크롤: 끝 센티널이 보이면 다음 20건. 버튼은 폴백
@@ -48,7 +51,7 @@ export function PostListPage() {
   return (
     <>
       <PageHeader title="둘러보기" />
-      <div role="tablist" className="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-primary-100 p-1">
+      <div role="tablist" className="mb-3 grid grid-cols-4 gap-1 rounded-lg bg-primary-100 p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -65,6 +68,7 @@ export function PostListPage() {
           </button>
         ))}
       </div>
+      {tab === 'council' && <CouncilList standalone />}
       {tab === 'articles' && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Button
@@ -98,7 +102,7 @@ export function PostListPage() {
           <Spinner size="lg" className="text-primary-600" />
         </div>
       )}
-      {!q.isLoading && items.length === 0 && (
+      {tab !== 'council' && !q.isLoading && items.length === 0 && (
         <EmptyState
           title={tab === 'articles' ? '아직 게시된 기사가 없어요' : '아직 게시된 리포트가 없어요'}
           description="선생님이 승인하면 여기에 보여요."

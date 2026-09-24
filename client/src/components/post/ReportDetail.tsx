@@ -1,4 +1,5 @@
 import type { StudentPostView } from '@server-types/api';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge, Card } from '@/components/ui';
 import { minutesLabel, UsageDiff } from './UsageDiff';
 
@@ -21,10 +22,7 @@ export function ReportDetail({
     <div className="space-y-4">
       {showAuthor && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-lg font-bold">
-            {post.author.className} {post.author.displayName}
-          </span>
-          {post.author.isReporter && <Badge tone="info">기자단</Badge>}
+          <AuthorChip author={post.author} size="lg" />
           <span className="text-base text-ink-muted">{post.weekKey}</span>
           {post.type === 'diary' && <Badge tone="neutral">폰 없는 일주일 일기</Badge>}
         </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { newsApi } from '@/api/news';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TOPIC_TYPE_LABEL } from '@/components/news/topicLabels';
 import { VoteBar } from '@/components/news/VoteBar';
@@ -147,7 +148,7 @@ export function DebateTopicPage() {
               {t.bestOpinions.map((c) => (
                 <li key={c.id} className="rounded-md bg-surface p-3">
                   <p className="text-base font-semibold">
-                    {c.author.className} {c.author.displayName}
+                    <AuthorChip author={c.author} />
                     {c.stance && (
                       <Badge tone={c.stance === 'agree' ? 'success' : 'danger'} className="ml-2">
                         {c.stance === 'agree' ? '찬성' : '반대'}

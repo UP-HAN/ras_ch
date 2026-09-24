@@ -50,6 +50,7 @@ const bundle: PostBundle = {
     class_id: 3,
     student_no: 7,
     tier: 'sprout',
+    title_code: null,
     is_reporter: 1,
     parent_consent: 'Y',
   },
@@ -142,6 +143,7 @@ describe('toStudentPostView', () => {
       'grade',
       'isReporter',
       'tier',
+      'title',
     ]);
   });
 

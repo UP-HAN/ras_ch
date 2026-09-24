@@ -26,7 +26,11 @@ export function DashboardPage() {
           d.pending.escalated ? `48시간 지남 ${d.pending.escalated}건` : undefined,
         ],
         ['반 평균 포인트', `${d.avgWeekPoints}P`, d.weekKey],
-        ['미참여 학생', `${d.nonParticipants.length}명`],
+        [
+          '학급 미션',
+          d.classMission.achieved ? '달성 🎉' : `${d.classMission.ratePct}%`,
+          `목표 제출률 ${d.classMission.targetPct}%`,
+        ],
       ]
     : [];
 
@@ -50,7 +54,7 @@ export function DashboardPage() {
       {q.isLoading && <Spinner className="text-accent-600" />}
       {d && (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
             {stats.map(([k, v, sub]) => (
               <Card key={k}>
                 <p className="text-base text-ink-muted">{k}</p>

@@ -1,6 +1,7 @@
 /**
  * 댓글 직렬화 — 허용목록 (3.1: 학생 응답에 실명 없음)
  */
+import { titleOf } from '../achievements.js';
 import type { CommentView, TeacherCommentView } from '../../types/api.js';
 import type { CommentBundle, TeacherCommentRow } from '../../repos/commentRepo.js';
 
@@ -31,6 +32,7 @@ export function toCommentView(
       className: b.authorClass?.name ?? '',
       grade: b.authorClass?.grade ?? 0,
       tier: b.author.tier,
+      title: titleOf(b.author.title_code),
       isReporter: b.author.is_reporter === 1,
     },
   };
@@ -61,12 +63,20 @@ export function toTeacherCommentView(
     target: {
       type: r.target_type,
       id: r.target_id,
-      postType: r.target_type === 'news_topic' ? 'news_topic' : r.p_type,
+      postType:
+        r.target_type === 'news_topic' || r.target_type === 'council_post'
+          ? r.target_type
+          : r.p_type,
       title:
         r.target_type === 'news_topic'
           ? r.t_title
-          : (r.p_title ?? (r.p_body ? `${r.p_body}…` : null)),
-      authorDisplayName: r.target_type === 'news_topic' ? null : r.p_author_display,
+          : r.target_type === 'council_post'
+            ? r.cp_title
+            : (r.p_title ?? (r.p_body ? `${r.p_body}…` : null)),
+      authorDisplayName:
+        r.target_type === 'news_topic' || r.target_type === 'council_post'
+          ? null
+          : r.p_author_display,
     },
   };
 }

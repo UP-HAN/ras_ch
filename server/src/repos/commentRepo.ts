@@ -11,7 +11,14 @@ export interface CommentBundle {
   comment: CommentRow & { status: CommentStatus; deleted_at: Date | null };
   author: Pick<
     UserRow,
-    'id' | 'name' | 'display_name' | 'class_id' | 'student_no' | 'tier' | 'is_reporter'
+    | 'id'
+    | 'name'
+    | 'display_name'
+    | 'class_id'
+    | 'student_no'
+    | 'tier'
+    | 'title_code'
+    | 'is_reporter'
   >;
   authorClass: Pick<ClassRow, 'id' | 'name' | 'grade'> | null;
 }
@@ -23,6 +30,7 @@ type Row = CommentBundle['comment'] & {
   a_class_id: number | null;
   a_student_no: number | null;
   a_tier: UserRow['tier'];
+  a_title_code: string | null;
   a_is_reporter: 0 | 1;
   c_id: number | null;
   c_name: string | null;
@@ -31,7 +39,7 @@ type Row = CommentBundle['comment'] & {
 
 const SELECT = `
   SELECT c.*, u.id AS a_id, u.name AS a_name, u.display_name AS a_display_name, u.class_id AS a_class_id,
-         u.student_no AS a_student_no, u.tier AS a_tier, u.is_reporter AS a_is_reporter,
+         u.student_no AS a_student_no, u.tier AS a_tier, u.title_code AS a_title_code, u.is_reporter AS a_is_reporter,
          k.id AS c_id, k.name AS c_name, k.grade AS c_grade
   FROM comments c JOIN users u ON u.id = c.author_id LEFT JOIN classes k ON k.id = u.class_id`;
 
@@ -43,6 +51,7 @@ function toBundle(r: Row): CommentBundle {
     a_class_id,
     a_student_no,
     a_tier,
+    a_title_code,
     a_is_reporter,
     c_id,
     c_name,
@@ -58,6 +67,7 @@ function toBundle(r: Row): CommentBundle {
       class_id: a_class_id,
       student_no: a_student_no,
       tier: a_tier,
+      title_code: a_title_code,
       is_reporter: a_is_reporter,
     },
     authorClass:
@@ -155,6 +165,7 @@ export interface TeacherCommentRow extends Row {
   p_body: string | null;
   p_author_display: string | null;
   t_title: string | null;
+  cp_title: string | null;
 }
 
 export interface TeacherCommentQuery {
@@ -189,13 +200,14 @@ export async function listCommentsForTeacher(q: TeacherCommentQuery): Promise<Te
             k.id AS c_id, k.name AS c_name, k.grade AS c_grade,
             ${reportCountSql} AS report_count,
             p.id AS p_id, p.type AS p_type, p.title AS p_title, LEFT(p.body, 60) AS p_body,
-            pa.display_name AS p_author_display, t.title AS t_title
+            pa.display_name AS p_author_display, t.title AS t_title, cp.title AS cp_title
      FROM comments c
        JOIN users u ON u.id = c.author_id
        LEFT JOIN classes k ON k.id = u.class_id
        LEFT JOIN posts p ON c.target_type = 'post' AND p.id = c.target_id
        LEFT JOIN users pa ON pa.id = p.author_id
        LEFT JOIN news_topics t ON c.target_type = 'news_topic' AND t.id = c.target_id
+       LEFT JOIN council_posts cp ON c.target_type = 'council_post' AND cp.id = c.target_id
      WHERE ${where.join(' AND ')}
      ORDER BY c.created_at DESC, c.id DESC LIMIT ?`,
     params,

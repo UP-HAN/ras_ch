@@ -3,6 +3,7 @@ import type { CommentView } from '@server-types/api';
 import { useState } from 'react';
 import { errorMessage } from '@/api/client';
 import { reactionsApi, type ReactionTarget } from '@/api/reactions';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge, Button, Card, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
@@ -136,10 +137,14 @@ export function ReactionsSection({
   const [error, setError] = useState<string | null>(null);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['reactions', target.type, target.id] });
-    void qc.invalidateQueries({ queryKey: [target.type === 'post' ? 'posts' : 'news'] });
+    void qc.invalidateQueries({
+      queryKey: [
+        target.type === 'post' ? 'posts' : target.type === 'council_post' ? 'council' : 'news',
+      ],
+    });
   };
   const like = useMutation({
-    mutationFn: (on: boolean) => reactionsApi.likePost(target.id, on),
+    mutationFn: (on: boolean) => reactionsApi.likeTarget(target, on),
     onSuccess: refresh,
     onError: (e) => setError(errorMessage(e)),
   });
@@ -178,7 +183,9 @@ export function ReactionsSection({
             busy={like.isPending}
             onToggle={() => like.mutate(!likedByMe)}
           />
-          {!isMine && <ReportButton targetType="post" targetId={target.id} />}
+          {!isMine && target.type === 'post' && (
+            <ReportButton targetType="post" targetId={target.id} />
+          )}
           {isMine && (
             <span className="text-base text-ink-muted">내 글에 누른 엄지척은 포인트가 없어요</span>
           )}
@@ -198,8 +205,7 @@ export function ReactionsSection({
               className={cn('rounded-md bg-paper p-3', c.isBest && 'border-2 border-primary-300')}
             >
               <p className="text-base font-semibold">
-                {c.author.className} {c.author.displayName}
-                {c.author.isReporter && <span className="ml-1 text-info-600">기자단</span>}
+                <AuthorChip author={c.author} />
                 {c.stance && (
                   <Badge tone={c.stance === 'agree' ? 'success' : 'danger'} className="ml-2">
                     {c.stance === 'agree' ? '찬성' : '반대'}

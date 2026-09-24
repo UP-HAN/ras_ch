@@ -16,7 +16,7 @@
 - 백엔드: Node 20 + Express + TypeScript, REST `/api/v1`, 세션 쿠키(HttpOnly, SameSite=Lax), bcrypt
 - DB: MySQL 8, 스키마명 `ras_point`. 마이그레이션은 `server/migrations/`에 SQL 파일(번호 접두어)로 관리. ORM 없이 `mysql2` + 얇은 쿼리 레이어(또는 Kysely). 원장·집계 쿼리는 SQL로 직접 쓴다
 - 이미지: `sharp`로 긴 변 1280px 리사이즈 + EXIF 제거 후 `server/uploads/` 저장(경로만 DB). 업로드 5MB, jpg/png/webp만
-- 배치: `node-cron` (주간 TOP 월 00:05, 월간 결산 초안 매월 1일 00:05, 카운트 재검증 03:00, 자동 승격 매시, 토론 주제 자동 예약 일 20:00·게시/마감 매일 08:00). 시각은 Asia/Seoul
+- 배치: `node-cron` (주간 TOP 월 00:05, 월간 결산 초안 매월 1일 00:05, 카운트 재검증 03:00, 자동 승격 매시, 토론 주제 자동 예약 일 20:00·게시/마감 매일 08:00, 자치회 글 만료 매일 00:10). 카운트 재검증 03:00 에 등급·업적 전원 재계산 포함. 시각은 Asia/Seoul
 - 배포 대상: AWS Lightsail Ubuntu, nginx 리버스 프록시, pm2, 서브도메인 ras.ches.es.kr. 개발 중에는 로컬 MySQL(Docker) 사용
 
 ## 디렉터리

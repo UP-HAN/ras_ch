@@ -14,7 +14,12 @@ export type NotificationType =
   | 'comment_notice'
   | 'points'
   | 'award'
-  | 'news_bank_low';
+  | 'news_bank_low'
+  | 'tier_up'
+  | 'achievement'
+  | 'class_mission'
+  | 'weekly_gift'
+  | 'council_post';
 
 export interface NotificationPayload {
   message: string;

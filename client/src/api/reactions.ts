@@ -51,11 +51,15 @@ export const articlesApi = {
 };
 
 export interface ReactionTarget {
-  type: 'post' | 'news_topic';
+  type: 'post' | 'news_topic' | 'council_post';
   id: number;
 }
 const reactionsPath = (t: ReactionTarget) =>
-  t.type === 'post' ? `/posts/${t.id}` : `/news/topics/${t.id}`;
+  t.type === 'post'
+    ? `/posts/${t.id}`
+    : t.type === 'council_post'
+      ? `/council/posts/${t.id}`
+      : `/news/topics/${t.id}`;
 
 export const reactionsApi = {
   reactions: (postId: number) => api.get<PostReactionsView>(`/posts/${postId}/reactions`),
@@ -63,6 +67,11 @@ export const reactionsApi = {
   reactionsOf: (t: ReactionTarget) => api.get<PostReactionsView>(`${reactionsPath(t)}/reactions`),
   addCommentTo: (t: ReactionTarget, body: string) =>
     api.post<CommentView>(`${reactionsPath(t)}/comments`, { body }),
+  /** 글·자치회 글 좋아요 (자치회 글은 포인트 없음) */
+  likeTarget: (t: ReactionTarget, on: boolean) =>
+    on
+      ? api.post<LikeResult>(`${reactionsPath(t)}/like`)
+      : api.delete<LikeResult>(`${reactionsPath(t)}/like`),
   likePost: (postId: number, on: boolean) =>
     on
       ? api.post<LikeResult>(`/posts/${postId}/like`)

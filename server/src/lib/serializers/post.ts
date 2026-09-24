@@ -6,6 +6,7 @@
  *  - toStudentPostView  : display_name·반 이름만. 실명(name) 없음
  *  - toTeacherPostView  : 실명·검토 이력 포함
  */
+import { titleOf } from '../achievements.js';
 import type {
   ArticleDetailView,
   ImageView,
@@ -34,6 +35,7 @@ export interface PostBundle {
     | 'class_id'
     | 'student_no'
     | 'tier'
+    | 'title_code'
     | 'is_reporter'
     | 'parent_consent'
   >;
@@ -125,6 +127,7 @@ export function toStudentPostView(b: PostBundle, viewerId: number): StudentPostV
       className: authorClass.name,
       grade: authorClass.grade,
       tier: author.tier,
+      title: titleOf(author.title_code),
       isReporter: author.is_reporter === 1,
     },
     images: toImageViews(b.images),
@@ -161,6 +164,7 @@ export function toTeacherPostView(b: PostBundle): TeacherPostView {
       grade: authorClass.grade,
       studentNo: author.student_no,
       tier: author.tier,
+      title: titleOf(author.title_code),
       isReporter: author.is_reporter === 1,
       parentConsent: author.parent_consent,
     },

@@ -53,6 +53,8 @@ export interface UserRow {
   consent_updated_at: Date | null;
   is_reporter: 0 | 1;
   tier: Tier;
+  /** 대표 칭호(획득한 업적 코드, 게이미피케이션) */
+  title_code: string | null;
   linked_council_account_id: number | null;
   status: UserStatus;
   must_change_pw: 0 | 1;

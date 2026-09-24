@@ -37,6 +37,7 @@ import type {
   NewsVoteSide,
 } from '../types/api.js';
 import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 import * as reactions from './ReactionService.js';
 
 export async function newsSetting(): Promise<NewsScheduleSetting> {
@@ -143,6 +144,7 @@ export async function vote(
       },
       conn,
     );
+    await evaluateAchievements(user.row.id, conn); // 토론가
     const after = await newsRepo.findTopic(id, conn);
     return {
       myVote: side,
@@ -321,6 +323,7 @@ export async function selectBest(
           },
           conn,
         );
+        await evaluateAchievements(bundle.comment.author_id, conn); // 베스트
         added += 1;
       } else if (!wanted.has(c.id) && c.isBest) {
         await newsRepo.deleteBest(c.id, conn);

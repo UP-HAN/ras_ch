@@ -42,6 +42,8 @@ export interface BuildOptions {
   perGradeGiftCount?: number;
   perGradeGrowthCount?: number;
   overrides?: ConsecutiveOverrides;
+  /** HOF-01b 주간 선물 수령자 제외 */
+  excludeWeeklyGift?: boolean;
 }
 
 export async function buildSettlement(
@@ -53,11 +55,18 @@ export async function buildSettlement(
     ...base,
     perGradeGiftCount: opts.perGradeGiftCount ?? base.perGradeGiftCount,
     perGradeGrowthCount: opts.perGradeGrowthCount ?? base.perGradeGrowthCount,
+    excludeWeeklyGift: opts.excludeWeeklyGift ?? base.excludeWeeklyGift,
   };
   const overrides = opts.overrides ?? { userIds: new Set<number>(), allowClass: false };
   const students = await loadStudentInputs(monthKey);
   const { prior, prevSettlementId } = await loadPriorWinners(monthKey);
-  const ranking = rankMonthlyTop(students, settings.perGradeGiftCount, prior, overrides);
+  const ranking = rankMonthlyTop(
+    students,
+    settings.perGradeGiftCount,
+    prior,
+    overrides,
+    settings.excludeWeeklyGift,
+  );
   const growth = rankGrowth(students, ranking, settings, prior, overrides);
   const classes = rankClasses(buildClassInputs(students), prior, overrides.allowClass);
   const awards = rankAwards(await loadAwardInputs(monthKey), 5);
@@ -78,6 +87,7 @@ export async function persistSnapshot(
       perGradeGiftCount: built.settings.perGradeGiftCount,
       perGradeGrowthCount: built.settings.perGradeGrowthCount,
       winnerClassId: winner?.classId ?? null,
+      excludeWeeklyGift: built.settings.excludeWeeklyGift,
     },
     conn,
   );
@@ -125,12 +135,12 @@ export async function persistSnapshot(
   return id;
 }
 
-export async function createDraft(monthKey: string): Promise<number> {
+export async function createDraft(monthKey: string, opts: BuildOptions = {}): Promise<number> {
   if (monthKey >= currentMonthKey())
     throw AppError.badRequest('이번 달은 아직 끝나지 않았어요. 지난달까지만 결산할 수 있어요.');
   const existing = await settlementRepo.findByMonth(monthKey);
   if (existing?.status === 'confirmed') throw AppError.conflict('이미 확정된 달이에요.');
-  const built = await buildSettlement(monthKey);
+  const built = await buildSettlement(monthKey, opts);
   return tx((conn) => persistSnapshot(built, conn));
 }
 

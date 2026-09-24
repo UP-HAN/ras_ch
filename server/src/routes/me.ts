@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as achievements from '../services/AchievementService.js';
 import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
@@ -74,13 +75,23 @@ export function createMeRouter(): Router {
   });
 
   // PT-09 출석
+  // 게이미피케이션: 등급 진행·칭호 수집·대표 칭호
+  router.get('/achievements', async (req, res) => {
+    res.json(ok(await achievements.myAchievements(currentUser(req))));
+  });
+  router.put('/title', async (req, res) => {
+    const body = z.object({ code: z.string().max(30).nullable() }).safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('칭호 코드를 확인해 주세요.');
+    res.json(ok(await achievements.setTitle(currentUser(req), body.data.code)));
+  });
+
   router.get('/attendance', async (req, res) => {
     res.json(ok(await attendanceSummary(currentUser(req))));
   });
 
   // PT-10 읽기: 열람 시작(서버 시각) → 10초 + 끝까지 스크롤 후 완료
   const readSchema = z.object({
-    targetType: z.enum(['post', 'news_topic']),
+    targetType: z.enum(['post', 'news_topic', 'council_post']),
     targetId: z.number().int().positive(),
     scrolledToEnd: z.boolean().optional(),
   });

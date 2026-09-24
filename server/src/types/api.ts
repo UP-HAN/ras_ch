@@ -65,6 +65,8 @@ export interface StudentAuthorView {
   className: string;
   grade: number;
   tier: Tier;
+  /** 대표 칭호 (게이미피케이션). 검토자 뷰에는 author 자체가 없다 */
+  title: TitleView | null;
   isReporter: boolean;
 }
 
@@ -138,6 +140,7 @@ export interface PublicUser {
   grade: number | null;
   className: string | null;
   tier: Tier;
+  title: TitleView | null;
   isReporter: boolean;
   isCouncil: boolean;
 }
@@ -197,6 +200,12 @@ export interface HomeView {
   notices: NoticeView[];
   /** CMN-05 오늘의 토론(진행 중 최신 1건) */
   debate: NewsTopicCard | null;
+  /** CNC-04 홈 상단 고정 자치회 글(최대 3) */
+  councilPinned: CouncilPostCard[];
+  /** 이번 주 미션(개인, 포인트 없음) */
+  missions: MissionView[];
+  /** 학급 미션(내 반). 반이 없으면 null */
+  classMission: ClassMissionView | null;
 }
 
 export interface SchoolYearView {
@@ -561,6 +570,8 @@ export interface HallStudent {
   studentNo?: number | null;
   rank?: number;
   points?: number;
+  /** HOF-01a 주간 선물 받은 학생 (학생에게도 🎁 표시) */
+  gifted?: boolean;
 }
 
 export interface HallClassRow {
@@ -629,6 +640,8 @@ export interface SettlementRankRow {
   selected: boolean;
   skippedReason: string | null;
   tiebreak: { reportCount: number; articleCount: number; activeDays: number } | null;
+  /** 이번 달 주간 선물 수령 */
+  receivedWeeklyGift: boolean;
 }
 
 export interface SettlementGrowthRow extends SettlementRankRow {
@@ -662,6 +675,8 @@ export interface SettlementView {
   status: 'none' | 'draft' | 'confirmed';
   perGradeGiftCount: number;
   perGradeGrowthCount: number;
+  /** HOF-01b 주간 선물 수령자 제외 토글 */
+  excludeWeeklyGift: boolean;
   isFirstMonth: boolean;
   draftedAt: string | null;
   confirmedAt: string | null;
@@ -683,6 +698,8 @@ export interface ConfirmSettlementInput {
   perGradeGrowthCount: number;
   allowConsecutiveUserIds: number[];
   allowConsecutiveClass: boolean;
+  /** HOF-01b 주간 선물 수령자를 월간 포인트 상위에서 제외 */
+  excludeWeeklyGift?: boolean;
   awards: Array<{
     category: 'phonefree' | 'reporter' | 'participation';
     userId: number;
@@ -708,6 +725,7 @@ export interface ClassDashboardView {
   avgWeekPoints: number;
   top5: Array<{ userId: number; name: string; studentNo: number | null; points: number }>;
   nonParticipants: Array<{ userId: number; name: string; studentNo: number | null }>;
+  classMission: ClassMissionView;
 }
 
 export interface SchoolStatsView {
@@ -872,4 +890,193 @@ export interface NewsBestResult {
   added: number;
   removed: number;
   topic: NewsTeacherTopicView;
+}
+
+// ---------- P2-2 / P2-3: 게이미피케이션 · 자치회 게시판 · 주간 선물 ----------
+
+/** 대표 칭호 (lib/achievements.ts 정의) */
+export interface TitleView {
+  code: string;
+  emoji: string;
+  label: string;
+}
+
+export interface AchievementView extends TitleView {
+  hint: string;
+  earned: boolean;
+  earnedAt: string | null;
+  progress: { current: number; target: number } | null;
+  isTitle: boolean;
+}
+
+export interface TierProgressView {
+  tier: Tier;
+  emoji: string;
+  label: string;
+  /** 누적 포인트(원장 SUM) */
+  points: number;
+  next: {
+    tier: Tier;
+    emoji: string;
+    label: string;
+    needed: number;
+    from: number;
+    to: number;
+  } | null;
+}
+
+export interface MyAchievementsView {
+  tier: TierProgressView;
+  titleCode: string | null;
+  attendanceStreak: number;
+  achievements: AchievementView[];
+}
+
+export interface MissionView {
+  code: 'report' | 'comment' | 'debate' | 'likes';
+  emoji: string;
+  label: string;
+  current: number;
+  target: number;
+  done: boolean;
+}
+
+export interface ClassMissionView {
+  classId: number;
+  className: string;
+  weekKey: string;
+  targetPct: number;
+  ratePct: number;
+  submitted: number;
+  students: number;
+  achieved: boolean;
+  achievedAt: string | null;
+}
+
+export interface GamifySettingsView {
+  tierThresholds: { sprout: number; flower: number; fruit: number; star: number };
+  weeklyGiftPerGrade: number;
+  classMissionReportRate: number;
+}
+
+// ----- 자치회 게시판 (CNC-01~08) -----
+export type CouncilPostType = 'notice' | 'promo' | 'poll' | 'report';
+export type CouncilPostStatus =
+  'draft' | 'pending' | 'approved' | 'rejected' | 'hidden' | 'expired';
+
+export interface CouncilPollOptionView {
+  id: number;
+  label: string;
+  /** 결과 비공개면 null */
+  votes: number | null;
+}
+
+export interface CouncilPollView {
+  options: CouncilPollOptionView[];
+  myOptionId: number | null;
+  totalVotes: number | null;
+  showBeforeClose: boolean;
+  resultsVisible: boolean;
+  canVote: boolean;
+}
+
+export interface CouncilPostCard {
+  id: number;
+  type: CouncilPostType;
+  title: string;
+  status: CouncilPostStatus;
+  startsAt: string;
+  endsAt: string;
+  isPinned: boolean;
+  isLive: boolean;
+  likeCount: number;
+  commentCount: number;
+  /** "학생자치회 · 6-1 류○○(회장)" */
+  authorLabel: string;
+  thumbnail: ImageView | null;
+  createdAt: string;
+  approvedAt: string | null;
+}
+
+export interface CouncilPostView extends CouncilPostCard {
+  body: string;
+  images: ImageView[];
+  allowComments: boolean;
+  pinRequested: boolean;
+  poll: CouncilPollView | null;
+  /** 임원이 승인 전 공동 편집 가능 (CNC-05) */
+  canEdit: boolean;
+  rejectReason: string | null;
+  reactions: PostReactionsView;
+}
+
+export interface CouncilPostInput {
+  type: CouncilPostType;
+  title: string;
+  body: string;
+  startsAt: string;
+  endsAt: string;
+  pinRequested: boolean;
+  allowComments: boolean;
+  pollOptions: string[];
+  pollShowBeforeClose: boolean;
+  submit: boolean;
+}
+
+/** 교사 화면용(실명·제출·승인 정보) */
+export interface CouncilAdminPostView extends CouncilPostView {
+  authorName: string;
+  authorClassName: string;
+  submittedAt: string | null;
+  approvedByName: string | null;
+}
+
+export interface CouncilMemberView {
+  id: number;
+  userId: number;
+  name: string;
+  displayName: string;
+  className: string;
+  grade: number;
+  studentNo: number | null;
+  title: string;
+  termStart: string;
+  termEnd: string | null;
+  isActive: boolean;
+}
+
+export interface CouncilMemberInput {
+  userId: number;
+  title: string;
+  termStart: string;
+  termEnd: string | null;
+}
+
+// ----- 주간 선물 (HOF-01a, 01b) -----
+export interface WeeklyGiftCandidate {
+  userId: number;
+  name: string;
+  displayName: string;
+  className: string;
+  grade: number;
+  studentNo: number | null;
+  points: number;
+  rankInGrade: number;
+  gifted: boolean;
+  method: 'top_n' | 'manual' | null;
+}
+
+export interface WeeklyGiftPanelView {
+  weekKey: string;
+  perGrade: number;
+  /** 해당 주 포인트 > 0 학생, 학년·순위순 */
+  candidates: WeeklyGiftCandidate[];
+  giftedCount: number;
+}
+
+export interface WeeklyGiftResult {
+  weekKey: string;
+  granted: number;
+  skipped: number;
+  panel: WeeklyGiftPanelView;
 }

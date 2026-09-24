@@ -13,7 +13,9 @@ import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
 import * as settings from '../services/AdminSettingsService.js';
+import { gamifySettingsView, updateGamifySettings } from '../services/GamifyService.js';
 import { rebuildPoints } from '../services/PointsQueryService.js';
+import { runRecountCaches } from '../jobs/recountCaches.js';
 import * as notices from '../services/NoticeService.js';
 import { schoolStats } from '../services/StatsService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
@@ -255,6 +257,25 @@ export function createAdminRouter(): Router {
     );
   });
 
+  // ----- P2-3: 게이미피케이션 설정 (PT-07 등급 구간, 주간 선물 N, 학급 미션 목표) -----
+  router.get('/gamify-settings', async (_req, res) => res.json(ok(await gamifySettingsView())));
+  router.put('/gamify-settings', async (req, res) => {
+    const body = z
+      .object({
+        tierThresholds: z.object({
+          sprout: z.number().int(),
+          flower: z.number().int(),
+          fruit: z.number().int(),
+          star: z.number().int(),
+        }),
+        weeklyGiftPerGrade: z.number().int(),
+        classMissionReportRate: z.number().int(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('설정 값을 확인해 주세요.');
+    res.json(ok(await updateGamifySettings(currentUser(req), body.data, clientIp(req))));
+  });
+
   // ----- S4: 승인 모드 (APR-01, 07, 14) -----
   router.get('/approval-settings', async (_req, res) =>
     res.json(ok(await settings.listApprovalSettings())),
@@ -375,6 +396,11 @@ export function createAdminRouter(): Router {
       .safeParse(req.body);
     if (!body.success) throw AppError.badRequest('문구를 확인해 주세요.');
     res.json(ok(await notices.updateTexts(actor(req), body.data)));
+  });
+
+  // ----- 카운트 재검증·등급·업적 재계산 지금 실행 (8.1, PT-07) -----
+  router.post('/jobs/recount-caches', async (_req, res) => {
+    res.json(ok(await runRecountCaches()));
   });
 
   // ----- S4: 포인트 리빌드 (PT-08) -----

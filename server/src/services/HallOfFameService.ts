@@ -16,6 +16,7 @@ import { topPerGrade } from '../jobs/weeklyRank.js';
 import * as settlementRepo from '../repos/settlementRepo.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as weeklyRepo from '../repos/weeklyRepo.js';
+import * as weeklyGiftRepo from '../repos/weeklyGiftRepo.js';
 import type { AuthUser } from '../types/auth.js';
 import type {
   AllTimeView,
@@ -46,6 +47,7 @@ export async function weeklyTop(user: AuthUser, week?: string): Promise<WeeklyTo
     throw AppError.badRequest('이번 주는 아직 집계 전이에요. 월요일에 올라와요.');
   await ensureWeeklyTop(wk);
   const perGrade = await getSetting('weekly_top_per_grade', 10);
+  const gifted = await weeklyGiftRepo.giftedUserIds(wk); // HOF-01a 🎁
   const rows = await weeklyRepo.listWeekScores(wk);
   const top = topPerGrade(
     rows.filter((r) => r.points > 0).map((r) => ({ ...r, rankInGrade: r.rank_in_grade })),
@@ -54,7 +56,10 @@ export async function weeklyTop(user: AuthUser, week?: string): Promise<WeeklyTo
   const grades = [3, 4, 5, 6].map((grade) => {
     const students = top
       .filter((r) => r.grade === grade)
-      .map((r) => toHallStudent(r, teacher, { rank: r.rank_in_grade, points: r.points }));
+      .map((r) => ({
+        ...toHallStudent(r, teacher, { rank: r.rank_in_grade, points: r.points }),
+        gifted: gifted.has(r.user_id),
+      }));
     return { grade, students: teacher ? students : students.sort(byKoreanName) };
   });
   return {

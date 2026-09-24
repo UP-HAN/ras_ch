@@ -10,6 +10,7 @@ import { canViewPost, viewerFromAuthUser } from '../lib/postAccess.js';
 import { loadUser, loadUserWith, requireAuth, type UserLoader } from '../middleware/auth.js';
 import { findImageByPath } from '../repos/postRepo.js';
 import { canReviewPost } from '../services/ReviewService.js';
+import { canViewImage as canViewCouncilImage } from '../services/CouncilPostService.js';
 
 export function createUploadsRouter(opts: { userLoader?: UserLoader } = {}): Router {
   const router = Router();
@@ -19,10 +20,20 @@ export function createUploadsRouter(opts: { userLoader?: UserLoader } = {}): Rou
   router.get('/:y/:m/:file', async (req, res) => {
     const rel = `${req.params.y}/${req.params.m}/${req.params.file}`;
     if (!isValidImageRelPath(rel)) throw AppError.notFound('사진을 찾을 수 없어요.');
-    const img = await findImageByPath(rel);
-    if (!img) throw AppError.notFound('사진을 찾을 수 없어요.');
     const user = req.user;
     if (!user) throw AppError.unauthorized();
+    const img = await findImageByPath(rel);
+    if (!img) {
+      // 자치회 글 이미지 (P2-2): 게시·만료 글은 누구나, 승인 전은 임원·교사만
+      if (await canViewCouncilImage(user, rel)) {
+        res.sendFile(absoluteImagePath(rel), {
+          headers: { 'Cache-Control': 'private, max-age=3600', 'Content-Type': 'image/webp' },
+          dotfiles: 'deny',
+        });
+        return;
+      }
+      throw AppError.notFound('사진을 찾을 수 없어요.');
+    }
     // 임원 검토자는 검토 대상(pending, 담당 학년, 본인·같은 반 제외) 글의 이미지만 볼 수 있다 (APR-02c)
     const allowed =
       canViewPost(viewerFromAuthUser(user), img.post) || (await canReviewPost(user, img.post));

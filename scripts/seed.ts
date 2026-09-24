@@ -26,6 +26,14 @@ const ALL_TABLES = [
   'news_topics',
   'news_topic_bank',
   'audit_logs',
+  // P2-2/P2-3 (007)
+  'class_mission_results',
+  'user_achievements',
+  'weekly_gifts',
+  'council_poll_votes',
+  'council_poll_options',
+  'council_post_images',
+  'council_posts',
   'review_logs',
   'review_assignments',
   'approval_settings',
@@ -347,6 +355,8 @@ const RULES: RuleSeed[] = [
 
 const SETTINGS: Record<string, unknown> = {
   tier_thresholds: { sprout: 200, flower: 500, fruit: 1000, star: 2000 },
+  // P2-2/P2-3 게이미피케이션: 주간 선물 학년별 N, 학급 미션 목표 제출률
+  gamify: { weeklyGiftPerGrade: 3, classMissionReportRate: 80 },
   allowed_grades: [3, 4, 5, 6],
   weekly_top_per_grade: 10,
   monthly_gift_per_grade: 5,

@@ -44,18 +44,21 @@ export async function upsertDraft(
     perGradeGiftCount: number;
     perGradeGrowthCount: number;
     winnerClassId: number | null;
+    excludeWeeklyGift?: boolean;
   },
   conn: PoolConnection,
 ): Promise<number> {
   const existing = await findByMonth(monthKey, conn);
+  const exclude = v.excludeWeeklyGift ? 1 : 0;
   if (existing) {
     await execute(
-      `UPDATE monthly_settlements SET prev_settlement_id = ?, per_grade_gift_count = ?, per_grade_growth_count = ?, winner_class_id = ?, drafted_at = NOW(3) WHERE id = ?`,
+      `UPDATE monthly_settlements SET prev_settlement_id = ?, per_grade_gift_count = ?, per_grade_growth_count = ?, winner_class_id = ?, exclude_weekly_gift = ?, drafted_at = NOW(3) WHERE id = ?`,
       [
         v.prevSettlementId,
         v.perGradeGiftCount,
         v.perGradeGrowthCount,
         v.winnerClassId,
+        exclude,
         existing.id,
       ],
       conn,
@@ -63,9 +66,16 @@ export async function upsertDraft(
     return existing.id;
   }
   return insert(
-    `INSERT INTO monthly_settlements (month_key, status, prev_settlement_id, per_grade_gift_count, per_grade_growth_count, winner_class_id, drafted_at)
-     VALUES (?, 'draft', ?, ?, ?, ?, NOW(3))`,
-    [monthKey, v.prevSettlementId, v.perGradeGiftCount, v.perGradeGrowthCount, v.winnerClassId],
+    `INSERT INTO monthly_settlements (month_key, status, prev_settlement_id, per_grade_gift_count, per_grade_growth_count, winner_class_id, exclude_weekly_gift, drafted_at)
+     VALUES (?, 'draft', ?, ?, ?, ?, ?, NOW(3))`,
+    [
+      monthKey,
+      v.prevSettlementId,
+      v.perGradeGiftCount,
+      v.perGradeGrowthCount,
+      v.winnerClassId,
+      exclude,
+    ],
     conn,
   );
 }

@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { HallAward, HallClassRow, HallStudent } from '@server-types/api';
 import { useState } from 'react';
 import { hallApi } from '@/api/hallOfFame';
+import { WeeklyGiftPanel } from '@/components/hall/WeeklyGiftPanel';
+import { useMe } from '@/hooks/useMe';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -22,6 +24,11 @@ function StudentChip({ s }: { s: HallStudent }) {
       <span className="font-semibold">
         {s.name ? `${s.name} (${s.displayName})` : s.displayName}
       </span>
+      {s.gifted && (
+        <span title="주간 선물" aria-label="주간 선물 받음" data-testid="gifted">
+          🎁
+        </span>
+      )}
       {s.points !== undefined && (
         <span className="ml-auto font-bold text-primary-700">{s.points}P</span>
       )}
@@ -102,6 +109,8 @@ function AwardList({ awards }: { awards: HallAward[] }) {
 }
 
 function WeeklyTab() {
+  const { me } = useMe();
+  const canGift = !!me && (me.isApprover || me.role === 'admin');
   const [week, setWeek] = useState<string | undefined>(undefined);
   const q = useQuery({
     queryKey: ['hall', 'weekly', week ?? 'latest'],
@@ -140,6 +149,7 @@ function WeeklyTab() {
           : '지난주에 열심히 실천한 친구들이에요. (가나다순)'}
       </p>
       <GradeLists groups={d.grades} emptyText="지난주 명단이 아직 없어요" />
+      {canGift && <WeeklyGiftPanel week={d.weekKey} />}
       {d.classes.length > 0 && (
         <Card title="반별 평균">
           <ClassTable classes={d.classes} />

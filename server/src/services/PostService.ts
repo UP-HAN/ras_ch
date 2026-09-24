@@ -33,6 +33,7 @@ import { insert } from '../db/query.js';
 import { hasRole, type AuthUser } from '../types/auth.js';
 import type { ImageKind, PostStatus, Visibility } from '../types/db.js';
 import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 import { buildEventKey, type RuleCode } from './points/types.js';
 
 export type PostAction =
@@ -352,7 +353,10 @@ export async function transition(
     if (!bundle) throw AppError.notFound('글을 찾을 수 없어요.');
 
     // 승인 시 지급, 숨김 해제 시 재지급(숨김 때 회수됐으므로; event_key 세대 규칙으로 멱등) (RPT-06, PT-03)
-    if (action === 'approve' || action === 'unhide') await grantApprovalPoints(bundle, conn);
+    if (action === 'approve' || action === 'unhide') {
+      await grantApprovalPoints(bundle, conn);
+      await evaluateAchievements(post.author_id, conn); // 첫걸음·꾸준이·줄임왕·기자
+    }
     if ((action === 'reject' || action === 'hide' || action === 'delete') && wasApproved) {
       await reversePointsSafe(
         'post',
@@ -377,11 +381,11 @@ export interface ArticleWriteInput {
   submit: boolean;
 }
 
-async function processPhotos(
+export async function processPhotos(
   files: UploadedFile[],
+  max: number = ARTICLE_LIMITS.photosMax,
 ): Promise<Array<{ path: string; width: number; height: number }>> {
-  if (files.length > ARTICLE_LIMITS.photosMax)
-    throw AppError.badRequest(`사진은 ${ARTICLE_LIMITS.photosMax}장까지만 올릴 수 있어요.`);
+  if (files.length > max) throw AppError.badRequest(`사진은 ${max}장까지만 올릴 수 있어요.`);
   const out: Array<{ path: string; width: number; height: number }> = [];
   for (const f of files) {
     if (f.size > MAX_IMAGE_BYTES)

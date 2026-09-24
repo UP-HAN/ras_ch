@@ -267,6 +267,7 @@ type BundleRow = PostRow & {
   a_class_id: number | null;
   a_student_no: number | null;
   a_tier: UserRow['tier'];
+  a_title_code: string | null;
   a_is_reporter: 0 | 1;
   a_parent_consent: UserRow['parent_consent'];
   c_id: number;
@@ -276,7 +277,7 @@ type BundleRow = PostRow & {
 
 const BUNDLE_SELECT = `
   SELECT p.*, u.id AS a_id, u.name AS a_name, u.display_name AS a_display_name, u.class_id AS a_class_id,
-         u.student_no AS a_student_no, u.tier AS a_tier, u.is_reporter AS a_is_reporter, u.parent_consent AS a_parent_consent,
+         u.student_no AS a_student_no, u.tier AS a_tier, u.title_code AS a_title_code, u.is_reporter AS a_is_reporter, u.parent_consent AS a_parent_consent,
          c.id AS c_id, c.name AS c_name, c.grade AS c_grade
   FROM posts p JOIN users u ON u.id = p.author_id JOIN classes c ON c.id = p.class_id`;
 
@@ -312,6 +313,7 @@ async function attachDetails(rows: BundleRow[], conn: Executor): Promise<PostBun
       a_class_id,
       a_student_no,
       a_tier,
+      a_title_code,
       a_is_reporter,
       a_parent_consent,
       c_id,
@@ -333,6 +335,7 @@ async function attachDetails(rows: BundleRow[], conn: Executor): Promise<PostBun
         class_id: a_class_id,
         student_no: a_student_no,
         tier: a_tier,
+        title_code: a_title_code,
         is_reporter: a_is_reporter,
         parent_consent: a_parent_consent,
       },

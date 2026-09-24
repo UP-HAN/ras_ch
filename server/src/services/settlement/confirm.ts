@@ -10,6 +10,7 @@ import * as settlementRepo from '../../repos/settlementRepo.js';
 import type { AuthUser } from '../../types/auth.js';
 import type { ConfirmSettlementInput, ConfirmSettlementResult } from '../../types/api.js';
 import { applyPointsSafe } from '../points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from '../AchievementService.js';
 import type { RuleCode } from '../points/types.js';
 import { CATEGORY_LABEL } from './awards.js';
 import { buildSettlement, persistSnapshot } from './draft.js';
@@ -66,6 +67,7 @@ export async function confirmSettlement(
       userIds: new Set(input.allowConsecutiveUserIds),
       allowClass: input.allowConsecutiveClass,
     },
+    excludeWeeklyGift: input.excludeWeeklyGift ?? false,
   });
   const awardRows: settlementRepo.AwardInsert[] = built.awards.map((c) => {
     const sel = input.awards.find((a) => a.category === c.category && a.userId === c.userId);
@@ -116,6 +118,7 @@ export async function confirmSettlement(
     for (const r of built.ranking.filter((x) => x.selected)) {
       if (await grant('MONTHLY_TOP', r.userId, `${monthLabel(monthKey)} 포인트 상위 선정`))
         granted.monthlyTop += 1;
+      await evaluateAchievements(r.userId, conn); // 명예의 전당 칭호
     }
     for (const g of built.growth.filter((x) => x.selected)) {
       if (await grant('GROWTH_AWARD', g.userId, `${monthLabel(monthKey)} 성장률 부문 선정`))
@@ -137,6 +140,7 @@ export async function confirmSettlement(
         if (await grant('MONTHLY_AWARD', a.userId, `${monthLabel(monthKey)} ${label}`))
           granted.awards += 1;
         awardedUsers.add(a.userId);
+        await evaluateAchievements(a.userId, conn); // 명예의 전당 칭호
       } else {
         warnings.push(`같은 학생이 두 부문에 선정되어 MONTHLY_AWARD 는 한 번만 지급했어요.`);
       }

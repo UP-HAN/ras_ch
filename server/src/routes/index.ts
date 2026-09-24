@@ -10,6 +10,8 @@ import {
 import { createAdminRouter } from './admin.js';
 import { createAuthRouter } from './auth.js';
 import { createCouncilRouter } from './council.js';
+import { createCouncilAdminRouter } from './councilAdmin.js';
+import { createWeeklyGiftsRouter } from './weeklyGifts.js';
 import { createHallOfFameRouter } from './hallOfFame.js';
 import { createSettlementsRouter } from './settlements.js';
 import { attendance } from '../middleware/attendance.js';
@@ -28,6 +30,7 @@ import { createTeacherRouter } from './teacher.js';
  *  - S3: posts(article), comments, likes, reports, me/read
  *  - S4: me/points, council/review, admin/point-rules, admin/approval-settings
  *  - S5: hall-of-fame, admin/settlements, admin/notices
+ *  - P2-2: council/posts, admin/council, admin/weekly (주간 선물)
  */
 export interface ApiRouterOptions {
   /** 테스트용 사용자 로더 주입 */
@@ -50,6 +53,8 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/me', createMeRouter());
   router.use('/admin/settlements', createSettlementsRouter());
   router.use('/admin/news', createNewsAdminRouter());
+  router.use('/admin/council', createCouncilAdminRouter());
+  router.use('/admin/weekly', createWeeklyGiftsRouter());
   router.use('/admin', createAdminRouter());
   router.use('/hall-of-fame', createHallOfFameRouter());
   router.use('/teacher', createTeacherRouter());

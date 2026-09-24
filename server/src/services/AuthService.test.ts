@@ -20,6 +20,7 @@ async function makeUser(over: Partial<UserRow> = {}): Promise<UserRow> {
     consent_updated_at: null,
     is_reporter: 0,
     tier: 'seed',
+    title_code: null,
     linked_council_account_id: null,
     status: 'active',
     must_change_pw: 1,

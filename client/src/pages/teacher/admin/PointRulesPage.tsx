@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PointCapView, PointRuleView } from '@server-types/api';
 import { useState } from 'react';
+import type { GamifySettingsView } from '@server-types/api';
 import { adminSettingsApi } from '@/api/adminSettings';
+import { gamifyApi } from '@/api/gamify';
 import { errorMessage } from '@/api/client';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, Input, Spinner } from '@/components/ui';
@@ -169,6 +171,81 @@ function RuleEditor({
   );
 }
 
+/** 등급 구간·주간 선물 인원·학급 미션 목표 (PT-07, HOF-01a, 게이미피케이션) */
+function GamifySettingsCard() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['admin', 'gamify'], queryFn: gamifyApi.settings });
+  const [form, setForm] = useState<GamifySettingsView | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (v: GamifySettingsView) => gamifyApi.updateSettings(v),
+    onSuccess: () => {
+      setMsg('저장했어요. 등급은 바로 다시 계산돼요(강등 없음).');
+      setError(null);
+      setForm(null);
+      void qc.invalidateQueries({ queryKey: ['admin', 'gamify'] });
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+  if (!q.data) return null;
+  const v = form ?? q.data;
+  const num = (n: number) => (Number.isFinite(n) ? n : 0);
+  const setT = (k: keyof GamifySettingsView['tierThresholds'], val: number) =>
+    setForm({ ...v, tierThresholds: { ...v.tierThresholds, [k]: num(val) } });
+  return (
+    <Card title="등급 배지 · 주간 선물 · 학급 미션" className="mb-4" data-testid="gamify-settings">
+      <p className="mb-3 text-base text-ink-muted">
+        등급은 누적 포인트로 정해요(씨앗 → 새싹 → 꽃 → 열매 → 초롱별). 회수로 포인트가 줄어도 등급은
+        내려가지 않아요.
+      </p>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        {(
+          [
+            ['sprout', '🌱 새싹부터'],
+            ['flower', '🌸 꽃부터'],
+            ['fruit', '🍎 열매부터'],
+            ['star', '⭐ 초롱별부터'],
+          ] as const
+        ).map(([k, label]) => (
+          <Input
+            key={k}
+            label={label}
+            type="number"
+            value={v.tierThresholds[k]}
+            onChange={(e) => setT(k, Number(e.target.value))}
+          />
+        ))}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Input
+          label="주간 선물 학년별 인원(기본)"
+          type="number"
+          value={v.weeklyGiftPerGrade}
+          onChange={(e) => setForm({ ...v, weeklyGiftPerGrade: num(Number(e.target.value)) })}
+        />
+        <Input
+          label="학급 미션 목표 제출률(%)"
+          type="number"
+          value={v.classMissionReportRate}
+          onChange={(e) => setForm({ ...v, classMissionReportRate: num(Number(e.target.value)) })}
+        />
+      </div>
+      {msg && <p className="mt-2 text-base text-success-600">{msg}</p>}
+      {error && (
+        <p role="alert" className="mt-2 text-base text-danger-600">
+          {error}
+        </p>
+      )}
+      <div className="mt-3 flex justify-end">
+        <Button disabled={!form} loading={save.isPending} onClick={() => form && save.mutate(form)}>
+          저장
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 /** 포인트 규칙표 편집 (PT-05, ADM-02): 금액·범위·상한·활성, 버전·이력 */
 export function PointRulesPage() {
   const qc = useQueryClient();
@@ -185,6 +262,7 @@ export function PointRulesPage() {
       {msg && (
         <p className="mb-3 rounded-md bg-success-50 px-3 py-2 text-base text-success-600">{msg}</p>
       )}
+      <GamifySettingsCard />
       {q.isLoading && <Spinner className="text-accent-600" />}
       {q.data && (
         <Card>

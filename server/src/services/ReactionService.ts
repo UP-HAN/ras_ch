@@ -21,6 +21,7 @@ import { writeAudit } from '../repos/auditRepo.js';
 import { listActiveBannedWords } from '../repos/bannedWordRepo.js';
 import * as commentRepo from '../repos/commentRepo.js';
 import * as likeRepo from '../repos/likeRepo.js';
+import * as councilRepo from '../repos/councilRepo.js';
 import * as newsRepo from '../repos/newsRepo.js';
 import * as postRepo from '../repos/postRepo.js';
 import * as reportRepo from '../repos/reportRepo.js';
@@ -28,6 +29,7 @@ import { getSetting } from '../repos/settingsRepo.js';
 import type { AuthUser } from '../types/auth.js';
 import type { LikeResult, PostReactionsView, ReportResult } from '../types/api.js';
 import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 import { buildEventKey } from './points/types.js';
 import { transition } from './PostService.js';
 
@@ -55,20 +57,23 @@ async function loadReactable(
 
 export async function setLike(
   user: AuthUser,
-  targetType: 'post' | 'comment',
+  targetType: 'post' | 'comment' | 'council_post',
   targetId: number,
   on: boolean,
 ): Promise<LikeResult> {
   return tx(async (conn) => {
     let ownerId: number;
-    if (targetType === 'post') {
-      const t = await loadReactable(user, 'post', targetId, conn);
+    let pointsEnabled: boolean;
+    if (targetType === 'post' || targetType === 'council_post') {
+      const t = await loadReactable(user, targetType, targetId, conn);
       ownerId = t.ownerId as number;
+      pointsEnabled = t.pointsEnabled;
     } else {
       const c = await commentRepo.findComment(targetId, conn, true);
       if (!c || c.comment.status !== 'visible') throw AppError.notFound('댓글을 찾을 수 없어요.');
-      await loadReactable(user, c.comment.target_type, c.comment.target_id, conn);
+      const t = await loadReactable(user, c.comment.target_type, c.comment.target_id, conn);
       ownerId = c.comment.author_id;
+      pointsEnabled = t.pointsEnabled;
     }
 
     const existing = await likeRepo.findLike(user.row.id, targetType, targetId, conn);
@@ -79,10 +84,12 @@ export async function setLike(
         likeCount =
           targetType === 'post'
             ? await likeRepo.bumpPostLikes(targetId, 1, conn)
-            : (await commentRepo.bumpCommentLikes(targetId, 1, conn),
-              (await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
-        // 포인트 (RCT-06: 본인 글·댓글은 제외, 학생만)
-        if (user.row.role === 'student' && ownerId !== user.row.id) {
+            : targetType === 'council_post'
+              ? await councilRepo.bumpLikes(targetId, 1, conn)
+              : (await commentRepo.bumpCommentLikes(targetId, 1, conn),
+                (await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
+        // 포인트 (RCT-06: 본인 글·댓글은 제외, 학생만, 자치회 글은 없음 CNC-06)
+        if (pointsEnabled && user.row.role === 'student' && ownerId !== user.row.id) {
           await applyPointsSafe(
             {
               ruleCode: 'LIKE_GIVEN',
@@ -107,11 +114,14 @@ export async function setLike(
             conn,
           );
         }
+        if (ownerId !== user.row.id) await evaluateAchievements(ownerId, conn); // 인기글
       } else {
         likeCount =
           targetType === 'post'
             ? await likeRepo.bumpPostLikes(targetId, 0, conn)
-            : ((await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
+            : targetType === 'council_post'
+              ? await councilRepo.bumpLikes(targetId, 0, conn)
+              : ((await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
       }
       return { liked: true, likeCount };
     }
@@ -120,8 +130,10 @@ export async function setLike(
       likeCount =
         targetType === 'post'
           ? await likeRepo.bumpPostLikes(targetId, -1, conn)
-          : (await commentRepo.bumpCommentLikes(targetId, -1, conn),
-            (await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
+          : targetType === 'council_post'
+            ? await councilRepo.bumpLikes(targetId, -1, conn)
+            : (await commentRepo.bumpCommentLikes(targetId, -1, conn),
+              (await commentRepo.findComment(targetId, conn))?.comment.like_count ?? 0);
       await reversePointsSafe(
         'like',
         existing.id,
@@ -165,8 +177,8 @@ export async function addComment(
     }
     const id = await commentRepo.insertComment(target.type, targetId, user.row.id, body, conn);
     await bumpCommentCount(target.type, targetId, 1, conn);
-    // 토론 의견은 NEWS_OPINION, 글 댓글은 COMMENT_WRITTEN (본인 글 제외)
-    if (user.row.role === 'student' && target.ownerId !== user.row.id) {
+    // 토론 의견은 NEWS_OPINION, 글 댓글은 COMMENT_WRITTEN (본인 글 제외, 자치회 글은 없음 CNC-06)
+    if (target.pointsEnabled && user.row.role === 'student' && target.ownerId !== user.row.id) {
       const rule = target.type === 'news_topic' ? 'NEWS_OPINION' : 'COMMENT_WRITTEN';
       await applyPointsSafe(
         {
@@ -179,6 +191,7 @@ export async function addComment(
         conn,
       );
     }
+    if (user.row.role === 'student') await evaluateAchievements(user.row.id, conn); // 응원왕·토론가
     const bundle = await commentRepo.findComment(id, conn);
     if (!bundle) throw AppError.notFound('댓글을 찾을 수 없어요.');
     return bundle;
@@ -230,6 +243,10 @@ export async function reactionsFor(
   if (target.type === 'post') {
     const post = await postRepo.findPostById(targetId);
     likedByMe = !!(await likeRepo.findLike(user.row.id, 'post', targetId));
+    likeCount = post?.like_count ?? 0;
+  } else if (target.type === 'council_post') {
+    const post = await councilRepo.findPost(targetId);
+    likedByMe = !!(await likeRepo.findLike(user.row.id, 'council_post', targetId));
     likeCount = post?.like_count ?? 0;
   }
   return {

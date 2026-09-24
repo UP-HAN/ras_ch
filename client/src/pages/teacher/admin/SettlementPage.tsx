@@ -17,6 +17,7 @@ const SKIP_LABEL: Record<string, string> = {
   consecutive: '지난달 선정 → 이번 달은 넘김',
   gift_target: '포인트 상위 선정자라 제외',
   below_median: '학년 중앙값 미만',
+  weekly_gift: '주간 선물 수령자 제외',
 };
 
 function prevMonthKey(mk: string): string {
@@ -44,6 +45,7 @@ export function SettlementPage() {
   const [growthCount, setGrowthCount] = useState<number | null>(null);
   const [allowUsers, setAllowUsers] = useState<Set<number>>(new Set());
   const [allowClass, setAllowClass] = useState(false);
+  const [excludeGift, setExcludeGift] = useState<boolean | null>(null);
   const [picks, setPicks] = useState<Record<number, AwardPick>>({});
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function SettlementPage() {
   };
   const refresh = () => void qc.invalidateQueries({ queryKey: ['settlement', month] });
   const draft = useMutation({
-    mutationFn: () => settlementsApi.draft(month),
+    mutationFn: () => settlementsApi.draft(month, excludeGift ?? undefined),
     onSuccess: () => {
       setMsg('초안을 다시 만들었어요.');
       reset();
@@ -73,6 +75,7 @@ export function SettlementPage() {
         perGradeGrowthCount: growthCount ?? s.perGradeGrowthCount,
         allowConsecutiveUserIds: [...allowUsers],
         allowConsecutiveClass: allowClass,
+        excludeWeeklyGift: excludeGift ?? s.excludeWeeklyGift,
         awards: Object.entries(picks).flatMap(([, p]) =>
           (Object.keys(p) as Category[]).flatMap((cat) =>
             p[cat] ? [{ category: cat, userId: p[cat].userId, reason: p[cat].reason }] : [],
@@ -257,6 +260,19 @@ export function SettlementPage() {
                 value={growthCount ?? s.perGradeGrowthCount}
                 onChange={(e) => setGrowthCount(Number(e.target.value))}
               />
+              <label
+                className="flex min-h-tap items-center gap-2 text-base"
+                data-testid="exclude-gift"
+              >
+                <input
+                  type="checkbox"
+                  className="h-5 w-5"
+                  disabled={confirmed}
+                  checked={excludeGift ?? s.excludeWeeklyGift}
+                  onChange={(e) => setExcludeGift(e.target.checked)}
+                />
+                주간 선물 받은 학생은 포인트 상위에서 제외 (바꾸면 "초안 다시 만들기")
+              </label>
               <p className="text-base text-ink-muted">
                 {s.isFirstMonth
                   ? '첫 달이라 성장률 부문은 운영하지 않아요.'

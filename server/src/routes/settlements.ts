@@ -30,7 +30,9 @@ export function createSettlementsRouter(): Router {
 
   router.post('/:month/draft', async (req, res) => {
     const month = monthParam(req.params.month);
-    await createDraft(month);
+    const body = z.object({ excludeWeeklyGift: z.boolean().optional() }).safeParse(req.body ?? {});
+    if (!body.success) throw AppError.badRequest('옵션을 확인해 주세요.');
+    await createDraft(month, { excludeWeeklyGift: body.data.excludeWeeklyGift });
     res.json(ok(await settlementView(month, await settlementRepo.findByMonth(month))));
   });
 
@@ -42,6 +44,7 @@ export function createSettlementsRouter(): Router {
         perGradeGrowthCount: z.number().int(),
         allowConsecutiveUserIds: z.array(z.number().int()).default([]),
         allowConsecutiveClass: z.boolean().default(false),
+        excludeWeeklyGift: z.boolean().default(false),
         awards: z
           .array(
             z.object({

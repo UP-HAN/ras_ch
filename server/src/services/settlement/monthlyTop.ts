@@ -14,6 +14,8 @@ import type {
 } from './types.js';
 
 export const SKIP_CONSECUTIVE = 'consecutive';
+/** HOF-01b: 주간 선물 수령자 제외 토글로 넘긴 사유 */
+export const SKIP_WEEKLY_GIFT = 'weekly_gift';
 
 type Tiebreakable = Pick<
   StudentMonthInput,
@@ -83,6 +85,7 @@ export function rankMonthlyTop(
   perGradeGiftCount: number,
   prior: PriorWinners,
   overrides: ConsecutiveOverrides = { userIds: new Set(), allowClass: false },
+  excludeWeeklyGift = false,
 ): RankedStudent[] {
   const out: RankedStudent[] = [];
   const grades = [...new Set(inputs.map((s) => s.grade))].sort((a, b) => a - b);
@@ -94,7 +97,8 @@ export function rankMonthlyTop(
     const rows = sorted.map((s, i) => ({
       ...s,
       rankInGrade: ranks[i] as number,
-      eligible: s.points > 0,
+      excludedByGift: excludeWeeklyGift && s.receivedWeeklyGift && s.points > 0,
+      eligible: s.points > 0 && !(excludeWeeklyGift && s.receivedWeeklyGift),
     }));
     const picks = selectTop(
       rows,
@@ -111,7 +115,7 @@ export function rankMonthlyTop(
         points: r.points,
         rankInGrade: r.rankInGrade,
         selected: p.selected,
-        skippedReason: p.skippedReason,
+        skippedReason: r.excludedByGift ? SKIP_WEEKLY_GIFT : p.skippedReason,
         tiebreak: {
           reportCount: r.reportCount,
           articleCount: r.articleCount,

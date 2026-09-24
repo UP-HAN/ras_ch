@@ -10,12 +10,13 @@ import { getPool } from '../db/pool.js';
 import { AppError } from './apiResponse.js';
 import { topicReactable } from './newsRules.js';
 import { canViewPost, viewerFromAuthUser } from './postAccess.js';
+import * as councilRepo from '../repos/councilRepo.js';
 import * as newsRepo from '../repos/newsRepo.js';
 import * as postRepo from '../repos/postRepo.js';
 import type { AuthUser } from '../types/auth.js';
 
-export type ReactionTargetType = 'post' | 'news_topic';
-export const REACTION_TARGET_TYPES: ReactionTargetType[] = ['post', 'news_topic'];
+export type ReactionTargetType = 'post' | 'news_topic' | 'council_post';
+export const REACTION_TARGET_TYPES: ReactionTargetType[] = ['post', 'news_topic', 'council_post'];
 
 export function isReactionTargetType(v: string): v is ReactionTargetType {
   return (REACTION_TARGET_TYPES as string[]).includes(v);
@@ -30,6 +31,8 @@ export interface ReactionTarget {
   canReact: boolean;
   /** 토론 주제 유형(댓글 규칙 코드·입장 배지용) */
   topicType?: 'vote' | 'open';
+  /** false 면 댓글·좋아요 포인트를 주지 않는다 (자치회 글 CNC-06). 읽기 POST_READ 는 별도 */
+  pointsEnabled: boolean;
 }
 
 /** 열람 가능한 대상을 찾는다. 없으면 404, 볼 수 없으면 403 */
@@ -44,7 +47,13 @@ export async function loadReactionTarget(
     if (!post || post.deleted_at) throw AppError.notFound('글을 찾을 수 없어요.');
     if (!canViewPost(viewerFromAuthUser(user), post))
       throw AppError.forbidden('이 글은 볼 수 없어요.');
-    return { type: 'post', id, ownerId: post.author_id, canReact: post.status === 'approved' };
+    return {
+      type: 'post',
+      id,
+      ownerId: post.author_id,
+      canReact: post.status === 'approved',
+      pointsEnabled: true,
+    };
   }
   if (type === 'news_topic') {
     const topic = await newsRepo.findTopic(id, conn);
@@ -56,6 +65,22 @@ export async function loadReactionTarget(
       ownerId: null,
       canReact: topicReactable(topic.status, topic.close_at),
       topicType: topic.type,
+      pointsEnabled: true,
+    };
+  }
+  if (type === 'council_post') {
+    // 자치회 글: 게시 중(approved·기간 내)이면 반응 가능(댓글 허용 시), 지난 글은 열람만. 포인트 없음(CNC-06)
+    const post = await councilRepo.findPost(id, conn);
+    if (!post || !['approved', 'expired'].includes(post.status))
+      throw AppError.notFound('자치회 글을 찾을 수 없어요.');
+    const now = new Date();
+    const live = post.status === 'approved' && post.starts_at <= now && post.ends_at > now;
+    return {
+      type: 'council_post',
+      id,
+      ownerId: post.author_id,
+      canReact: live && post.allow_comments === 1,
+      pointsEnabled: false,
     };
   }
   throw AppError.badRequest('아직 지원하지 않는 대상이에요.');
@@ -67,7 +92,9 @@ export function assertReactable(t: ReactionTarget): void {
   throw AppError.conflict(
     t.type === 'news_topic'
       ? '마감된 토론이에요. 읽기만 할 수 있어요.'
-      : '게시된 글에만 반응할 수 있어요.',
+      : t.type === 'council_post'
+        ? '지금은 이 글에 댓글을 쓸 수 없어요.'
+        : '게시된 글에만 반응할 수 있어요.',
   );
 }
 
@@ -80,4 +107,5 @@ export async function bumpCommentCount(
 ): Promise<void> {
   if (type === 'post') await postRepo.bumpCommentCount(id, delta, conn);
   else if (type === 'news_topic') await newsRepo.bumpTopicComments(id, delta, conn);
+  else if (type === 'council_post') await councilRepo.bumpComments(id, delta, conn);
 }

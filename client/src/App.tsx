@@ -21,6 +21,10 @@ import { PostListPage } from '@/pages/student/PostListPage';
 import { ArticleFormPage } from '@/pages/student/ArticleFormPage';
 import { ReportFormPage } from '@/pages/student/ReportFormPage';
 import { WritePage } from '@/pages/student/WritePage';
+import { CouncilFormPage } from '@/pages/student/CouncilFormPage';
+import { CouncilListPage } from '@/pages/student/CouncilListPage';
+import { CouncilPostPage } from '@/pages/student/CouncilPostPage';
+import { CouncilPage } from '@/pages/teacher/CouncilPage';
 import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
 import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
 import { BannedWordsPage } from '@/pages/teacher/admin/BannedWordsPage';
@@ -54,6 +58,10 @@ const router = createBrowserRouter([
       { path: 'write', element: <WritePage /> },
       { path: 'write/report', element: <ReportFormPage /> },
       { path: 'write/article', element: <ArticleFormPage /> },
+      { path: 'write/council', element: <CouncilFormPage /> },
+      { path: 'council', element: <CouncilListPage /> },
+      { path: 'council/:id', element: <CouncilPostPage /> },
+      { path: 'council/:id/edit', element: <CouncilFormPage /> },
       { path: 'posts', element: <PostListPage /> },
       { path: 'posts/:id', element: <PostDetailPage /> },
       { path: 'posts/:id/edit', element: <ReportFormPage /> },
@@ -84,6 +92,7 @@ const router = createBrowserRouter([
       { path: 'stats', element: <StatsPage /> },
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'news', element: <NewsPage /> },
+      { path: 'council', element: <CouncilPage /> },
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
       { path: 'admin/banned-words', element: <BannedWordsPage /> },

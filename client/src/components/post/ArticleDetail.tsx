@@ -1,4 +1,5 @@
 import type { StudentPostView } from '@server-types/api';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge, Card } from '@/components/ui';
 import { tagLabel, typeLabel } from './articleMeta';
 
@@ -17,12 +18,7 @@ export function ArticleDetail({ post }: { post: StudentPostView }) {
           {post.article && <Badge tone="neutral">{typeLabel(post.article.articleType)}</Badge>}
         </div>
         <p className="mt-2 text-base text-ink-muted">
-          {post.author.className} {post.author.displayName}
-          {post.author.isReporter && (
-            <Badge tone="info" className="ml-1">
-              기자단
-            </Badge>
-          )}
+          <AuthorChip author={post.author} />
           {post.approvedAt && (
             <span className="ml-2">{new Date(post.approvedAt).toLocaleDateString('ko-KR')}</span>
           )}

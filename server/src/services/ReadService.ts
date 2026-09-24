@@ -10,6 +10,7 @@ import * as readRepo from '../repos/readRepo.js';
 import type { AuthUser } from '../types/auth.js';
 import type { ReadResult } from '../types/api.js';
 import { applyPointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 import { buildEventKey } from './points/types.js';
 
 async function eligible(user: AuthUser, type: ReactionTargetType, id: number): Promise<boolean> {
@@ -17,7 +18,7 @@ async function eligible(user: AuthUser, type: ReactionTargetType, id: number): P
   try {
     const t = await loadReactionTarget(user, type, id);
     if (t.type === 'post' && !t.canReact) return false; // 미승인 글
-    return t.ownerId !== user.row.id;
+    return t.ownerId !== user.row.id; // 자치회 글은 게시·만료 모두 읽기 가능
   } catch {
     return false;
   }
@@ -61,6 +62,7 @@ export async function completeRead(
       },
       conn,
     );
+    await evaluateAchievements(user.row.id, conn); // 독서가
     return { completed: true };
   });
 }

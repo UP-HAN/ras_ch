@@ -1,5 +1,6 @@
 import type { StudentPostView } from '@server-types/api';
 import { Link } from 'react-router-dom';
+import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge } from '@/components/ui';
 import { minutesLabel, UsageDiff } from './UsageDiff';
 
@@ -12,10 +13,7 @@ export function ReportCard({ post }: { post: StudentPostView }) {
       className="block rounded-lg border border-line bg-surface p-4 shadow-card hover:border-primary-300"
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-base font-bold">
-          {post.author.className} {post.author.displayName}
-        </span>
-        {post.author.isReporter && <Badge tone="info">기자단</Badge>}
+        <AuthorChip author={post.author} />
         <span className="text-base text-ink-muted">{post.weekKey}</span>
         {post.type === 'diary' && <Badge tone="neutral">일기형</Badge>}
       </div>

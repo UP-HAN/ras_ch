@@ -9,6 +9,8 @@ import { monthRange, previousMonthKey } from '../../lib/time.js';
 import { currentSchoolYear } from '../../repos/schoolYearRepo.js';
 import * as settlementRepo from '../../repos/settlementRepo.js';
 import { getSetting } from '../../repos/settingsRepo.js';
+import * as weeklyGiftRepo from '../../repos/weeklyGiftRepo.js';
+import { weekKeysInMonth } from '../../lib/weeklyGift.js';
 import type {
   AwardStudentInput,
   ClassMonthInput,
@@ -47,6 +49,7 @@ export async function loadStudentInputs(monthKey: string): Promise<StudentMonthI
      WHERE u.role = 'student' AND u.status = 'active' AND c.school_year_id = ? AND c.grade BETWEEN 3 AND 6`,
     [monthKey, prev, s, e, s, e, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'), year.id],
   );
+  const gifted = await weeklyGiftRepo.giftedUserIdsForWeeks(weekKeysInMonth(monthKey));
   return rows.map((r) => ({
     userId: r.user_id,
     grade: r.grade,
@@ -57,7 +60,7 @@ export async function loadStudentInputs(monthKey: string): Promise<StudentMonthI
     articleCount: Number(r.article_count),
     activeDays: Number(r.active_days),
     parentConsent: r.parent_consent,
-    receivedWeeklyGift: false,
+    receivedWeeklyGift: gifted.has(r.user_id),
   }));
 }
 
@@ -116,7 +119,7 @@ export async function loadSettings(monthKey: string): Promise<SettlementSettings
     perGradeGiftCount: await getSetting('monthly_gift_per_grade', 5),
     perGradeGrowthCount: await getSetting('monthly_growth_per_grade', 3),
     growthMinPrevPoints: await getSetting('growth_min_prev_points', 30),
-    excludeWeeklyGift: false,
+    excludeWeeklyGift: (await settlementRepo.findByMonth(monthKey))?.exclude_weekly_gift === 1,
     isFirstMonth: Number(prevTotal?.s ?? 0) <= 0,
   };
 }

@@ -1,6 +1,7 @@
 /**
  * 사용자 직렬화 — 허용목록 방식. 학생용(PublicUser)에는 실명(name)·login_id 가 없다 (3.1, 절대 규칙 4).
  */
+import { titleOf } from '../achievements.js';
 import type { MeView, PublicUser, TeacherUser } from '../../types/api.js';
 import type { ClassRow, UserRow } from '../../types/db.js';
 
@@ -18,6 +19,7 @@ export function toPublicUser(b: UserBundle): PublicUser {
     grade: klass?.grade ?? null,
     className: klass?.name ?? null,
     tier: user.tier,
+    title: titleOf(user.title_code),
     isReporter: user.is_reporter === 1,
     isCouncil: b.isCouncil,
   };

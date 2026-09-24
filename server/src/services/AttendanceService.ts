@@ -8,6 +8,7 @@ import * as repo from '../repos/attendanceRepo.js';
 import type { AuthUser } from '../types/auth.js';
 import type { AttendanceView } from '../types/api.js';
 import { applyPointsSafe } from './points/safeApply.js';
+import { evaluateSafe as evaluateAchievements } from './AchievementService.js';
 
 export async function touchAttendance(
   user: AuthUser,
@@ -35,6 +36,7 @@ export async function touchAttendance(
         note: `${streak}일 연속 출석`,
       });
     }
+    await evaluateAchievements(user.row.id); // 개근이
   }
   return { firstToday: loginDayId !== null, streak };
 }

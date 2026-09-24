@@ -11,6 +11,7 @@ import { dayKey, monthKey, weekKey } from '../../lib/time.js';
 import type { LedgerRowFull, NewLedgerRow, UsageQuery } from '../../repos/ledgerRepo.js';
 import * as ledgerRepo from '../../repos/ledgerRepo.js';
 import { notify } from '../../lib/notify.js';
+import { refreshTier } from '../TierService.js';
 import type { PointRuleRow } from '../../types/db.js';
 import { NOTIFY_RULES, pointsMessage } from './notifyRules.js';
 import type {
@@ -37,6 +38,8 @@ export interface LedgerStore {
   ): Promise<LedgerRowFull[]>;
   /** 포인트 획득 알림. 테스트에서는 no-op */
   notify(userId: number, message: string, conn?: PoolConnection): Promise<void>;
+  /** 지급 성공 뒤 등급 재계산 (PT-07). 테스트에서는 생략 가능 */
+  refreshTier?(userId: number, conn?: PoolConnection): Promise<unknown>;
 }
 
 const dbStore: LedgerStore = {
@@ -48,6 +51,7 @@ const dbStore: LedgerStore = {
   notify: async (userId, message, conn) => {
     await notify(userId, 'points', { message, link: '/me/points' }, conn);
   },
+  refreshTier: (userId, conn) => refreshTier(userId, conn),
 };
 
 export class LedgerPointService implements PointService {
@@ -126,6 +130,8 @@ export class LedgerPointService implements PointService {
       throw err;
     }
 
+    // PT-07: 누적이 늘었으니 등급 재계산(강등 없음)
+    if (this.store.refreshTier) await this.store.refreshTier(event.userId, conn);
     if (NOTIFY_RULES.has(rule.code as PointEvent['ruleCode'])) {
       await this.store.notify(
         event.userId,
