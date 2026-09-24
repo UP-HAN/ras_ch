@@ -115,6 +115,10 @@ export interface AwardStudentInput {
   attendanceDays: number;
   /** 끝까지 읽은 글 수 */
   readCount: number;
+  /** 토론 투표에 참여한 주제 수 (NWS) */
+  newsVoteTopics: number;
+  /** 베스트 의견 선정 수 (NWS-09) */
+  bestOpinions: number;
 }
 
 export interface AwardCandidate {

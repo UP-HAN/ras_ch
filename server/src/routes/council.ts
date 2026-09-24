@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
 import { clientIp, currentUser, requireRole } from '../middleware/auth.js';
 import * as review from '../services/ReviewService.js';
+import * as news from '../services/NewsService.js';
+import { NEWS_TAGS } from '../lib/newsRules.js';
 
 export function createCouncilRouter(): Router {
   const router = Router();
@@ -16,6 +18,22 @@ export function createCouncilRouter(): Router {
   });
 
   router.use(requireRole('council', 'council_teacher'));
+
+  // 토론 주제 제안 → 주제 은행 pending (NWS-05, 임원)
+  router.post('/bank-proposals', async (req, res) => {
+    const body = z
+      .object({
+        title: z.string().max(60),
+        body: z.string().max(600),
+        type: z.enum(['vote', 'open']),
+        questions: z.array(z.string().max(150)).max(5),
+        tags: z.array(z.enum(NEWS_TAGS)).max(7),
+        sourceUrl: z.string().max(300).nullable().optional(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('제안 내용을 확인해 주세요.');
+    res.status(201).json(ok(await news.propose(currentUser(req), body.data, clientIp(req))));
+  });
 
   router.get('/review/queue', async (req, res) => {
     res.json(ok(await review.reviewQueue(currentUser(req))));

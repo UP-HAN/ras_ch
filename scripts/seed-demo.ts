@@ -24,6 +24,10 @@ import {
   setLike,
 } from '../server/src/services/ReactionService.js';
 import { submitReview } from '../server/src/services/ReviewService.js';
+import { runNewsReserve } from '../server/src/jobs/newsJobs.js';
+import * as newsAdmin from '../server/src/services/NewsAdminService.js';
+import { selectBest, vote as newsVote } from '../server/src/services/NewsService.js';
+import { toDbDateTime } from '../server/src/lib/time.js';
 import type { AuthUser } from '../server/src/types/auth.js';
 
 setPointService(new LedgerPointService());
@@ -303,7 +307,7 @@ async function main(): Promise<void> {
         width: 1200,
         height: 800,
         channels: 3,
-        background: ['#88aa44', '#4488aa', '#aa6644'][i],
+        background: ['#88aa44', '#4488aa', '#aa6644'][i] ?? '#88aa44',
       },
     })
       .jpeg()
@@ -354,7 +358,7 @@ async function main(): Promise<void> {
       await setLike(u, 'post', pid, true).catch(() => undefined);
       if ((i + k) % 2 === 0) {
         try {
-          const cm = await addComment(u, pid, pick(COMMENTS, c));
+          const cm = await addComment(u, 'post', pid, pick(COMMENTS, c));
           commentIds.push(cm.comment.id);
           c += 1;
         } catch {
@@ -414,7 +418,64 @@ async function main(): Promise<void> {
       () => undefined,
     );
 
-  // 8) 지금 보이는 공지 + 주간 TOP 스냅샷(지난주)
+  // 8) 토론방 (P2-1): 지난주 마감 주제 1건(투표·의견·베스트) + 진행 중 주제 1건(투표·의견) + 다음 주 자동 예약
+  {
+    const bank = await newsAdmin.listBank();
+    const ready = bank.filter((b) => b.status === 'ready' && b.type === 'vote');
+    const [b1, b2] = ready;
+    if (b1 && b2) {
+      const closedT = await newsAdmin.scheduleFromBank(
+        teachers.admin,
+        b1.id,
+        today.subtract(9, 'day').hour(8).format('YYYY-MM-DDTHH:mm'),
+      );
+      await execute("UPDATE news_topics SET status = 'live', close_at = ? WHERE id = ?", [
+        toDbDateTime(today.subtract(2, 'day').hour(8)),
+        closedT.id,
+      ]);
+      const liveT = await newsAdmin.scheduleFromBank(
+        teachers.admin,
+        b2.id,
+        today.subtract(1, 'day').hour(8).format('YYYY-MM-DDTHH:mm'),
+      );
+      await execute("UPDATE news_topics SET status = 'live', close_at = ? WHERE id = ?", [
+        toDbDateTime(today.add(6, 'day').hour(8)),
+        liveT.id,
+      ]);
+      const OPINIONS = [
+        '나는 찬성해요. 왜냐하면 폰을 안 보면 친구랑 더 많이 놀 수 있기 때문이에요.',
+        '나는 반대해요. 왜냐하면 급한 일이 생기면 부모님께 연락해야 하기 때문이에요.',
+        '나는 찬성해요. 왜냐하면 쉬는 시간에 폰만 보는 친구가 많아서 아쉬웠기 때문이에요.',
+        '나는 반대해요. 왜냐하면 스스로 조절하는 연습이 더 중요하다고 생각하기 때문이에요.',
+        '나는 찬성해요. 왜냐하면 폰 없이 놀면 시간이 더 빨리 가고 재미있기 때문이에요.',
+      ];
+      let k = 0;
+      for (const t of [closedT, liveT]) {
+        for (const [i, u] of all.entries()) {
+          if (i % (t.id === closedT.id ? 2 : 3) !== 0) continue;
+          await newsVote(u, t.id, i % 3 === 0 ? 'agree' : 'disagree').catch(() => undefined);
+          if (i % 4 === 0) {
+            await addComment(u, 'news_topic', t.id, pick(OPINIONS, k)).catch(() => undefined);
+            k += 1;
+          }
+        }
+      }
+      await execute("UPDATE news_topics SET status = 'closed' WHERE id = ?", [closedT.id]);
+      const bestable = await query<{ id: number }>(
+        "SELECT c.id FROM comments c JOIN users u ON u.id = c.author_id JOIN classes k ON k.id = u.class_id WHERE c.target_type = 'news_topic' AND c.target_id = ? AND k.grade = 4 ORDER BY c.id LIMIT 1",
+        [closedT.id],
+      );
+      if (bestable[0])
+        await selectBest(teachers.t4, closedT.id, [bestable[0].id]).catch(() => undefined);
+      await execute(
+        "UPDATE comments SET created_at = DATE_SUB(NOW(3), INTERVAL FLOOR(1 + RAND() * 5) DAY) WHERE target_type = 'news_topic'",
+      );
+      await runNewsReserve();
+      console.log('토론 주제: 마감 1(베스트 1) + 진행 중 1 + 다음 주 예약');
+    }
+  }
+
+  // 9) 지금 보이는 공지 + 주간 TOP 스냅샷(지난주)
   await execute(
     'INSERT INTO notices (title, body, starts_at, ends_at, author_id, is_active) VALUES (?, ?, ?, ?, ?, 1)',
     [
@@ -429,7 +490,8 @@ async function main(): Promise<void> {
 
   const stats = await query<{ t: string; n: number }>(
     `SELECT 'posts' AS t, COUNT(*) AS n FROM posts UNION ALL SELECT 'comments', COUNT(*) FROM comments UNION ALL SELECT 'likes', COUNT(*) FROM likes
-     UNION ALL SELECT 'point_ledger', COUNT(*) FROM point_ledger UNION ALL SELECT 'login_days', COUNT(*) FROM login_days UNION ALL SELECT 'weekly_scores', COUNT(*) FROM weekly_scores`,
+     UNION ALL SELECT 'point_ledger', COUNT(*) FROM point_ledger UNION ALL SELECT 'login_days', COUNT(*) FROM login_days UNION ALL SELECT 'weekly_scores', COUNT(*) FROM weekly_scores
+     UNION ALL SELECT 'news_topics', COUNT(*) FROM news_topics UNION ALL SELECT 'news_votes', COUNT(*) FROM news_votes`,
   );
   const byStatus = await query<{ status: string; n: number }>(
     'SELECT status, COUNT(*) AS n FROM posts GROUP BY status',

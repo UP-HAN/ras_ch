@@ -6,8 +6,8 @@
 
 ## 지금 할 일
 
-- 현재 단계: **1차 개발(시범 오픈용)**. 범위는 `docs/TASKS-phase1.md`의 작업 목록만. 2·3차 기능(토론방, 자치회 게시판, 설문, 안건, 방학 모드, LLM, 상장 PDF)은 만들지 않는다 — 다만 DB 스키마와 댓글·좋아요·신고 파이프라인은 나중에 붙을 것을 감안해 일반화한다(PRD 8.1 참조).
-- 작업 순서는 `docs/TASKS-phase1.md`의 번호 순서를 따르고, 한 작업이 끝나면 목록의 체크박스를 직접 갱신한다.
+- 현재 단계: **2차 개발(전체 오픈 전후)**. 1차(`docs/TASKS-phase1.md`, S0~S5)는 완료. 범위는 `docs/TASKS-phase2.md`의 작업 목록(P2-1 토론방 → P2-2 자치회 게시판·주간 선물 → P2-3 등급 배지·전체 오픈)만. 3차 기능(LLM 주제 생성, 설문, 안건, 방학 모드, 상장 PDF)은 만들지 않는다 — 다만 스키마·파이프라인은 붙을 것을 감안해 일반화한다(PRD 8.1 참조).
+- 작업 순서는 `docs/TASKS-phase2.md`의 번호 순서를 따르고, 한 작업이 끝나면 목록의 체크박스를 직접 갱신한다.
 - 새 기능을 시작하기 전에 PRD의 해당 요구사항 ID를 먼저 읽고, 모호하면 구현 전에 질문한다. 임의로 요구사항을 바꾸지 않는다.
 
 ## 기술 스택 (PRD 11장)
@@ -16,7 +16,7 @@
 - 백엔드: Node 20 + Express + TypeScript, REST `/api/v1`, 세션 쿠키(HttpOnly, SameSite=Lax), bcrypt
 - DB: MySQL 8, 스키마명 `ras_point`. 마이그레이션은 `server/migrations/`에 SQL 파일(번호 접두어)로 관리. ORM 없이 `mysql2` + 얇은 쿼리 레이어(또는 Kysely). 원장·집계 쿼리는 SQL로 직접 쓴다
 - 이미지: `sharp`로 긴 변 1280px 리사이즈 + EXIF 제거 후 `server/uploads/` 저장(경로만 DB). 업로드 5MB, jpg/png/webp만
-- 배치: `node-cron` (주간 TOP 월 00:05, 월간 결산 초안 매월 1일 00:05, 카운트 재검증 03:00). 시각은 Asia/Seoul
+- 배치: `node-cron` (주간 TOP 월 00:05, 월간 결산 초안 매월 1일 00:05, 카운트 재검증 03:00, 자동 승격 매시, 토론 주제 자동 예약 일 20:00·게시/마감 매일 08:00). 시각은 Asia/Seoul
 - 배포 대상: AWS Lightsail Ubuntu, nginx 리버스 프록시, pm2, 서브도메인 ras.ches.es.kr. 개발 중에는 로컬 MySQL(Docker) 사용
 
 ## 디렉터리

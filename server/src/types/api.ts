@@ -195,6 +195,8 @@ export interface HomeView {
   notifications: NotificationView[];
   /** ADM-04 활성 공지(최대 3) */
   notices: NoticeView[];
+  /** CMN-05 오늘의 토론(진행 중 최신 1건) */
+  debate: NewsTopicCard | null;
 }
 
 export interface SchoolYearView {
@@ -317,6 +319,10 @@ export interface PublicSettingsView {
 // ---------- S3: 기사·반응·출석·읽기·댓글 점검 ----------
 
 export interface CommentView {
+  /** 토론 찬반형 댓글: 작성자의 현재 투표 (NWS-07) */
+  stance?: 'agree' | 'disagree' | null;
+  /** 베스트 의견 배지 (NWS-09) */
+  isBest?: boolean;
   id: number;
   body: string;
   likeCount: number;
@@ -716,6 +722,9 @@ export interface SchoolStatsView {
     weekSubmissionRate: number;
     monthParticipationRate: number;
     avgMonthPoints: number;
+    /** NWS-11 이번 달 토론 투표·의견 참여 학생 수 */
+    newsVoters: number;
+    newsCommenters: number;
   }>;
   grades: Array<{
     grade: number;
@@ -741,4 +750,126 @@ export interface TextsView {
   captureGuide: CaptureGuideView;
   goodCommentGuide: string;
   reviewGuide: string;
+}
+
+// ---------- P2-1: 뉴스 토론방 (NWS) ----------
+
+export type NewsTopicKind = 'vote' | 'open';
+export type NewsTopicStatus =
+  'candidate' | 'approved' | 'scheduled' | 'live' | 'closed' | 'rejected';
+export type NewsVoteSide = 'agree' | 'disagree';
+
+export interface NewsVoteSummary {
+  agree: number;
+  disagree: number;
+  total: number;
+  agreePct: number;
+  disagreePct: number;
+}
+
+/** 목록·홈 카드용 (학생·교사 공통, 작성자 개념 없음) */
+export interface NewsTopicCard {
+  id: number;
+  title: string;
+  type: NewsTopicKind;
+  tags: string[];
+  status: NewsTopicStatus;
+  publishAt: string | null;
+  closeAt: string | null;
+  votes: NewsVoteSummary;
+  commentCount: number;
+  myVote: NewsVoteSide | null;
+}
+
+export interface NewsTopicDetail extends NewsTopicCard {
+  body: string;
+  questions: string[];
+  sourceUrl: string | null;
+  canVote: boolean;
+  canComment: boolean;
+  /** NWS-08 문장 도우미 */
+  helpers: string[];
+  reactions: PostReactionsView;
+  bestOpinions: CommentView[];
+}
+
+export interface NewsTopicPage {
+  items: NewsTopicCard[];
+  nextCursor: string | null;
+}
+
+export interface NewsVoteResult {
+  myVote: NewsVoteSide;
+  votes: NewsVoteSummary;
+  /** 처음 투표해서 NEWS_VOTE 를 받았는가 (변경은 false) */
+  granted: boolean;
+}
+
+export interface NewsProposalInput {
+  title: string;
+  body: string;
+  type: NewsTopicKind;
+  questions: string[];
+  tags: string[];
+  sourceUrl?: string | null;
+}
+
+export interface NewsBankItemView extends NewsProposalInput {
+  id: number;
+  status: 'pending' | 'reserve' | 'ready' | 'used';
+  proposedByName: string | null;
+  usedTopicId: number | null;
+  sort: number;
+  createdAt: string;
+}
+
+export interface NewsAdminTopicView extends NewsTopicCard {
+  body: string;
+  questions: string[];
+  sourceUrl: string | null;
+  source: 'ai' | 'bank' | 'manual';
+  bankId: number | null;
+}
+
+export interface NewsSettingsView {
+  perWeek: number;
+  hour: number;
+  durationDays: number;
+  bestPerGrade: number;
+  commentsPerTopic: number;
+  /** 1=월 … 7=일 */
+  slotDays: number[];
+  bank: { pending: number; reserve: number; ready: number; used: number };
+  /** 다음 주 게시 시각 (예약된 주제 id 또는 null) */
+  nextWeek: Array<{ publishAt: string; topicId: number | null; title: string | null }>;
+}
+
+export interface NewsBestCommentView {
+  id: number;
+  body: string;
+  likeCount: number;
+  authorName: string;
+  className: string;
+  studentNo: number | null;
+  grade: number;
+  stance: NewsVoteSide | null;
+  isBest: boolean;
+  /** 이 교사가 선정할 수 있는 학생인가 (담당 반) */
+  canSelect: boolean;
+}
+
+export interface NewsTeacherTopicView {
+  id: number;
+  title: string;
+  type: NewsTopicKind;
+  closeAt: string | null;
+  votes: NewsVoteSummary;
+  bestPerGrade: number;
+  grades: Array<{ grade: number; comments: NewsBestCommentView[] }>;
+}
+
+export interface NewsBestResult {
+  added: number;
+  removed: number;
+  topic: NewsTeacherTopicView;
 }

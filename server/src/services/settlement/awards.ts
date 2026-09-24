@@ -57,12 +57,16 @@ export function scoreParticipation(i: AwardStudentInput): Scored | null {
   const commentLikes = cap(i.commentLikesReceived * 2, 30);
   const attendance = cap(i.attendanceDays, 25);
   const reads = cap(i.readCount * 0.5, 20);
+  const votes = cap(i.newsVoteTopics * 2, 20);
+  const best = cap(i.bestOpinions * 10, 20);
   return {
-    score: comments + likesGiven + commentLikes + attendance + reads,
+    score: comments + likesGiven + commentLikes + votes + best + attendance + reads,
     breakdown: {
       댓글: comments,
       좋아요누름: likesGiven,
       댓글좋아요: commentLikes,
+      토론투표: votes,
+      베스트의견: best,
       출석: attendance,
       읽기: reads,
     },

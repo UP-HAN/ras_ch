@@ -4,8 +4,22 @@
 import type { CommentView, TeacherCommentView } from '../../types/api.js';
 import type { CommentBundle, TeacherCommentRow } from '../../repos/commentRepo.js';
 
-export function toCommentView(b: CommentBundle, viewerId: number, likedByMe: boolean): CommentView {
+export interface CommentExtras {
+  /** 토론 찬반형: 작성자의 현재 투표 (NWS-07) */
+  stance?: 'agree' | 'disagree' | null;
+  /** 베스트 의견 (NWS-09) */
+  isBest?: boolean;
+}
+
+export function toCommentView(
+  b: CommentBundle,
+  viewerId: number,
+  likedByMe: boolean,
+  extras: CommentExtras = {},
+): CommentView {
   return {
+    ...(extras.stance !== undefined ? { stance: extras.stance } : {}),
+    ...(extras.isBest !== undefined ? { isBest: extras.isBest } : {}),
     id: b.comment.id,
     body: b.comment.body,
     likeCount: b.comment.like_count,
@@ -47,9 +61,12 @@ export function toTeacherCommentView(
     target: {
       type: r.target_type,
       id: r.target_id,
-      postType: r.p_type,
-      title: r.p_title ?? (r.p_body ? `${r.p_body}…` : null),
-      authorDisplayName: r.p_author_display,
+      postType: r.target_type === 'news_topic' ? 'news_topic' : r.p_type,
+      title:
+        r.target_type === 'news_topic'
+          ? r.t_title
+          : (r.p_title ?? (r.p_body ? `${r.p_body}…` : null)),
+      authorDisplayName: r.target_type === 'news_topic' ? null : r.p_author_display,
     },
   };
 }

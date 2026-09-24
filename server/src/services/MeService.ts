@@ -10,6 +10,7 @@ import type { AuthUser } from '../types/auth.js';
 import type { HomeView, MeView, NotificationView } from '../types/api.js';
 import type { PostStatus } from '../types/db.js';
 import { activeNotices } from './NoticeService.js';
+import { latestLive } from './NewsService.js';
 
 export function meView(user: AuthUser, actingAs: MeView['actingAs']): MeView {
   return toMeView({ user: user.row, klass: user.klass, isCouncil: user.isCouncil }, actingAs);
@@ -68,5 +69,6 @@ export async function getHome(user: AuthUser, actingAs: MeView['actingAs']): Pro
       : { status: 'none', postId: null },
     notifications: await listNotifications(user.row.id, 5),
     notices: await activeNotices(),
+    debate: await latestLive(user),
   };
 }

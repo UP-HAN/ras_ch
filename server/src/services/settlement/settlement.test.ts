@@ -177,6 +177,8 @@ describe('3부문 점수 (7.2~7.4, HOF-04, 08)', () => {
     commentLikesReceived: 0,
     attendanceDays: 0,
     readCount: 0,
+    newsVoteTopics: 0,
+    bestOpinions: 0,
   };
 
   it('실천왕: 리포트 3건 미만 자격 없음, 변화 최대 40, 성찰 기본 20, 공감 최대 20', () => {
@@ -232,7 +234,28 @@ describe('3부문 점수 (7.2~7.4, HOF-04, 08)', () => {
       }),
     ).toEqual({
       score: 60 + 30 + 30 + 25 + 20,
-      breakdown: { 댓글: 60, 좋아요누름: 30, 댓글좋아요: 30, 출석: 25, 읽기: 20 },
+      breakdown: {
+        댓글: 60,
+        좋아요누름: 30,
+        댓글좋아요: 30,
+        토론투표: 0,
+        베스트의견: 0,
+        출석: 25,
+        읽기: 20,
+      },
+    });
+    // NWS: 투표 주제 12개 → 20 상한, 베스트 3개 → 20 상한
+    expect(scoreParticipation({ ...base, newsVoteTopics: 12, bestOpinions: 3 })).toEqual({
+      score: 40,
+      breakdown: {
+        댓글: 0,
+        좋아요누름: 0,
+        댓글좋아요: 0,
+        토론투표: 20,
+        베스트의견: 20,
+        출석: 0,
+        읽기: 0,
+      },
     });
   });
 

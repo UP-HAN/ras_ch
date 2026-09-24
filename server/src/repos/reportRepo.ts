@@ -97,7 +97,7 @@ export async function listReportsForClasses(
             COALESCE(pu.name, cu.name) AS target_author_name,
             COALESCE(pu.class_id, cu.class_id) AS target_class_id,
             COALESCE(pk.name, ck.name) AS target_class_name,
-            COALESCE(p.title, LEFT(p.body, 80), LEFT(c.body, 80)) AS target_preview,
+            COALESCE(p.title, LEFT(p.body, 80), IF(c.target_type = 'news_topic', CONCAT('[토론] ', LEFT(c.body, 70)), LEFT(c.body, 80))) AS target_preview,
             COALESCE(p.status, c.status) AS target_status,
             COALESCE(p.id, IF(c.target_type = 'post', c.target_id, NULL)) AS target_post_id,
             (SELECT COUNT(DISTINCT r2.reporter_id) FROM reports r2 WHERE r2.target_type = r.target_type AND r2.target_id = r.target_id AND r2.status = 'open') AS report_count

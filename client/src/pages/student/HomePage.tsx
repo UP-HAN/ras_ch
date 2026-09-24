@@ -4,6 +4,7 @@ import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
 import { reactionsApi } from '@/api/reactions';
 import { reviewApi } from '@/api/review';
+import { TopicCard } from '@/components/news/TopicCard';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 
@@ -107,7 +108,7 @@ export function HomePage() {
     );
   }
 
-  const { me, weekPoints, report, notifications, notices } = q.data;
+  const { me, weekPoints, report, notifications, notices, debate } = q.data;
   const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
   const openNotification = async (id: number, link?: string) => {
     await meApi.readNotification(id).catch(() => undefined);
@@ -127,6 +128,12 @@ export function HomePage() {
           <p className="mt-1 whitespace-pre-wrap text-base">{n.body}</p>
         </section>
       ))}
+      {debate && (
+        <section data-testid="debate-card">
+          <p className="mb-1 text-base font-bold text-accent-700">💬 오늘의 토론</p>
+          <TopicCard t={debate} home />
+        </section>
+      )}
       <Card tone="primary">
         <div className="flex items-center justify-between gap-3">
           <div>

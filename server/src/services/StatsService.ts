@@ -103,11 +103,15 @@ export async function classStatsCsv(
     comments: number;
     likes_received: number | null;
     points: number | null;
+    news_votes: number;
+    news_comments: number;
   }>(
     `SELECT u.id, u.student_no, u.name, u.parent_consent,
        (SELECT COUNT(*) FROM posts p WHERE p.author_id = u.id AND p.type IN ('report','diary') AND p.status = 'approved' AND p.deleted_at IS NULL) AS reports,
        (SELECT COUNT(*) FROM posts p WHERE p.author_id = u.id AND p.type = 'article' AND p.status = 'approved' AND p.deleted_at IS NULL) AS articles,
        (SELECT COUNT(*) FROM comments c WHERE c.author_id = u.id AND c.status = 'visible') AS comments,
+       (SELECT COUNT(*) FROM news_votes v WHERE v.user_id = u.id) AS news_votes,
+       (SELECT COUNT(*) FROM comments c WHERE c.author_id = u.id AND c.status = 'visible' AND c.target_type = 'news_topic') AS news_comments,
        (SELECT SUM(p.like_count) FROM posts p WHERE p.author_id = u.id AND p.deleted_at IS NULL) AS likes_received,
        (SELECT SUM(l.amount) FROM point_ledger l WHERE l.user_id = u.id) AS points
      FROM users u WHERE u.class_id = ? AND u.role = 'student' AND u.status = 'active' ORDER BY u.student_no`,
@@ -128,6 +132,8 @@ export async function classStatsCsv(
     '댓글 수',
     '받은 좋아요',
     '누적 포인트',
+    '토론 투표 수',
+    '토론 댓글 수',
     ...weeks.map((w) => `${w} 사용시간(분)`),
   ];
   const body: CsvCell[][] = rows.map((r) => [
@@ -139,6 +145,8 @@ export async function classStatsCsv(
     Number(r.comments),
     Number(r.likes_received ?? 0),
     Number(r.points ?? 0),
+    Number(r.news_votes),
+    Number(r.news_comments),
     ...weeks.map((w) => usageMap.get(`${r.id}:${w}`) ?? ''),
   ]);
   return { filename: `${klass.name}_통계_${currentWeekKey()}.csv`, rows: [header, ...body] };
@@ -170,16 +178,20 @@ export async function schoolStats(): Promise<SchoolStatsView> {
     week_submitted: number;
     month_participated: number;
     month_points: number | null;
+    news_voters: number;
+    news_commenters: number;
   }>(
     `SELECT c.id AS class_id, c.name AS class_name, c.grade,
        COUNT(u.id) AS students,
        SUM(u.parent_consent = 'Y') AS consent,
        SUM(EXISTS(SELECT 1 FROM posts p WHERE p.author_id = u.id AND p.type IN ('report','diary') AND p.week_key = ? AND p.status <> 'draft' AND p.deleted_at IS NULL)) AS week_submitted,
        SUM(EXISTS(SELECT 1 FROM posts p WHERE p.author_id = u.id AND p.type IN ('report','diary') AND p.status = 'approved' AND p.deleted_at IS NULL AND p.approved_at >= ? AND p.approved_at < ?)) AS month_participated,
-       SUM((SELECT SUM(l.amount) FROM point_ledger l WHERE l.user_id = u.id AND l.month_key = ?)) AS month_points
+       SUM((SELECT SUM(l.amount) FROM point_ledger l WHERE l.user_id = u.id AND l.month_key = ?)) AS month_points,
+       SUM(EXISTS(SELECT 1 FROM news_votes v WHERE v.user_id = u.id AND v.created_at >= ? AND v.created_at < ?)) AS news_voters,
+       SUM(EXISTS(SELECT 1 FROM comments cm WHERE cm.author_id = u.id AND cm.target_type = 'news_topic' AND cm.status = 'visible' AND cm.created_at >= ? AND cm.created_at < ?)) AS news_commenters
      FROM classes c LEFT JOIN users u ON u.class_id = c.id AND u.role = 'student' AND u.status = 'active'
      WHERE c.school_year_id = ? AND c.grade BETWEEN 3 AND 6 GROUP BY c.id ORDER BY c.grade, c.class_no`,
-    [wk, s, e, mk, year.id],
+    [wk, s, e, mk, s, e, s, e, year.id],
   );
   const classViews = classes.map((c) => ({
     classId: c.class_id,
@@ -192,6 +204,8 @@ export async function schoolStats(): Promise<SchoolStatsView> {
     avgMonthPoints: Number(c.students)
       ? Math.round((Number(c.month_points ?? 0) / Number(c.students)) * 10) / 10
       : 0,
+    newsVoters: Number(c.news_voters ?? 0),
+    newsCommenters: Number(c.news_commenters ?? 0),
   }));
   const grades = [3, 4, 5, 6].map((grade) => {
     const list = classes.filter((c) => c.grade === grade);

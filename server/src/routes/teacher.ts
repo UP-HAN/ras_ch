@@ -12,6 +12,7 @@ import * as postRepo from '../repos/postRepo.js';
 import { listReviewLogs } from '../repos/reviewRepo.js';
 import { teacherBonus } from '../services/PointsQueryService.js';
 import { classDashboard, classStatsCsv } from '../services/StatsService.js';
+import { closedTopicsForTeacher, selectBest } from '../services/NewsService.js';
 import { sendCsv } from '../lib/csvWrite.js';
 import { transition } from '../services/PostService.js';
 import * as tc from '../services/TeacherCommentService.js';
@@ -217,6 +218,20 @@ export function createTeacherRouter(): Router {
       createdAt: l.created_at.toISOString(),
     }));
     res.json(ok(data));
+  });
+
+  /** NWS-09 마감 토론 베스트 의견: 목록 + 선정(학년별 상한, 담당 반) */
+  router.get('/news/closed', async (req, res) => {
+    res.json(ok(await closedTopicsForTeacher(currentUser(req))));
+  });
+  router.post('/news/topics/:id/best', async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) throw AppError.badRequest('주제 번호가 올바르지 않아요.');
+    const body = z
+      .object({ commentIds: z.array(z.number().int().positive()).max(50) })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('선정할 댓글을 골라 주세요.');
+    res.json(ok(await selectBest(currentUser(req), id, body.data.commentIds, clientIp(req))));
   });
 
   /** PT-04 교사 칭찬 포인트 */

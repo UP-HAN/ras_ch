@@ -50,8 +50,19 @@ export const articlesApi = {
   },
 };
 
+export interface ReactionTarget {
+  type: 'post' | 'news_topic';
+  id: number;
+}
+const reactionsPath = (t: ReactionTarget) =>
+  t.type === 'post' ? `/posts/${t.id}` : `/news/topics/${t.id}`;
+
 export const reactionsApi = {
   reactions: (postId: number) => api.get<PostReactionsView>(`/posts/${postId}/reactions`),
+  /** 8.1 일반화: 리포트·기사(post) / 토론 주제(news_topic) */
+  reactionsOf: (t: ReactionTarget) => api.get<PostReactionsView>(`${reactionsPath(t)}/reactions`),
+  addCommentTo: (t: ReactionTarget, body: string) =>
+    api.post<CommentView>(`${reactionsPath(t)}/comments`, { body }),
   likePost: (postId: number, on: boolean) =>
     on
       ? api.post<LikeResult>(`/posts/${postId}/like`)
@@ -66,12 +77,12 @@ export const reactionsApi = {
   report: (targetType: 'post' | 'comment', targetId: number, reason: string) =>
     api.post<ReportResult>('/reports', { targetType, targetId, reason }),
   attendance: () => api.get<AttendanceView>('/me/attendance'),
-  readOpen: (postId: number) =>
-    api.post<{ tracked: boolean }>('/me/read/open', { targetType: 'post', targetId: postId }),
-  readComplete: (postId: number) =>
+  readOpen: (t: ReactionTarget) =>
+    api.post<{ tracked: boolean }>('/me/read/open', { targetType: t.type, targetId: t.id }),
+  readComplete: (t: ReactionTarget) =>
     api.post<ReadResult>('/me/read/complete', {
-      targetType: 'post',
-      targetId: postId,
+      targetType: t.type,
+      targetId: t.id,
       scrolledToEnd: true,
     }),
 };

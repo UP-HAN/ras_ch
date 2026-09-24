@@ -8,6 +8,7 @@ import { COMMENT_NOTICES, notify, type CommentNoticeCode } from '../lib/notify.j
 import { toTeacherCommentView } from '../lib/serializers/comment.js';
 import { kst } from '../lib/time.js';
 import { canAccessClass } from '../middleware/auth.js';
+import { bumpCommentCount } from '../lib/reactionTarget.js';
 import { writeAudit } from '../repos/auditRepo.js';
 import { listActiveBannedWords } from '../repos/bannedWordRepo.js';
 import * as classRepo from '../repos/classRepo.js';
@@ -124,8 +125,8 @@ export async function hideComment(
   const reason = (reasonRaw ?? '').trim() || COMMENT_NOTICES.hidden;
   await tx(async (conn) => {
     await commentRepo.setCommentStatus(commentId, 'hidden', user.row.id, reason, conn);
-    if (c.comment.status === 'visible' && c.comment.target_type === 'post')
-      await postRepo.bumpCommentCount(c.comment.target_id, -1, conn);
+    if (c.comment.status === 'visible')
+      await bumpCommentCount(c.comment.target_type, c.comment.target_id, -1, conn);
     await reportRepo.settleReports('comment', commentId, 'hidden', user.row.id, conn);
     await reversePointsSafe(
       'comment',
@@ -158,8 +159,7 @@ export async function unhideComment(user: AuthUser, commentId: number, ip?: stri
   if (c.comment.status !== 'hidden') throw AppError.conflict('숨긴 댓글만 다시 보일 수 있어요.');
   await tx(async (conn) => {
     await commentRepo.setCommentStatus(commentId, 'visible', null, null, conn);
-    if (c.comment.target_type === 'post')
-      await postRepo.bumpCommentCount(c.comment.target_id, 1, conn);
+    await bumpCommentCount(c.comment.target_type, c.comment.target_id, 1, conn);
     await reportRepo.settleReports('comment', commentId, 'kept', user.row.id, conn);
     await writeAudit(
       {
@@ -286,8 +286,8 @@ export async function handleReport(
           '선생님이 삭제했어요.',
           conn,
         );
-        if (c.comment.status === 'visible' && c.comment.target_type === 'post')
-          await postRepo.bumpCommentCount(c.comment.target_id, -1, conn);
+        if (c.comment.status === 'visible')
+          await bumpCommentCount(c.comment.target_type, c.comment.target_id, -1, conn);
         await reportRepo.settleReports('comment', c.comment.id, 'deleted', user.row.id, conn);
         await reversePointsSafe(
           'comment',

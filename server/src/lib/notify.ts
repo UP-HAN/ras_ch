@@ -13,7 +13,8 @@ export type NotificationType =
   | 'comment_hidden'
   | 'comment_notice'
   | 'points'
-  | 'award';
+  | 'award'
+  | 'news_bank_low';
 
 export interface NotificationPayload {
   message: string;

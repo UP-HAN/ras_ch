@@ -21,6 +21,7 @@ const TEACHER_MENU = [
   { to: '/teacher/reports', label: '신고함' },
   { to: '/teacher/stats', label: '통계' },
   { to: '/teacher/hall-of-fame', label: '명예의 전당' },
+  { to: '/teacher/news', label: '토론 주제' },
 ];
 
 const ADMIN_MENU = [

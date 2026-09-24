@@ -80,7 +80,7 @@ export function createMeRouter(): Router {
 
   // PT-10 읽기: 열람 시작(서버 시각) → 10초 + 끝까지 스크롤 후 완료
   const readSchema = z.object({
-    targetType: z.literal('post'),
+    targetType: z.enum(['post', 'news_topic']),
     targetId: z.number().int().positive(),
     scrolledToEnd: z.boolean().optional(),
   });
@@ -88,7 +88,7 @@ export function createMeRouter(): Router {
   router.post('/read/open', async (req, res) => {
     const body = readSchema.safeParse(req.body);
     if (!body.success) throw AppError.badRequest('읽기 대상이 올바르지 않아요.');
-    res.json(ok(await openRead(currentUser(req), body.data.targetId)));
+    res.json(ok(await openRead(currentUser(req), body.data.targetType, body.data.targetId)));
   });
 
   router.post('/read/complete', async (req, res) => {
@@ -96,7 +96,12 @@ export function createMeRouter(): Router {
     if (!body.success) throw AppError.badRequest('읽기 대상이 올바르지 않아요.');
     res.json(
       ok(
-        await completeRead(currentUser(req), body.data.targetId, body.data.scrolledToEnd === true),
+        await completeRead(
+          currentUser(req),
+          body.data.targetType,
+          body.data.targetId,
+          body.data.scrolledToEnd === true,
+        ),
       ),
     );
   });

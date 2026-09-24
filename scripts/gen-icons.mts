@@ -8,7 +8,7 @@ import path from 'node:path';
 import type SharpModule from 'sharp';
 
 const require = createRequire(import.meta.url);
-const sharp = require('sharp') as SharpModule; // workspaces 로 루트에 호이스팅됨
+const sharp = require('sharp') as typeof SharpModule; // workspaces 로 루트에 호이스팅됨
 
 const root = path.resolve(
   path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),

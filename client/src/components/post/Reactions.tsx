@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CommentView } from '@server-types/api';
 import { useState } from 'react';
 import { errorMessage } from '@/api/client';
-import { reactionsApi } from '@/api/reactions';
-import { Button, Card, Textarea } from '@/components/ui';
+import { reactionsApi, type ReactionTarget } from '@/api/reactions';
+import { Badge, Button, Card, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 const COMMENT_MIN = 10;
@@ -105,21 +105,41 @@ export function ReportButton({
   );
 }
 
-/** 상세 하단: 좋아요 + 댓글 목록 + 댓글 쓰기 (RCT-01~04, RCT-07 좋은 댓글 기준) */
-export function ReactionsSection({ postId, isMine }: { postId: number; isMine: boolean }) {
+/**
+ * 상세 하단: 좋아요 + 댓글 목록 + 댓글 쓰기 (RCT-01~04, RCT-07 좋은 댓글 기준)
+ * 리포트·기사(post)와 토론 주제(news_topic)가 같이 쓴다. 토론은 좋아요 대신 투표, 문장 도우미(NWS-08),
+ * 입장 배지(NWS-07), 베스트 배지(NWS-09), 마감 후 읽기 전용(NWS-10).
+ */
+export function ReactionsSection({
+  target,
+  isMine,
+  showLike = true,
+  canComment = true,
+  closedText,
+  helpers = [],
+  title = '댓글',
+}: {
+  target: ReactionTarget;
+  isMine: boolean;
+  showLike?: boolean;
+  canComment?: boolean;
+  closedText?: string;
+  helpers?: string[];
+  title?: string;
+}) {
   const qc = useQueryClient();
   const q = useQuery({
-    queryKey: ['reactions', postId],
-    queryFn: () => reactionsApi.reactions(postId),
+    queryKey: ['reactions', target.type, target.id],
+    queryFn: () => reactionsApi.reactionsOf(target),
   });
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const refresh = () => {
-    void qc.invalidateQueries({ queryKey: ['reactions', postId] });
-    void qc.invalidateQueries({ queryKey: ['posts'] });
+    void qc.invalidateQueries({ queryKey: ['reactions', target.type, target.id] });
+    void qc.invalidateQueries({ queryKey: [target.type === 'post' ? 'posts' : 'news'] });
   };
   const like = useMutation({
-    mutationFn: (on: boolean) => reactionsApi.likePost(postId, on),
+    mutationFn: (on: boolean) => reactionsApi.likePost(target.id, on),
     onSuccess: refresh,
     onError: (e) => setError(errorMessage(e)),
   });
@@ -129,7 +149,7 @@ export function ReactionsSection({ postId, isMine }: { postId: number; isMine: b
     onError: (e) => setError(errorMessage(e)),
   });
   const add = useMutation({
-    mutationFn: () => reactionsApi.addComment(postId, text),
+    mutationFn: () => reactionsApi.addCommentTo(target, text),
     onSuccess: () => {
       setText('');
       setError(null);
@@ -146,24 +166,26 @@ export function ReactionsSection({ postId, isMine }: { postId: number; isMine: b
   if (!q.data) return null;
   const { likedByMe, likeCount, comments, myCommentCount, goodCommentGuide } = q.data;
   const len = Array.from(text.trim()).length;
-  const canWrite = myCommentCount < PER_POST;
+  const canWrite = canComment && myCommentCount < PER_POST;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <LikeButton
-          liked={likedByMe}
-          count={likeCount}
-          busy={like.isPending}
-          onToggle={() => like.mutate(!likedByMe)}
-        />
-        {!isMine && <ReportButton targetType="post" targetId={postId} />}
-        {isMine && (
-          <span className="text-base text-ink-muted">내 글에 누른 엄지척은 포인트가 없어요</span>
-        )}
-      </div>
+      {showLike && (
+        <div className="flex flex-wrap items-center gap-3">
+          <LikeButton
+            liked={likedByMe}
+            count={likeCount}
+            busy={like.isPending}
+            onToggle={() => like.mutate(!likedByMe)}
+          />
+          {!isMine && <ReportButton targetType="post" targetId={target.id} />}
+          {isMine && (
+            <span className="text-base text-ink-muted">내 글에 누른 엄지척은 포인트가 없어요</span>
+          )}
+        </div>
+      )}
 
-      <Card title={`댓글 ${comments.length}`}>
+      <Card title={`${title} ${comments.length}`}>
         {goodCommentGuide && (
           <p className="mb-3 rounded-md bg-info-50 px-3 py-2 text-base text-info-600">
             💡 {goodCommentGuide}
@@ -171,31 +193,49 @@ export function ReactionsSection({ postId, isMine }: { postId: number; isMine: b
         )}
         <ul className="space-y-3">
           {comments.map((c: CommentView) => (
-            <li key={c.id} className="rounded-md bg-paper p-3">
+            <li
+              key={c.id}
+              className={cn('rounded-md bg-paper p-3', c.isBest && 'border-2 border-primary-300')}
+            >
               <p className="text-base font-semibold">
                 {c.author.className} {c.author.displayName}
                 {c.author.isReporter && <span className="ml-1 text-info-600">기자단</span>}
+                {c.stance && (
+                  <Badge tone={c.stance === 'agree' ? 'success' : 'danger'} className="ml-2">
+                    {c.stance === 'agree' ? '찬성' : '반대'}
+                  </Badge>
+                )}
+                {c.isBest && (
+                  <Badge tone="primary" className="ml-2">
+                    🏅 베스트
+                  </Badge>
+                )}
                 <span className="ml-2 text-ink-muted">
                   {new Date(c.createdAt).toLocaleDateString('ko-KR')}
                 </span>
               </p>
               <p className="mt-1 whitespace-pre-wrap text-base">{c.body}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <LikeButton
-                  small
-                  liked={c.likedByMe}
-                  count={c.likeCount}
-                  busy={likeComment.isPending}
-                  onToggle={() => likeComment.mutate({ id: c.id, on: !c.likedByMe })}
-                />
+                {canComment && (
+                  <LikeButton
+                    small
+                    liked={c.likedByMe}
+                    count={c.likeCount}
+                    busy={likeComment.isPending}
+                    onToggle={() => likeComment.mutate({ id: c.id, on: !c.likedByMe })}
+                  />
+                )}
+                {!canComment && <span className="text-base text-ink-muted">👍 {c.likeCount}</span>}
                 {c.isMine ? (
-                  <button
-                    type="button"
-                    onClick={() => window.confirm('댓글을 지울까요?') && del.mutate(c.id)}
-                    className="min-h-tap px-2 text-base text-ink-muted underline"
-                  >
-                    지우기
-                  </button>
+                  canComment && (
+                    <button
+                      type="button"
+                      onClick={() => window.confirm('댓글을 지울까요?') && del.mutate(c.id)}
+                      className="min-h-tap px-2 text-base text-ink-muted underline"
+                    >
+                      지우기
+                    </button>
+                  )
                 ) : (
                   <ReportButton targetType="comment" targetId={c.id} />
                 )}
@@ -203,15 +243,33 @@ export function ReactionsSection({ postId, isMine }: { postId: number; isMine: b
             </li>
           ))}
           {comments.length === 0 && (
-            <li className="text-base text-ink-muted">첫 댓글을 남겨 볼까요?</li>
+            <li className="text-base text-ink-muted">
+              {canComment ? '첫 의견을 남겨 볼까요?' : '남긴 의견이 없어요.'}
+            </li>
           )}
         </ul>
 
         <div className="mt-4">
-          {canWrite ? (
+          {!canComment ? (
+            closedText && <p className="text-base text-ink-muted">{closedText}</p>
+          ) : canWrite ? (
             <>
+              {helpers.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {helpers.map((h) => (
+                    <Button
+                      key={h}
+                      variant="ghost"
+                      onClick={() => setText((t) => (t.trim() ? t : h))}
+                      className="border border-line"
+                    >
+                      ✏️ {h.replace(/\s$/, '…')}
+                    </Button>
+                  ))}
+                </div>
+              )}
               <Textarea
-                label="댓글 쓰기"
+                label={`${title} 쓰기`}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={3}
@@ -225,11 +283,13 @@ export function ReactionsSection({ postId, isMine }: { postId: number; isMine: b
                 loading={add.isPending}
                 onClick={() => add.mutate()}
               >
-                댓글 달기
+                {title} 달기
               </Button>
             </>
           ) : (
-            <p className="text-base text-ink-muted">이 글에는 댓글을 {PER_POST}개 다 썼어요.</p>
+            <p className="text-base text-ink-muted">
+              이 글에는 {title}을 {PER_POST}개 다 썼어요.
+            </p>
           )}
           {error && !canWrite && (
             <p role="alert" className="mt-1 text-base text-danger-600">

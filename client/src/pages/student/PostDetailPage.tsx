@@ -45,7 +45,10 @@ export function PostDetailPage() {
   const mine = post ? isMine(post) : false;
   const my = post && isMine(post) ? post : null;
   // 읽기 이벤트: 남의 승인된 글만 (서버도 다시 검사)
-  useReadTracker(post && !mine && post.status === 'approved' ? post.id : null, true);
+  useReadTracker(
+    post && !mine && post.status === 'approved' ? { type: 'post', id: post.id } : null,
+    true,
+  );
 
   if (q.isLoading) {
     return (
@@ -112,7 +115,7 @@ export function PostDetailPage() {
 
       {post.status === 'approved' && (
         <div className="mt-4">
-          <ReactionsSection postId={post.id} isMine={mine} />
+          <ReactionsSection target={{ type: 'post', id: post.id }} isMine={mine} />
         </div>
       )}
 

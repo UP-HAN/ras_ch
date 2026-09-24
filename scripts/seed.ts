@@ -12,6 +12,8 @@ import { assignDisplayNames } from '../server/src/lib/displayName.js';
 import { buildStudentLoginId } from '../server/src/lib/studentId.js';
 import type { PointCap } from '../server/src/types/db.js';
 
+import bankSeed from '../docs/seed/topic-bank-seed.json' with { type: 'json' };
+
 const FORCE = process.argv.includes('--force');
 const SCHOOL_YEAR = 2026;
 const STUDENT_PW = '1234';
@@ -19,6 +21,10 @@ const TEACHER_PW = 'teacher1234!';
 
 // 시드 후 TRUNCATE 순서와 무관하게 지우기 위해 FK 검사를 잠시 끈다
 const ALL_TABLES = [
+  'news_best_opinions',
+  'news_votes',
+  'news_topics',
+  'news_topic_bank',
   'audit_logs',
   'review_logs',
   'review_assignments',
@@ -363,6 +369,8 @@ const SETTINGS: Record<string, unknown> = {
     '친구의 실천을 칭찬하거나, 궁금한 점을 묻거나, 응원하는 말을 10자 이상 써요. 놀리는 말은 안 돼요.',
   review_guide:
     '체크리스트 항목만 확인해요. 친구 글을 평가하는 게 아니에요. 판단이 어려우면 "보류 요청"을 눌러요.',
+  // P2-1 토론방: 주당 1개(수요일 08:00)로 시작, 관리자가 2·3으로 올린다 (NWS-04, 사용자 결정 2026-09-24)
+  news_schedule: { perWeek: 1, hour: 8, durationDays: 7, bestPerGrade: 2, commentsPerTopic: 3 },
 };
 
 const BANNED_WORDS = ['바보', '멍청이', '죽어', '꺼져', '찐따'];
@@ -511,6 +519,31 @@ async function seed(): Promise<void> {
 
   for (const w of BANNED_WORDS) await insert('INSERT INTO banned_words (word) VALUES (?)', [w]);
 
+  // 토론 주제 은행 30개: ready 5 / reserve 25 (NWS-05 확정)
+  for (const t of bankSeed as Array<{
+    id: number;
+    type: string;
+    title: string;
+    body: string;
+    questions: string[];
+    tags: string[];
+    status: string;
+  }>) {
+    await insert(
+      `INSERT INTO news_topic_bank (title, body, type, questions, tags, status, reviewed_by, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        t.title,
+        t.body,
+        t.type,
+        JSON.stringify(t.questions),
+        JSON.stringify(t.tags),
+        t.status === 'ready' ? 'ready' : 'reserve',
+        adminId,
+        t.id,
+      ],
+    );
+  }
+
   await insert(
     `INSERT INTO notices (title, body, starts_at, ends_at, author_id, is_active)
      VALUES (?, ?, ?, ?, ?, 1)`,
@@ -530,7 +563,8 @@ async function seed(): Promise<void> {
      UNION ALL SELECT 'point_rules', COUNT(*) FROM point_rules
      UNION ALL SELECT 'settings', COUNT(*) FROM settings
      UNION ALL SELECT 'council_members', COUNT(*) FROM council_members
-     UNION ALL SELECT 'review_assignments', COUNT(*) FROM review_assignments`,
+     UNION ALL SELECT 'review_assignments', COUNT(*) FROM review_assignments
+     UNION ALL SELECT 'news_topic_bank', COUNT(*) FROM news_topic_bank`,
   );
   console.log(`시드 완료 (${env.DB_NAME})`);
   for (const c of counts) console.log(`  ${c.t.padEnd(20)} ${c.n}`);

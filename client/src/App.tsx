@@ -4,7 +4,6 @@ import { StudentShell } from '@/components/layout/StudentShell';
 import { TeacherShell } from '@/components/layout/TeacherShell';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
-import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { ContentPage } from '@/pages/teacher/admin/ContentPage';
 import { SettlementPage } from '@/pages/teacher/admin/SettlementPage';
 import { StatsPage } from '@/pages/teacher/StatsPage';
@@ -12,6 +11,9 @@ import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
 import { HomePage } from '@/pages/student/HomePage';
 import { MyPage } from '@/pages/student/MyPage';
 import { MyPointsPage } from '@/pages/student/MyPointsPage';
+import { DebatePage } from '@/pages/student/DebatePage';
+import { DebateTopicPage } from '@/pages/student/DebateTopicPage';
+import { NewsPage } from '@/pages/teacher/NewsPage';
 import { ReviewPostPage } from '@/pages/student/ReviewPostPage';
 import { ReviewQueuePage } from '@/pages/student/ReviewQueuePage';
 import { PostDetailPage } from '@/pages/student/PostDetailPage';
@@ -56,10 +58,8 @@ const router = createBrowserRouter([
       { path: 'posts/:id', element: <PostDetailPage /> },
       { path: 'posts/:id/edit', element: <ReportFormPage /> },
       { path: 'posts/:id/edit-article', element: <ArticleFormPage /> },
-      {
-        path: 'debate',
-        element: <PlaceholderPage title="토론방" sprint="2차 개발" description="곧 열려요." />,
-      },
+      { path: 'debate', element: <DebatePage /> },
+      { path: 'debate/:id', element: <DebateTopicPage /> },
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'me', element: <MyPage /> },
       { path: 'me/points', element: <MyPointsPage /> },
@@ -83,6 +83,7 @@ const router = createBrowserRouter([
       { path: 'reports', element: <ReportsPage /> },
       { path: 'stats', element: <StatsPage /> },
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
+      { path: 'news', element: <NewsPage /> },
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
       { path: 'admin/banned-words', element: <BannedWordsPage /> },

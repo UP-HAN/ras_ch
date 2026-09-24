@@ -1,5 +1,5 @@
 /**
- * comments 저장소 — target_type/target_id 로 일반화 (8.1). S3 에서는 'post' 만 쓴다.
+ * comments 저장소 — target_type/target_id 로 일반화 (8.1): post / news_topic
  */
 import { execute, insert, query, queryOne, type Executor } from '../db/query.js';
 import { getPool } from '../db/pool.js';
@@ -154,6 +154,7 @@ export interface TeacherCommentRow extends Row {
   p_title: string | null;
   p_body: string | null;
   p_author_display: string | null;
+  t_title: string | null;
 }
 
 export interface TeacherCommentQuery {
@@ -188,12 +189,13 @@ export async function listCommentsForTeacher(q: TeacherCommentQuery): Promise<Te
             k.id AS c_id, k.name AS c_name, k.grade AS c_grade,
             ${reportCountSql} AS report_count,
             p.id AS p_id, p.type AS p_type, p.title AS p_title, LEFT(p.body, 60) AS p_body,
-            pa.display_name AS p_author_display
+            pa.display_name AS p_author_display, t.title AS t_title
      FROM comments c
        JOIN users u ON u.id = c.author_id
        LEFT JOIN classes k ON k.id = u.class_id
        LEFT JOIN posts p ON c.target_type = 'post' AND p.id = c.target_id
        LEFT JOIN users pa ON pa.id = p.author_id
+       LEFT JOIN news_topics t ON c.target_type = 'news_topic' AND t.id = c.target_id
      WHERE ${where.join(' AND ')}
      ORDER BY c.created_at DESC, c.id DESC LIMIT ?`,
     params,

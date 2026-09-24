@@ -290,7 +290,7 @@ export function createPostsRouter(): Router {
   // ---------- 반응 (RCT-01, 02, 06) ----------
   router.get('/:id/reactions', async (req, res) => {
     const user = currentUser(req);
-    res.json(ok(await reactions.reactionsFor(user, Number(req.params.id))));
+    res.json(ok(await reactions.reactionsFor(user, 'post', Number(req.params.id))));
   });
 
   router.post('/:id/like', async (req, res) => {
@@ -303,7 +303,7 @@ export function createPostsRouter(): Router {
 
   router.get('/:id/comments', async (req, res) => {
     const user = currentUser(req);
-    const r = await reactions.reactionsFor(user, Number(req.params.id));
+    const r = await reactions.reactionsFor(user, 'post', Number(req.params.id));
     res.json(ok(r.comments));
   });
 
@@ -311,7 +311,7 @@ export function createPostsRouter(): Router {
     const user = currentUser(req);
     const body = z.object({ body: z.string().max(1000) }).safeParse(req.body);
     if (!body.success) throw AppError.badRequest('댓글 내용을 적어 주세요.');
-    const bundle = await reactions.addComment(user, Number(req.params.id), body.data.body);
+    const bundle = await reactions.addComment(user, 'post', Number(req.params.id), body.data.body);
     res.status(201).json(ok(toCommentView(bundle, user.row.id, false)));
   });
 

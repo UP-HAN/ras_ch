@@ -4,6 +4,7 @@ import { closePool } from './db/pool.js';
 import { registerJobs } from './jobs/index.js';
 import { registerAutoEscalate } from './jobs/autoEscalate.js';
 import { registerMonthlyDraft } from './jobs/monthlyDraft.js';
+import { registerNewsJobs } from './jobs/newsJobs.js';
 import { registerWeeklyTop } from './jobs/weeklyTop.js';
 import { logger } from './lib/logger.js';
 import { LedgerPointService } from './services/points/LedgerPointService.js';
@@ -14,6 +15,7 @@ setPointService(new LedgerPointService());
 registerAutoEscalate();
 registerWeeklyTop();
 registerMonthlyDraft();
+registerNewsJobs();
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {

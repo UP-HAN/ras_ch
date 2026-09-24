@@ -9,13 +9,17 @@ import cron from 'node-cron';
 import { logger } from '../lib/logger.js';
 import { TZ } from '../lib/time.js';
 
-export type JobName = 'weeklyTop' | 'monthlyDraft' | 'recountCaches' | 'autoEscalate';
+export type JobName =
+  'weeklyTop' | 'monthlyDraft' | 'recountCaches' | 'autoEscalate' | 'newsReserve' | 'newsPublish';
 
 export const SCHEDULES: Record<JobName, string> = {
   weeklyTop: '5 0 * * 1',
   monthlyDraft: '5 0 1 * *',
   recountCaches: '0 3 * * *',
   autoEscalate: '0 * * * *',
+  // P2-1 토론 주제: 일 20:00 다음 주 자동 예약, 매일 08:00 게시·마감 (NWS-04, 05)
+  newsReserve: '0 20 * * 0',
+  newsPublish: '0 8 * * *',
 };
 
 export type JobHandler = () => Promise<void>;

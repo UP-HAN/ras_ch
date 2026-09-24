@@ -138,6 +138,8 @@ interface AwardRow {
   comment_likes_received: number;
   attendance_days: number;
   read_count: number;
+  news_vote_topics: number;
+  best_opinions: number;
 }
 
 export async function loadAwardInputs(monthKey: string): Promise<AwardStudentInput[]> {
@@ -161,7 +163,9 @@ export async function loadAwardInputs(monthKey: string): Promise<AwardStudentInp
       (SELECT COUNT(*) FROM likes lk WHERE lk.user_id = u.id AND lk.created_at >= ? AND lk.created_at < ?) AS likes_given,
       (SELECT COALESCE(SUM(cm.like_count),0) FROM comments cm WHERE cm.author_id = u.id AND cm.status = 'visible' AND cm.created_at >= ? AND cm.created_at < ?) AS comment_likes_received,
       (SELECT COUNT(*) FROM login_days d WHERE d.user_id = u.id AND d.day_key >= ? AND d.day_key < ?) AS attendance_days,
-      (SELECT COUNT(*) FROM post_reads r WHERE r.user_id = u.id AND r.completed_at IS NOT NULL AND r.completed_at >= ? AND r.completed_at < ?) AS read_count
+      (SELECT COUNT(*) FROM post_reads r WHERE r.user_id = u.id AND r.completed_at IS NOT NULL AND r.completed_at >= ? AND r.completed_at < ?) AS read_count,
+      (SELECT COUNT(DISTINCT v.topic_id) FROM news_votes v WHERE v.user_id = u.id AND v.created_at >= ? AND v.created_at < ?) AS news_vote_topics,
+      (SELECT COUNT(*) FROM news_best_opinions b WHERE b.user_id = u.id AND b.created_at >= ? AND b.created_at < ?) AS best_opinions
      FROM users u JOIN classes c ON c.id = u.class_id
      WHERE u.role = 'student' AND u.status = 'active' AND c.school_year_id = ? AND c.grade BETWEEN 3 AND 6`,
     [
@@ -193,6 +197,10 @@ export async function loadAwardInputs(monthKey: string): Promise<AwardStudentInp
       end.format('YYYY-MM-DD'),
       s,
       e,
+      s,
+      e,
+      s,
+      e,
       year.id,
     ],
   );
@@ -213,5 +221,7 @@ export async function loadAwardInputs(monthKey: string): Promise<AwardStudentInp
     commentLikesReceived: Number(r.comment_likes_received),
     attendanceDays: Number(r.attendance_days),
     readCount: Number(r.read_count),
+    newsVoteTopics: Number(r.news_vote_topics),
+    bestOpinions: Number(r.best_opinions),
   }));
 }

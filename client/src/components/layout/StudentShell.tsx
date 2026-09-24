@@ -6,12 +6,12 @@ import { ChatIcon, HomeIcon, PencilIcon, TrophyIcon, UserIcon } from './icons';
 
 /**
  * 학생 셸 (PRD 6.1, CMN-01): 모바일 우선, 하단 탭 5개.
- * 토론방은 2차 개발 — 탭은 보이되 비활성("곧 열려요").
+ * 토론방(P2-1)은 /debate. 비활성 탭 표시 코드는 다음 기능(자치회 게시판 등)을 위해 남겨 둔다.
  */
 const TABS = [
   { to: '/', label: '홈', Icon: HomeIcon, end: true },
   { to: '/write', label: '글쓰기', Icon: PencilIcon },
-  { to: '/debate', label: '토론방', Icon: ChatIcon, disabled: true },
+  { to: '/debate', label: '토론방', Icon: ChatIcon },
   // 360px 에서 탭 폭이 72px 이라 두 줄로 나눠 보여 준다
   { to: '/hall-of-fame', label: '명예의\n전당', Icon: TrophyIcon },
   { to: '/me', label: '내 정보', Icon: UserIcon },

@@ -1,6 +1,7 @@
 /**
- * 반응: 좋아요·댓글·신고 (RCT-01~06, 8.1 일반화) — 리포트·기사 공통
- *  - 포인트는 훅만(S4 구현). 본인 글에 대한 좋아요·댓글은 포인트 대상 아님(RCT-06)
+ * 반응: 좋아요·댓글·신고 (RCT-01~06, 8.1 일반화) — 리포트·기사·토론 주제 공통
+ *  - 대상은 lib/reactionTarget 리졸버로 푼다 (post / news_topic). 본인 글에 대한 좋아요·댓글은 포인트 대상 아님(RCT-06)
+ *  - 토론 의견 댓글은 NEWS_OPINION(COMMENT_WRITTEN 과 일 5회 합산), 입장 배지는 현재 투표를 join (NWS-07)
  *  - 신고 3건(서로 다른 학생) → 자동 숨김(RCT-05)
  */
 import type { PoolConnection } from 'mysql2/promise';
@@ -8,18 +9,24 @@ import { tx } from '../db/query.js';
 import { AppError } from '../lib/apiResponse.js';
 import { bannedWordMessage, findBannedWords } from '../lib/bannedWords.js';
 import { notify } from '../lib/notify.js';
-import { canViewPost, isTeacherLike, viewerFromAuthUser } from '../lib/postAccess.js';
+import { isTeacherLike, viewerFromAuthUser } from '../lib/postAccess.js';
+import {
+  assertReactable,
+  bumpCommentCount,
+  loadReactionTarget,
+  type ReactionTarget,
+} from '../lib/reactionTarget.js';
 import { toCommentView } from '../lib/serializers/comment.js';
 import { writeAudit } from '../repos/auditRepo.js';
 import { listActiveBannedWords } from '../repos/bannedWordRepo.js';
 import * as commentRepo from '../repos/commentRepo.js';
 import * as likeRepo from '../repos/likeRepo.js';
+import * as newsRepo from '../repos/newsRepo.js';
 import * as postRepo from '../repos/postRepo.js';
 import * as reportRepo from '../repos/reportRepo.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import type { AuthUser } from '../types/auth.js';
 import type { LikeResult, PostReactionsView, ReportResult } from '../types/api.js';
-import type { PostRow } from '../types/db.js';
 import { applyPointsSafe, reversePointsSafe } from './points/safeApply.js';
 import { buildEventKey } from './points/types.js';
 import { transition } from './PostService.js';
@@ -32,18 +39,16 @@ export const AUTO_HIDE_REASON = '신고가 여러 번 들어와 자동으로 숨
 
 const charLen = (s: string) => Array.from(s).length;
 
-/** 승인되어 있고 내가 볼 수 있는 글이어야 반응할 수 있다 */
-async function loadReactablePost(
+/** 반응 가능한 대상(승인 글 / live 토론)을 찾는다 */
+async function loadReactable(
   user: AuthUser,
-  postId: number,
+  type: string,
+  id: number,
   conn?: PoolConnection,
-): Promise<PostRow> {
-  const post = await postRepo.findPostById(postId, conn);
-  if (!post || post.deleted_at) throw AppError.notFound('글을 찾을 수 없어요.');
-  if (post.status !== 'approved') throw AppError.conflict('게시된 글에만 반응할 수 있어요.');
-  if (!canViewPost(viewerFromAuthUser(user), post))
-    throw AppError.forbidden('이 글은 볼 수 없어요.');
-  return post;
+): Promise<ReactionTarget> {
+  const t = await loadReactionTarget(user, type, id, conn);
+  assertReactable(t);
+  return t;
 }
 
 // ---------- 좋아요 ----------
@@ -56,21 +61,15 @@ export async function setLike(
 ): Promise<LikeResult> {
   return tx(async (conn) => {
     let ownerId: number;
-    let postForCount: number;
     if (targetType === 'post') {
-      const post = await loadReactablePost(user, targetId, conn);
-      ownerId = post.author_id;
-      postForCount = post.id;
+      const t = await loadReactable(user, 'post', targetId, conn);
+      ownerId = t.ownerId as number;
     } else {
       const c = await commentRepo.findComment(targetId, conn, true);
       if (!c || c.comment.status !== 'visible') throw AppError.notFound('댓글을 찾을 수 없어요.');
-      if (c.comment.target_type !== 'post')
-        throw AppError.badRequest('아직 지원하지 않는 댓글이에요.');
-      await loadReactablePost(user, c.comment.target_id, conn);
+      await loadReactable(user, c.comment.target_type, c.comment.target_id, conn);
       ownerId = c.comment.author_id;
-      postForCount = c.comment.target_id;
     }
-    void postForCount;
 
     const existing = await likeRepo.findLike(user.row.id, targetType, targetId, conn);
     let likeCount: number;
@@ -143,7 +142,8 @@ export async function setLike(
 
 export async function addComment(
   user: AuthUser,
-  postId: number,
+  targetType: string,
+  targetId: number,
   bodyRaw: string,
 ): Promise<commentRepo.CommentBundle> {
   const body = bodyRaw.trim();
@@ -157,22 +157,24 @@ export async function addComment(
   if (hits.length > 0) throw AppError.badRequest(bannedWordMessage(hits));
 
   return tx(async (conn) => {
-    const post = await loadReactablePost(user, postId, conn);
+    const target = await loadReactable(user, targetType, targetId, conn);
     if (user.row.role === 'student') {
-      const n = await commentRepo.countByAuthorTarget(user.row.id, 'post', postId, conn);
+      const n = await commentRepo.countByAuthorTarget(user.row.id, target.type, targetId, conn);
       if (n >= COMMENTS_PER_POST)
         throw AppError.conflict(`한 글에는 댓글을 ${COMMENTS_PER_POST}개까지 쓸 수 있어요.`);
     }
-    const id = await commentRepo.insertComment('post', postId, user.row.id, body, conn);
-    await postRepo.bumpCommentCount(postId, 1, conn);
-    if (user.row.role === 'student' && post.author_id !== user.row.id) {
+    const id = await commentRepo.insertComment(target.type, targetId, user.row.id, body, conn);
+    await bumpCommentCount(target.type, targetId, 1, conn);
+    // 토론 의견은 NEWS_OPINION, 글 댓글은 COMMENT_WRITTEN (본인 글 제외)
+    if (user.row.role === 'student' && target.ownerId !== user.row.id) {
+      const rule = target.type === 'news_topic' ? 'NEWS_OPINION' : 'COMMENT_WRITTEN';
       await applyPointsSafe(
         {
-          ruleCode: 'COMMENT_WRITTEN',
+          ruleCode: rule,
           userId: user.row.id,
           refType: 'comment',
           refId: id,
-          eventKey: buildEventKey('COMMENT_WRITTEN', 'comment', id),
+          eventKey: buildEventKey(rule, 'comment', id),
         },
         conn,
       );
@@ -189,8 +191,8 @@ export async function deleteComment(user: AuthUser, commentId: number): Promise<
     if (!c || c.comment.status === 'deleted') throw AppError.notFound('댓글을 찾을 수 없어요.');
     if (c.comment.author_id !== user.row.id) throw AppError.forbidden('내 댓글만 지울 수 있어요.');
     await commentRepo.setCommentStatus(commentId, 'deleted', null, null, conn);
-    if (c.comment.status === 'visible' && c.comment.target_type === 'post')
-      await postRepo.bumpCommentCount(c.comment.target_id, -1, conn);
+    if (c.comment.status === 'visible')
+      await bumpCommentCount(c.comment.target_type, c.comment.target_id, -1, conn);
     await reversePointsSafe(
       'comment',
       commentId,
@@ -200,23 +202,46 @@ export async function deleteComment(user: AuthUser, commentId: number): Promise<
   });
 }
 
-/** 상세 화면용: 좋아요 상태 + 댓글 목록 + 내 댓글 수 + 안내 문구 */
-export async function reactionsFor(user: AuthUser, postId: number): Promise<PostReactionsView> {
-  const post = await postRepo.findPostById(postId);
-  if (!post || post.deleted_at) throw AppError.notFound('글을 찾을 수 없어요.');
-  if (!canViewPost(viewerFromAuthUser(user), post))
-    throw AppError.forbidden('이 글은 볼 수 없어요.');
-  const comments = await commentRepo.listVisibleByTarget('post', postId);
+/** 상세 화면용: 좋아요 상태 + 댓글 목록(토론이면 입장·베스트 배지) + 내 댓글 수 + 안내 문구 */
+export async function reactionsFor(
+  user: AuthUser,
+  targetType: string,
+  targetId: number,
+): Promise<PostReactionsView> {
+  const target = await loadReactionTarget(user, targetType, targetId);
+  const comments = await commentRepo.listVisibleByTarget(target.type, targetId);
   const likedComments = await likeRepo.likedTargetIds(
     user.row.id,
     'comment',
     comments.map((c) => c.comment.id),
   );
-  const likedPost = await likeRepo.findLike(user.row.id, 'post', postId);
+  let stances = new Map<number, 'agree' | 'disagree'>();
+  let bests = new Set<number>();
+  if (target.type === 'news_topic') {
+    if (target.topicType === 'vote')
+      stances = await newsRepo.votesByUsers(
+        targetId,
+        comments.map((c) => c.comment.author_id),
+      );
+    bests = await newsRepo.bestCommentIds([targetId]);
+  }
+  let likedByMe = false;
+  let likeCount = 0;
+  if (target.type === 'post') {
+    const post = await postRepo.findPostById(targetId);
+    likedByMe = !!(await likeRepo.findLike(user.row.id, 'post', targetId));
+    likeCount = post?.like_count ?? 0;
+  }
   return {
-    likedByMe: !!likedPost,
-    likeCount: post.like_count,
-    comments: comments.map((c) => toCommentView(c, user.row.id, likedComments.has(c.comment.id))),
+    likedByMe,
+    likeCount,
+    comments: comments.map((c) =>
+      toCommentView(c, user.row.id, likedComments.has(c.comment.id), {
+        stance:
+          target.type === 'news_topic' ? (stances.get(c.comment.author_id) ?? null) : undefined,
+        isBest: target.type === 'news_topic' ? bests.has(c.comment.id) : undefined,
+      }),
+    ),
     myCommentCount: comments.filter((c) => c.comment.author_id === user.row.id).length,
     goodCommentGuide: await getSetting('good_comment_guide', ''),
   };
@@ -240,8 +265,8 @@ export async function report(
   const result = await tx(async (conn) => {
     let ownerId: number;
     if (targetType === 'post') {
-      const post = await loadReactablePost(user, targetId, conn);
-      ownerId = post.author_id;
+      const t = await loadReactable(user, 'post', targetId, conn);
+      ownerId = t.ownerId as number;
     } else {
       const c = await commentRepo.findComment(targetId, conn);
       if (!c || c.comment.status !== 'visible') throw AppError.notFound('댓글을 찾을 수 없어요.');
@@ -284,7 +309,8 @@ export async function report(
       if (c && c.comment.status === 'visible') {
         await tx(async (conn) => {
           await commentRepo.setCommentStatus(targetId, 'hidden', null, AUTO_HIDE_REASON, conn);
-          await postRepo.bumpCommentCount(c.comment.target_id, -1, conn);
+          // 대상별 분기: 토론 댓글이면 news_topics.comment_count 만 줄어든다
+          await bumpCommentCount(c.comment.target_type, c.comment.target_id, -1, conn);
           await reversePointsSafe('comment', targetId, { note: 'comment.auto_hide' }, conn);
           await notify(c.comment.author_id, 'comment_hidden', { message: AUTO_HIDE_REASON }, conn);
         });
