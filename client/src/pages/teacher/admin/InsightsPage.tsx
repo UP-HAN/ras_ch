@@ -67,7 +67,7 @@ function TrendChart({
 }) {
   const last = [...points].reverse().find((p) => p.value !== null);
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-base font-semibold">{title}</p>
         {last && <SampleBadge s={last.sample} />}
@@ -88,7 +88,7 @@ function TrendChart({
 
 function Bucket({ title, items, s }: { title: string; items: BucketShare[]; s: Sample }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="mb-1 text-base font-semibold">{title}</p>
       <SampleBadge s={s} className="mb-2" />
       <ul className="space-y-1">
@@ -243,7 +243,7 @@ export function InsightsPage() {
       </Card>
 
       <Card title="2. 참여가 넓어지고 있나요? (전체 학생 기준)" className="mb-4">
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           <TrendChart title="주간 리포트 제출률" points={d.participation.submissionRate} unit="%" />
           <TrendChart
             title="활동 학생 비율 (리포트·댓글·엄지척·읽기·투표 중 하나라도)"
@@ -266,7 +266,7 @@ export function InsightsPage() {
           <p className="mb-2 text-lg font-bold">같은 학생 비교 — 가장 믿을 만한 지표</p>
           <Delta d={d.usage.paired} />
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           <TrendChart
             title="주차별 하루 평균 사용시간 (분)"
             points={d.usage.avgMinutes}
@@ -300,7 +300,7 @@ export function InsightsPage() {
       </Card>
 
       <Card title="4. 목표를 세우고 지키고 있나요?" className="mb-4">
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           <TrendChart
             title="지난주 목표 달성 체크 비율"
             points={d.goals.achievedRate}
@@ -352,7 +352,7 @@ export function InsightsPage() {
           }))}
           height={120}
         />
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+        <div className="mt-4 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           <BarChart
             title="주차별 엄지척 수"
             data={d.community.weekly.map((w) => ({ label: wkShort(w.weekKey), value: w.likes }))}

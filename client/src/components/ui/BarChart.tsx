@@ -23,7 +23,7 @@ export function BarChart({
 }) {
   const max = Math.max(1, ...data.map((d) => d.value ?? 0));
   return (
-    <figure>
+    <figure className="min-w-0 max-w-full">
       {title && <figcaption className="mb-2 text-base font-semibold">{title}</figcaption>}
       <div className="overflow-x-auto">
         <ul className="flex min-w-full items-end gap-1" style={{ height }}>
