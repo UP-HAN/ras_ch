@@ -97,7 +97,7 @@ export function TeacherShell() {
   };
 
   const nav = (
-    <nav aria-label="교사 메뉴" className="flex h-full flex-col gap-6 p-4">
+    <nav aria-label="교사 메뉴" className="flex min-h-full flex-col gap-6 p-4">
       <div className="text-xl font-extrabold text-accent-700">
         <span aria-hidden="true">🏮</span> 초롱 RAS 포인트
         <div className="text-base font-medium text-ink-muted">교사 화면</div>
@@ -188,7 +188,7 @@ export function TeacherShell() {
               className="absolute inset-0 bg-accent-900/40"
               onClick={() => setOpen(false)}
             />
-            <aside className="absolute inset-y-0 left-0 w-sidebar bg-surface shadow-card">
+            <aside className="absolute inset-y-0 left-0 w-sidebar overflow-y-auto overscroll-contain bg-surface shadow-card">
               {nav}
             </aside>
           </div>
