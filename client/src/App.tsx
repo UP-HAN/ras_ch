@@ -5,6 +5,7 @@ import { TeacherShell } from '@/components/layout/TeacherShell';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ContentPage } from '@/pages/teacher/admin/ContentPage';
+import { InsightsPage } from '@/pages/teacher/admin/InsightsPage';
 import { SettlementPage } from '@/pages/teacher/admin/SettlementPage';
 import { StatsPage } from '@/pages/teacher/StatsPage';
 import { HallOfFamePage } from '@/pages/student/HallOfFamePage';
@@ -100,6 +101,7 @@ const router = createBrowserRouter([
       { path: 'admin/approval', element: <ApprovalSettingsPage /> },
       { path: 'admin/settlements', element: <SettlementPage /> },
       { path: 'admin/content', element: <ContentPage /> },
+      { path: 'admin/insights', element: <InsightsPage /> },
     ],
   },
 ]);

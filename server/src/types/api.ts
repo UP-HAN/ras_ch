@@ -1083,3 +1083,100 @@ export interface WeeklyGiftResult {
   skipped: number;
   panel: WeeklyGiftPanelView;
 }
+
+// ---------- 실천 변화 리포트 (관리자 지표, 2026-09-25) ----------
+export type SampleBasis = 'all' | 'submitted' | 'paired';
+export type SampleLabel = 'ok' | 'partial' | 'tiny' | 'none';
+/** 수치가 "누구 기준·몇 명"인지 — 대표성 표시 */
+export interface Sample {
+  n: number;
+  of: number;
+  pct: number;
+  basis: SampleBasis;
+  label: SampleLabel;
+}
+export interface WeekPoint {
+  weekKey: string;
+  value: number | null;
+  sample: Sample;
+}
+export interface BucketShare {
+  label: string;
+  count: number;
+  pct: number;
+}
+export interface Share {
+  key: string;
+  count: number;
+  pct: number;
+}
+export interface InsightsView {
+  period: { fromWeek: string; toWeek: string; weeks: string[] };
+  summary: {
+    students: number;
+    consentRate: number;
+    reportedOnce: Sample;
+    capturedOnce: Sample;
+    thisWeekSubmission: Sample;
+    approvedReports: number;
+  };
+  participation: {
+    submissionRate: WeekPoint[];
+    captureShare: WeekPoint[];
+    activeRate: WeekPoint[];
+  };
+  usage: {
+    avgMinutes: WeekPoint[];
+    medianMinutes: WeekPoint[];
+    decreaseRate: WeekPoint[];
+    paired: {
+      firstAvg: number | null;
+      recentAvg: number | null;
+      deltaMinutes: number | null;
+      deltaPct: number | null;
+      decreasedPct: number | null;
+      increasedPct: number | null;
+      samePct: number | null;
+      sample: Sample;
+      firstWeeks: string[];
+      recentWeeks: string[];
+    };
+    buckets: {
+      first: BucketShare[];
+      recent: BucketShare[];
+      firstSample: Sample;
+      recentSample: Sample;
+    };
+  };
+  goals: {
+    achievedRate: WeekPoint[];
+    topGoals: Array<{ text: string; count: number }>;
+    categories: { first: Share[]; recent: Share[] };
+    apps: { first: Share[]; recent: Share[] };
+  };
+  community: {
+    weekly: Array<{
+      weekKey: string;
+      comments: number;
+      likes: number;
+      reads: number;
+      commenters: Sample;
+    }>;
+    debateVoteRate: Sample;
+    debateOpinionRate: Sample;
+    councilVoteRate: Sample;
+  };
+  classes: Array<{
+    classId: number;
+    className: string;
+    students: number;
+    reportedOncePct: number;
+    avgSubmissionPct: number;
+    pairedDelta: number | null;
+    decreasedPct: number | null;
+    pairedSample: Sample;
+    activePct: number;
+  }>;
+  tiers: Array<{ tier: string; count: number }>;
+  achievementsRate: Sample;
+}

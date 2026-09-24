@@ -33,6 +33,7 @@ const ADMIN_MENU = [
   { to: '/teacher/admin/approval', label: '승인·검토 설정' },
   { to: '/teacher/admin/settlements', label: '월간 결산' },
   { to: '/teacher/admin/content', label: '공지·문구' },
+  { to: '/teacher/admin/insights', label: '실천 변화 리포트' },
 ];
 
 function MenuList({

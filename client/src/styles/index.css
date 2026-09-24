@@ -39,3 +39,20 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* 인쇄(교육청·교사 설명용 리포트): 메뉴·헤더 숨기고 카드가 페이지 중간에서 잘리지 않게 */
+@media print {
+  aside,
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  section {
+    break-inside: avoid;
+  }
+}

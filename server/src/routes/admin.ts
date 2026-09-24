@@ -19,6 +19,7 @@ import { rebuildPoints } from '../services/PointsQueryService.js';
 import { runRecountCaches } from '../jobs/recountCaches.js';
 import * as notices from '../services/NoticeService.js';
 import { schoolStats } from '../services/StatsService.js';
+import { buildInsights } from '../services/InsightsService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
 import type { ImportResult } from '../types/api.js';
 
@@ -364,6 +365,8 @@ export function createAdminRouter(): Router {
 
   // ----- S5: 전교 통계 (ADM-05) -----
   router.get('/stats', async (_req, res) => res.json(ok(await schoolStats())));
+  // 실천 변화 리포트 (시작 주차 ~ 이번 주, 표본 표시)
+  router.get('/insights', async (_req, res) => res.json(ok(await buildInsights())));
 
   // ----- S5: 공지 (ADM-04) -----
   const noticeBody = z.object({
