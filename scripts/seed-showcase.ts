@@ -145,15 +145,20 @@ const REJECT_CODES = ['too_short', 'capture_mismatch', 'other'] as const;
 const COMMENT_OPEN = {
   high: [
     '글 잘 읽었어요.',
-    '와, 이번 주 정말 열심히 했네요.',
+    '이번 주 정말 열심히 했네요.',
     '읽으면서 저도 반성했어요.',
     '솔직하게 써서 더 와닿아요.',
     '목표가 구체적이라 좋아요.',
-    '이 방법 저도 써 봤는데요,',
-    '지난주 글이랑 비교해 보니',
+    '지난주 글이랑 비교해 보니 달라진 게 보여요.',
     '숫자를 보니까 놀랐어요.',
     '응원하고 싶어서 댓글 남겨요.',
     '저랑 상황이 비슷해서 반가웠어요.',
+    '리포트에서 배운 게 있어요.',
+    '끝까지 읽었어요.',
+    '성찰 글이 진짜 솔직하네요.',
+    '목표 문장이 마음에 들어요.',
+    '이번 주 변화가 눈에 띄어요.',
+    '오늘 이 글이 제일 기억에 남아요.',
   ],
   mid: [
     '멋져요!',
@@ -164,8 +169,12 @@ const COMMENT_OPEN = {
     '응원해요!',
     '공감돼요.',
     '고마워요.',
+    '오 신기해요.',
+    '저도 비슷해요.',
+    '재밌게 읽었어요.',
+    '배웠어요!',
   ],
-  low: ['멋져요!', '대단해요.', '응원해요.', '좋아요!', '와!'],
+  low: ['멋져요!', '대단해요.', '응원해요.', '좋아요!', '와!', '최고!', '굿!'],
 } as const;
 const COMMENT_BODY = {
   high: [
@@ -225,18 +234,25 @@ const COMMENT_CLOSE = [
   ' 응원할게요!',
   ' 궁금한 건 물어보세요.',
   ' 힘내요!',
+  ' 다음 리포트도 기대할게요.',
+  ' 우리 반도 해 볼게요.',
+  ' 좋은 한 주 보내요.',
 ];
 const usedComments = new Set<string>();
 function commentText(level: Level): string {
-  for (let i = 0; i < 30; i += 1) {
-    const close = level === 'high' ? '' : pickR(COMMENT_CLOSE);
-    const t = `${pickR(COMMENT_OPEN[level])} ${pickR(COMMENT_BODY[level])}${close}`;
-    if (!usedComments.has(t) || i === 29) {
+  let best = '';
+  for (let i = 0; i < 60; i += 1) {
+    const t = `${pickR(COMMENT_OPEN[level])} ${pickR(COMMENT_BODY[level])}${pickR(COMMENT_CLOSE)}`;
+    if (!usedComments.has(t)) {
       usedComments.add(t);
       return t;
     }
+    best = t;
   }
-  return pickR(COMMENT_BODY[level]);
+  // 조합이 다 소진되면 짧은 꼬리를 붙여 고유하게
+  const t = `${best} (${usedComments.size % 97 === 0 ? '진심으로' : '정말'}요.)`;
+  usedComments.add(t);
+  return t;
 }
 
 /** 토론 7주치: 주제(은행 id)별로 전부 다른 의견 */
@@ -1527,13 +1543,64 @@ async function main(): Promise<void> {
       isActive: true,
     },
   );
-  const target = commentIds[Math.floor(commentIds.length / 2)];
-  if (target) {
-    const reporters3 = shuffle(personas.filter((p) => p.u.row.id !== target.authorId)).slice(0, 3);
-    for (const p of reporters3)
-      await reportContent(p.u, 'comment', target.id, '놀리는 말 같아요').catch(() => undefined);
+  // 신고할 만한 댓글: 놀림·도배·상관없는 말·개인정보 (가끔 부류 학생이 씀)
+  const BAD_COMMENTS: Array<{ text: string; reasons: string[] }> = [
+    {
+      text: '너 맨날 폰만 보잖아 ㅋㅋ 이거 거짓말 아니야? 반 애들 다 알아.',
+      reasons: ['놀리는 말이 있어요', '친구를 비웃는 것 같아요', '기분 나쁜 말이에요'],
+    },
+    {
+      text: 'ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ 노잼 노잼 노잼',
+      reasons: ['글이랑 상관없는 댓글이에요', '같은 말을 도배했어요'],
+    },
+    {
+      text: '게임 아이디 알려줘 지금 접속해서 같이 하자 빨리빨리',
+      reasons: ['리포트랑 상관없는 내용이에요', '게임하자는 말이라 이상해요'],
+    },
+    {
+      text: '얘 학원 끝나고 맨날 편의점 앞에서 폰 하는 거 봤는데 우리 아파트 3동 살아요',
+      reasons: ['친구 사는 곳을 적었어요', '개인정보가 있어요', '놀리는 말 같아요'],
+    },
+  ];
+  const badAuthors = shuffle(personas.filter((x) => x.level === 'low'));
+  const badTargets = shuffle([
+    ...(approvedByWeek.get(WEEKS[WEEKS.length - 1] as string) ?? []),
+    ...(approvedByWeek.get(WEEKS[WEEKS.length - 2] as string) ?? []),
+  ]).filter((t) => t.visibility === 'school');
+  let reportCountTotal = 0;
+  let hiddenCount = 0;
+  for (const [bi, bad] of BAD_COMMENTS.entries()) {
+    const author = badAuthors[bi % badAuthors.length];
+    const target = badTargets.find((t) => t.authorId !== author?.u.row.id);
+    if (!author || !target) continue;
+    const at = today.subtract(between(1, 4), 'day').hour(between(15, 21)).minute(between(0, 59));
+    const cid = await comment(author.u, 'post', target.id, bad.text, at, null); // 문제 댓글은 포인트 없이
+    const reporters = shuffle(
+      personas.filter((x) => x.u.row.id !== author.u.row.id && x.level !== 'low'),
+    ).slice(0, bad.reasons.length);
+    for (const [ri, rp] of reporters.entries()) {
+      const r = await reportContent(rp.u, 'comment', cid, bad.reasons[ri] as string).catch(
+        () => null,
+      );
+      if (r) reportCountTotal += 1;
+      if (r?.autoHidden) hiddenCount += 1;
+    }
   }
-  console.log(`칭찬 ${bonuses}건, 공지 2건, 신고 3건(자동 숨김 1)`);
+  // 글 신고 1건: 캡처가 이상하다는 신고 (교사가 신고함에서 유지/숨김 판단)
+  const suspicious = badTargets[badTargets.length - 1];
+  if (suspicious) {
+    const rp = personas.find((x) => x.u.row.id !== suspicious.authorId && x.level === 'mid');
+    if (rp) {
+      const r = await reportContent(
+        rp.u,
+        'post',
+        suspicious.id,
+        '캡처 사진이 사용시간 화면이 아닌 것 같아요',
+      ).catch(() => null);
+      if (r) reportCountTotal += 1;
+    }
+  }
+  console.log(`칭찬 ${bonuses}건, 공지 2건, 신고 ${reportCountTotal}건(자동 숨김 ${hiddenCount})`);
 
   // 10) 카운트·등급·업적 재계산 + 대표 칭호
   const rc = await runRecountCaches();
