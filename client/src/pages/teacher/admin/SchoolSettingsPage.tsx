@@ -155,6 +155,11 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
     },
     onError,
   });
+  const remove = useMutation({
+    mutationFn: (id: number) => adminApi.deleteUser(id),
+    onSuccess: () => onDone('교사 계정을 지웠어요.'),
+    onError,
+  });
   const roles = useMutation({
     mutationFn: (t: { id: number; isApprover: boolean; advisorGradeGroup: GradeGroup | null }) =>
       adminApi.setTeacherRoles(t.id, {
@@ -179,7 +184,8 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
             <th className="py-1 pr-2">이름</th>
             <th className="py-1 pr-2">ID</th>
             <th className="py-1 pr-2">승인 권한</th>
-            <th className="py-1">학년군 지도</th>
+            <th className="py-1 pr-2">학년군 지도</th>
+            <th className="py-1"></th>
           </tr>
         </thead>
         <tbody>
@@ -224,6 +230,21 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
                   <option value="3-4">3-4학년군</option>
                   <option value="5-6">5-6학년군</option>
                 </select>
+              </td>
+              <td className="py-1">
+                {t.role !== 'admin' && (
+                  <Button
+                    variant="ghost"
+                    loading={remove.isPending && remove.variables === t.id}
+                    onClick={() =>
+                      window.confirm(
+                        `${t.name} 교사 계정을 지울까요? 승인 기록 등 활동이 있으면 지워지지 않아요.`,
+                      ) && remove.mutate(t.id)
+                    }
+                  >
+                    삭제
+                  </Button>
+                )}
               </td>
             </tr>
           ))}

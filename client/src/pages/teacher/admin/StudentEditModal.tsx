@@ -22,6 +22,25 @@ export function StudentEditModal({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const remove = async () => {
+    if (
+      !window.confirm(
+        `${student.name} 학생 계정을 지울까요? 글·댓글·포인트가 있는 학생은 지워지지 않고 "중지"로 바꿔야 해요.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      await adminApi.deleteUser(student.id);
+      onSaved();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const save = async () => {
     setBusy(true);
     setError(null);
@@ -98,7 +117,10 @@ export function StudentEditModal({
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="danger" className="mr-auto" onClick={remove} loading={busy}>
+              계정 삭제
+            </Button>
             <Button variant="ghost" onClick={onClose}>
               취소
             </Button>

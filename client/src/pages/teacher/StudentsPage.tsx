@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TeacherUser } from '@server-types/api';
 import { useState } from 'react';
+import { adminApi } from '@/api/admin';
 import { errorMessage } from '@/api/client';
 import { teacherApi } from '@/api/teacher';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -36,6 +37,26 @@ export function StudentsPage() {
     },
     onError: (e) => setError(errorMessage(e)),
   });
+
+  const removeAll = useMutation({
+    mutationFn: () => adminApi.deleteClassStudents(selected as number),
+    onSuccess: (r) => {
+      setMsg(
+        `${r.deleted}명을 지웠어요.${r.skipped.length ? ` 활동 기록이 있는 ${r.skipped.map((s) => s.name).join(', ')} 학생은 남겼어요(상태를 "중지"로 바꿔 주세요).` : ''}`,
+      );
+      void qc.invalidateQueries({ queryKey: ['teacher'] });
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+  const onRemoveAll = () => {
+    const cls = classes.data?.find((c) => c.id === selected);
+    if (
+      window.confirm(
+        `${cls?.name ?? '이 반'} 학생을 모두 지울까요? 글·댓글·포인트가 있는 학생은 남아요. 지운 뒤 "학생 CSV 등록"으로 실제 명단을 올리면 돼요.`,
+      )
+    )
+      removeAll.mutate();
+  };
 
   const onReset = (s: TeacherUser) => {
     if (
@@ -102,7 +123,15 @@ export function StudentsPage() {
         />
       )}
       {students.data && students.data.length > 0 && (
-        <Card>
+        <Card
+          action={
+            me?.role === 'admin' ? (
+              <Button variant="ghost" loading={removeAll.isPending} onClick={onRemoveAll}>
+                이 반 학생 모두 지우기
+              </Button>
+            ) : undefined
+          }
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-left text-base">
               <thead>

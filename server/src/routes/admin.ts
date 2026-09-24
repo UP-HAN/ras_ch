@@ -12,6 +12,7 @@ import { insertBannedWord, listBannedWords, setBannedWordActive } from '../repos
 import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
+import { deleteClassStudents, deleteUser } from '../services/UserAdminService.js';
 import * as settings from '../services/AdminSettingsService.js';
 import { gamifySettingsView, updateGamifySettings } from '../services/GamifyService.js';
 import { rebuildPoints } from '../services/PointsQueryService.js';
@@ -187,6 +188,15 @@ export function createAdminRouter(): Router {
     if (!body.success) throw AppError.badRequest('수정 값을 확인해 주세요.');
     await admin.updateStudent(actor(req), idParam(req.params.id), body.data);
     res.json(ok({ updated: true }));
+  });
+
+  // ----- 계정 삭제 (시범 명단 정리): 활동 없는 계정만, 나머지는 상태 변경 -----
+  router.delete('/users/:id', async (req, res) => {
+    await deleteUser(actor(req), idParam(req.params.id));
+    res.json(ok({ deleted: true }));
+  });
+  router.delete('/classes/:id/students', async (req, res) => {
+    res.json(ok(await deleteClassStudents(actor(req), idParam(req.params.id))));
   });
 
   // ----- 금칙어 (RCT-04, ADM-02) -----
