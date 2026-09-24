@@ -21,8 +21,11 @@ cp .env.example .env && nano .env
 chmod 600 .env
 
 npm run db:migrate            # server/migrations 적용
-# ⚠ 운영에서는 db:seed 를 실행하지 않는다(production 이면 시드가 스스로 거부함). 관리자 계정은 아래 3 참고
-npm run build                 # server/dist + client/dist
+# 시범 명단(6학년 1~8반·교사 8명·학생 58명)으로 시작하려면 한 번만 (production 가드를 잠시 넘긴다):
+#   NODE_ENV=development npm run db:seed
+# 빈 상태로 시작하면 시드 대신 아래 3 의 관리자 1명만 넣는다
+# 빌드는 서버 RAM(914MB)이 작아 로컬 PC 에서 한다: 로컬에서 `npm run build` 뒤
+#   tar czf - server/dist client/dist | ssh ras-server "cd /var/app/ras && rm -rf server/dist client/dist && tar xzf -"
 
 # pm2
 pm2 start ecosystem.config.cjs && pm2 save && pm2 startup   # 재부팅 시 자동 시작
@@ -40,7 +43,7 @@ chmod +x deploy/backup.sh && crontab -e
 ## 2. 확인
 
 - `curl -s https://ras.ches.es.kr/healthz` → `{"ok":true,"data":{"status":"ok","db":"ok"}}`
-- `pm2 logs ras-point --lines 50` 에 "초롱 RAS 포인트 서버 시작" 과 배치 등록 4건(weeklyTop·monthlyDraft·recountCaches·autoEscalate)
+- `pm2 logs ras-point --lines 50` 에 "초롱 RAS 포인트 서버 시작" 과 배치 등록 7건(weeklyTop·monthlyDraft·recountCaches·autoEscalate·newsReserve·newsPublish·councilExpire)
 - 브라우저: 로그인 화면, PWA 설치 배너(HTTPS + manifest + sw)
 
 ## 3. 최초 관리자 계정
@@ -61,7 +64,8 @@ const b=require('bcryptjs');console.log(b.hashSync(process.argv[1],10))" '임시
 ## 4. 업데이트 배포
 
 ```bash
-cd /var/app/ras && git pull && npm ci && npm run db:migrate && npm run build && pm2 reload ras-point
+# 로컬: npm run build && tar czf - server/dist client/dist | ssh ras-server "cd /var/app/ras && rm -rf server/dist client/dist && tar xzf -"
+cd /var/app/ras && git pull && npm ci && npm run db:migrate && pm2 reload ras-point
 ```
 
 야간에 배포한다(평일 07:00~22:00 무중단 목표). 마이그레이션은 추가 전용(ALTER ADD)만 두었으므로 롤백은 `git checkout <이전 태그> && npm run build && pm2 reload` 로 충분하다.
@@ -69,3 +73,7 @@ cd /var/app/ras && git pull && npm ci && npm run db:migrate && npm run build && 
 ## 5. 서버 자원 주의
 
 RAM 914MB 를 다른 앱과 나눠 쓴다. `max_memory_restart 300M`, `instances 1`. 이미지 리사이즈(sharp)가 순간 메모리를 쓰므로 동시 업로드가 많은 일요일 저녁에 `pm2 monit` 으로 확인한다. 디스크는 학기당 약 8GB(11.1) 를 감안해 Lightsail 스토리지 디스크를 `/var/app/ras/server/uploads` 에 마운트한다.
+
+## 6. 시범 명단 → 실제 명단 교체
+
+관리자 화면 **학생 관리**에서 반을 고르고 "이 반 학생 모두 지우기"(활동 기록이 없는 학생만 지워지고, 글·포인트가 있는 학생은 상태를 "중지"로 바꾼다) → **학생 CSV 등록**으로 실제 명단을 올린다. 더미 교사는 **학교 설정 › 교사**의 "삭제"로 지우고, 새 운영자(교사·관리자)는 같은 화면 "교사 추가"로 만든다(초기 비밀번호는 그때 한 번만 표시). 반 담임은 **학교 설정 › 반**에서 다시 배정한다.
