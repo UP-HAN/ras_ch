@@ -19,7 +19,7 @@ umask 077
 case "${1:-db}" in
   db)
     OUT="$BACKUP_DIR/db-$STAMP.sql.gz"
-    mysqldump --host="${DB_HOST:-127.0.0.1}" --port="${DB_PORT:-3306}" --user="$DB_USER" --password="$DB_PASSWORD" \
+    mysqldump --no-tablespaces --host="${DB_HOST:-127.0.0.1}" --port="${DB_PORT:-3306}" --user="$DB_USER" --password="$DB_PASSWORD" \
       --single-transaction --quick --routines --triggers "$DB_NAME" | gzip -9 > "$OUT"
     echo "[$(date '+%F %T')] db backup: $OUT ($(du -h "$OUT" | cut -f1))"
     find "$BACKUP_DIR" -name 'db-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
