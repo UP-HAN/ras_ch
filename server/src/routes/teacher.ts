@@ -294,7 +294,13 @@ export function createTeacherRouter(): Router {
   router.post('/posts/:id/reject', async (req, res) => {
     const body = z
       .object({
-        reasonCode: z.enum(['capture_mismatch', 'too_short', 'inappropriate', 'other']),
+        reasonCode: z.enum([
+          'capture_mismatch',
+          'too_short',
+          'inappropriate',
+          'not_polite',
+          'other',
+        ]),
         reasonText: z.string().max(200).optional(),
       })
       .safeParse(req.body);

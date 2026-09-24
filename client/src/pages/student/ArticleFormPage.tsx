@@ -10,6 +10,8 @@ import { ARTICLE_TAGS, ARTICLE_TYPES } from '@/components/post/articleMeta';
 import { Badge, Button, Card, Input, Spinner, Textarea } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
+import { PoliteNotice, PoliteWarning } from '@/components/common/PoliteNotice';
+import { POLITE_HINT } from '@/lib/politeness';
 
 /** 기사 작성·수정 (ART-01, 02, 07) */
 export function ArticleFormPage() {
@@ -118,6 +120,7 @@ function ArticleForm({ editId, existing }: { editId: number | null; existing: My
         </p>
       )}
       <form onSubmit={(e) => submit(e)} className="space-y-4" noValidate>
+        <PoliteNotice />
         <Card title="어떤 기사인가요?">
           <div className="grid grid-cols-2 gap-2">
             {ARTICLE_TYPES.map((t) => (
@@ -205,8 +208,9 @@ function ArticleForm({ editId, existing }: { editId: number | null; existing: My
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={10}
-            hint={`${bodyLen} / ${type.minBody}자 이상 3000자 이하`}
+            hint={`${bodyLen} / ${type.minBody}자 이상 3000자 이하 · ${POLITE_HINT}`}
           />
+          <PoliteWarning text={body} />
           <Input
             label="한 줄 소감"
             value={oneLine}

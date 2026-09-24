@@ -7,6 +7,8 @@ import { councilApi } from '@/api/council';
 import { COUNCIL_TYPE } from '@/components/council/councilLabels';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card, Input, Spinner, Textarea } from '@/components/ui';
+import { PoliteNotice, PoliteWarning } from '@/components/common/PoliteNotice';
+import { POLITE_HINT } from '@/lib/politeness';
 
 const toLocal = (d: Date) => {
   const p = (n: number) => String(n).padStart(2, '0');
@@ -111,6 +113,7 @@ function CouncilForm({
         description="선생님이 확인한 뒤 게시돼요. 다른 임원도 함께 고칠 수 있어요."
       />
       <form onSubmit={(e) => submit(e, false)} className="space-y-4" noValidate>
+        <PoliteNotice />
         <Card title="어떤 글인가요?">
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(COUNCIL_TYPE) as CouncilPostType[]).map((k) => (
@@ -139,9 +142,10 @@ function CouncilForm({
             value={body}
             rows={8}
             maxLength={2000}
-            hint={`${bodyLen}자`}
+            hint={`${bodyLen}자 · ${POLITE_HINT}`}
             onChange={(e) => setBody(e.target.value)}
           />
+          <PoliteWarning text={body} />
         </Card>
         {type === 'poll' && (
           <Card title="투표 선택지 (2~5개)">

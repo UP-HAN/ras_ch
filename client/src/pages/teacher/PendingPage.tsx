@@ -14,6 +14,7 @@ const REASONS: Array<{ code: RejectReasonCode; label: string }> = [
   { code: 'capture_mismatch', label: '캡처 불일치' },
   { code: 'too_short', label: '글자 수 부족' },
   { code: 'inappropriate', label: '부적절한 내용' },
+  { code: 'not_polite', label: '존댓말 아님' },
   { code: 'other', label: '직접 입력' },
 ];
 

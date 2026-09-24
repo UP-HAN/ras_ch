@@ -9,11 +9,13 @@ import { CaptureGuide } from '@/components/post/CaptureGuide';
 import { ImagePicker } from '@/components/post/ImagePicker';
 import { Badge, Button, Card, Input, Spinner, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
+import { PoliteNotice, PoliteWarning } from '@/components/common/PoliteNotice';
+import { POLITE_HINT } from '@/lib/politeness';
 
 const HELPERS = [
-  '이번 주 나는 ___을(를) 가장 많이 썼다. 왜냐하면 ',
-  '폰을 오래 쓴 날은 ___한 날이었다. ',
-  '다음 주에는 ___ 대신 ___을(를) 해 보고 싶다. ',
+  '이번 주 저는 ___을(를) 가장 많이 썼어요. 왜냐하면 ',
+  '폰을 오래 쓴 날은 ___한 날이었어요. ',
+  '다음 주에는 ___ 대신 ___을(를) 해 보고 싶어요. ',
 ];
 
 const CATEGORY_FALLBACK = ['동영상', '게임', 'SNS', '메신저', '웹툰·만화', '음악', '학습', '기타'];
@@ -357,6 +359,7 @@ function ReportForm({
           </Card>
         )}
 
+        <PoliteNotice />
         <Card title="이번 주 나의 폰 습관">
           <div className="mb-2 flex flex-wrap gap-2">
             {HELPERS.map((h) => (
@@ -375,8 +378,9 @@ function ReportForm({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={7}
-            hint={`${bodyLen} / ${limits.bodyMin}자 이상 ${limits.bodyMax}자 이하`}
+            hint={`${bodyLen} / ${limits.bodyMin}자 이상 ${limits.bodyMax}자 이하 · ${POLITE_HINT}`}
           />
+          <PoliteWarning text={body} />
           <Input
             label="다음 주 목표 (한 줄)"
             value={goalText}

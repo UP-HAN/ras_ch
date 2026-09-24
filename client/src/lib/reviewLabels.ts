@@ -8,6 +8,7 @@ export const CHECKLIST_LABEL: Record<string, string> = {
   clean: '나쁜 말·개인정보가 없어요',
   title_tags_body: '제목·영역·본문(200자)이 있어요',
   photos_ok: '사진이 기사와 관련 있고 개인정보가 없어요',
+  polite: '존댓말로 썼어요 (사이트 원칙)',
 };
 
 export const REVIEW_ACTION_LABEL: Record<string, string> = {

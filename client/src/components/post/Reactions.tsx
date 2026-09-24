@@ -6,6 +6,8 @@ import { reactionsApi, type ReactionTarget } from '@/api/reactions';
 import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge, Button, Card, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
+import { PoliteWarning } from '@/components/common/PoliteNotice';
+import { POLITE_HINT } from '@/lib/politeness';
 
 const COMMENT_MIN = 10;
 const COMMENT_MAX = 300;
@@ -280,9 +282,10 @@ export function ReactionsSection({
                 onChange={(e) => setText(e.target.value)}
                 rows={3}
                 maxLength={COMMENT_MAX}
-                hint={`${len} / ${COMMENT_MIN}자 이상 ${COMMENT_MAX}자 이하 · 한 글에 ${PER_POST}개까지`}
+                hint={`${len} / ${COMMENT_MIN}자 이상 ${COMMENT_MAX}자 이하 · 한 글에 ${PER_POST}개까지 · ${POLITE_HINT}`}
                 error={error ?? undefined}
               />
+              <PoliteWarning text={text} />
               <Button
                 className="mt-2"
                 disabled={len < COMMENT_MIN}

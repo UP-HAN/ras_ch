@@ -13,11 +13,13 @@ export const CHECKLISTS: Record<'report' | 'article', ChecklistItem[]> = {
     { code: 'body_length', label: '성찰 글이 100자 이상이에요' },
     { code: 'goal_present', label: '다음 주 목표가 한 줄 있어요' },
     { code: 'clean', label: '나쁜 말·개인정보가 없어요' },
+    { code: 'polite', label: '존댓말로 썼어요 (사이트 원칙)' },
   ],
   article: [
     { code: 'title_tags_body', label: '제목·영역·본문(200자)이 있어요' },
     { code: 'photos_ok', label: '사진이 기사와 관련 있고 개인정보가 없어요' },
     { code: 'clean', label: '나쁜 말·부적절한 내용이 없어요' },
+    { code: 'polite', label: '존댓말로 썼어요 (사이트 원칙)' },
   ],
 };
 
@@ -30,6 +32,7 @@ export const HOLD_REASONS = [
   },
   { code: 'short', text: '성찰 글이 너무 짧아요. 100자 이상으로 자세히 써 주세요.' },
   { code: 'inappropriate', text: '나쁜 말이나 어울리지 않는 내용이 있어요. 고쳐 주세요.' },
+  { code: 'polite', text: '반말로 쓴 문장이 있어요. 존댓말(~했어요, ~입니다)로 고쳐 주세요.' },
 ] as const;
 
 export const HOLD_NOTE_MIN = 20;

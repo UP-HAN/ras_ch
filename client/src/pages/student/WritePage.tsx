@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
+import { PoliteNotice } from '@/components/common/PoliteNotice';
 
 /** 글쓰기 두 갈래 (PRD 6.1): 리포트 / 기사 */
 export function WritePage() {
@@ -11,6 +12,7 @@ export function WritePage() {
     <>
       <PageHeader title="글쓰기" description="무엇을 쓸까요?" />
       <div className="space-y-4">
+        <PoliteNotice />
         <Card title="📱 폰프리 주간 리포트">
           <p className="mb-3 text-base">
             이번 주 내 폰 사용 습관을 돌아봐요. 캡처 2장과 성찰 글을 올려요.

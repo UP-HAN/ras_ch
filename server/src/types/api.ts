@@ -262,7 +262,8 @@ export interface ResetPasswordResult {
 
 // ---------- S2: 리포트 ----------
 
-export type RejectReasonCode = 'capture_mismatch' | 'too_short' | 'inappropriate' | 'other';
+export type RejectReasonCode =
+  'capture_mismatch' | 'too_short' | 'inappropriate' | 'not_polite' | 'other';
 
 /** 작성 화면에 필요한 맥락 (RPT-01 주차, RPT-03 지난주 목표, AUTH-08 유형) */
 export interface WeekContextView {
