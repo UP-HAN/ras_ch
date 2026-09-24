@@ -24,6 +24,7 @@
     "db:migrate:status": "npm run db:migrate:status -w server",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
+    "db:seed:showcase": "tsx scripts/seed-showcase.ts",
     "db:reset": "npm run db:reset -w server && npm run db:seed -- --force"
   },
   "devDependencies": {
