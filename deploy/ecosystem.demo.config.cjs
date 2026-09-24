@@ -3,13 +3,11 @@
  *   서버: cd /var/app/ras-demo && pm2 start deploy/ecosystem.demo.config.cjs && pm2 save
  *   .env: PORT=3301, DB_NAME=ras_demo, DEMO_MODE=1, UPLOAD_DIR=/var/app/ras-demo/server/uploads, CLIENT_ORIGIN=https://ras-demo.ches.es.kr
  */
-const path = require('path');
-
 module.exports = {
   apps: [
     {
       name: 'ras-demo',
-      cwd: path.resolve(__dirname, '..'),
+      cwd: `${__dirname}/..`,
       script: 'server/dist/index.js',
       instances: 1,
       exec_mode: 'fork',
