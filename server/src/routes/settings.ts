@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { env } from '../config/env.js';
 import { ok } from '../lib/apiResponse.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getSetting } from '../repos/settingsRepo.js';
@@ -22,6 +23,8 @@ export function createSettingsRouter(): Router {
         goal_max: 100,
       }),
       goodCommentGuide: await getSetting('good_comment_guide', ''),
+      demoMode: env.DEMO_MODE === '1',
+      demoSiteUrl: env.DEMO_SITE_URL ?? null,
     };
     res.json(ok(data));
   });

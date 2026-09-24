@@ -22,6 +22,10 @@ const schema = z.object({
   SESSION_SECRET: z.string().min(16, 'SESSION_SECRET는 16자 이상이어야 합니다'),
   UPLOAD_DIR: z.string().default('server/uploads'),
   CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
+  /** 시연(가상 데이터) 인스턴스면 '1' — 화면에 "시연용 가상 데이터" 배너 */
+  DEMO_MODE: z.string().optional(),
+  /** 운영 인스턴스에서 관리자 메뉴에 보여 줄 시연 사이트 주소 */
+  DEMO_SITE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

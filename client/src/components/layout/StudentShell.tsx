@@ -1,5 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { reviewApi } from '@/api/review';
+import { postsApi } from '@/api/posts';
+import { useQuery } from '@tanstack/react-query';
+import { DemoBanner } from './DemoBanner';
 import { useMe, useMeCache } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 import { ChatIcon, HomeIcon, PencilIcon, TrophyIcon, UserIcon } from './icons';
@@ -22,6 +25,7 @@ export function StudentShell() {
   const cache = useMeCache();
   const navigate = useNavigate();
   const canReview = !!me && (me.isCouncil || me.role === 'council_teacher');
+  const pub = useQuery({ queryKey: ['settings', 'public'], queryFn: postsApi.settings, enabled: !!me });
   const backToTeacher = async () => {
     await reviewApi.switchRole('teacher');
     cache.clear();
@@ -29,6 +33,7 @@ export function StudentShell() {
   };
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
+      {pub.data?.demoMode && <DemoBanner />}
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-paper/95 px-4 backdrop-blur">
         <a
           href="/"

@@ -324,6 +324,10 @@ export interface PublicSettingsView {
   captureGuide: CaptureGuideView;
   reportText: { reflection_min: number; reflection_max: number; goal_max: number };
   goodCommentGuide: string;
+  /** 이 인스턴스가 시연용(가상 데이터)인가 — 화면 상단 배너 */
+  demoMode: boolean;
+  /** 관리자 메뉴에 보여 줄 시연 사이트 주소 (운영 인스턴스에서만 설정) */
+  demoSiteUrl: string | null;
 }
 
 // ---------- S3: 기사·반응·출석·읽기·댓글 점검 ----------
