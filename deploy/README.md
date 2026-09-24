@@ -23,7 +23,8 @@ chmod 600 .env
 npm run db:migrate            # server/migrations 적용
 # 시범 명단(6학년 1~8반·교사 8명·학생 58명)으로 시작하려면 한 번만 (production 가드를 잠시 넘긴다):
 #   NODE_ENV=development npm run db:seed
-# 빈 상태로 시작하면 시드 대신 아래 3 의 관리자 1명만 넣는다
+# 정식 운영 시작(관리자 1명 + 6-1 반만, 교사·학생은 관리자 화면에서 등록):
+#   NODE_ENV=development npm run db:seed -- --force --minimal
 # 빌드는 서버 RAM(914MB)이 작아 로컬 PC 에서 한다: 로컬에서 `npm run build` 뒤
 #   tar czf - server/dist client/dist | ssh ras-server "cd /var/app/ras && rm -rf server/dist client/dist && tar xzf -"
 

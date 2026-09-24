@@ -3,6 +3,7 @@
  *  - 2026학년도, 3~6학년 각 1개 반, 교사 4명(admin·approver 1, grade_advisor 1), 학생 30명
  *  - 규칙표 7.1 전체, settings 기본값, approval_settings(two_step), 임원 2명 + 검토 담당, 금칙어, 공지
  *  - users 가 비어 있지 않으면 중단. --force 면 전 테이블 TRUNCATE 후 재시드. production 거부
+ *  - --minimal: 시범 명단 없이 관리자·6-1 반·규칙표·설정만 (정식 운영 시작 상태)
  */
 import bcrypt from 'bcryptjs';
 import { env, isProd } from '../server/src/config/env.js';
@@ -15,6 +16,8 @@ import type { PointCap } from '../server/src/types/db.js';
 import bankSeed from '../docs/seed/topic-bank-seed.json' with { type: 'json' };
 
 const FORCE = process.argv.includes('--force');
+/** --minimal: 관리자 1명 + 6-1 반(담임 없음) + 규칙표·설정·주제 은행만. 교사·학생은 관리자 화면에서 등록 (정식 운영 시작용) */
+const MINIMAL = process.argv.includes('--minimal');
 const SCHOOL_YEAR = 2026;
 const STUDENT_PW = '1234';
 const TEACHER_PW = 'teacher1234!';
@@ -485,7 +488,8 @@ async function seed(): Promise<void> {
 
   // 교사
   const teacherIds = new Map<string, number>();
-  for (const t of TEACHERS) {
+  const teacherSeeds = MINIMAL ? TEACHERS.filter((t) => t.role === 'admin') : TEACHERS;
+  for (const t of teacherSeeds) {
     const id = await insert(
       `INSERT INTO users (login_id, password_hash, role, is_approver, advisor_grade_group, name, display_name, must_change_pw)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -496,7 +500,15 @@ async function seed(): Promise<void> {
 
   // 반 (시범: 6학년 1~8반) + 담임 배정
   const classIdByNo = new Map<number, number>();
-  for (const t of TEACHERS) {
+  if (MINIMAL) {
+    // 6-1 반 하나, 담임 없음 — 관리자가 학교 설정에서 반·담임·교사·학생을 등록한다
+    const classId = await insert(
+      'INSERT INTO classes (school_year_id, grade, class_no, name, homeroom_teacher_id) VALUES (?, ?, 1, ?, NULL)',
+      [yearId, PILOT_GRADE, `${PILOT_GRADE}-1`],
+    );
+    classIdByNo.set(1, classId);
+  }
+  for (const t of MINIMAL ? [] : TEACHERS) {
     const teacherId = teacherIds.get(t.loginId) as number;
     const classId = await insert(
       'INSERT INTO classes (school_year_id, grade, class_no, name, homeroom_teacher_id) VALUES (?, ?, ?, ?, ?)',
@@ -511,7 +523,7 @@ async function seed(): Promise<void> {
 
   // 학생: display_name 은 반 단위로 중복을 검사해 생성 (3.1)
   const named = assignDisplayNames(
-    STUDENTS.map((s) => ({
+    (MINIMAL ? [] : STUDENTS).map((s) => ({
       ...s,
       classId: classIdByNo.get(s.classNo) as number,
       studentNo: s.no,
@@ -537,12 +549,12 @@ async function seed(): Promise<void> {
 
   // 검토 담당 (APR-02a): 임원 3명 모두 6학년 담당 (본인·같은 반 글은 시스템이 제외하므로 다른 반 글만 검토)
   const adminId = teacherIds.get('admin@ches.es.kr') as number;
-  const assignments: Array<{ loginId: string; grades: number[] }> = STUDENTS.filter(
-    (st) => st.council,
-  ).map((st) => ({
-    loginId: buildStudentLoginId(SCHOOL_YEAR, PILOT_GRADE, st.classNo, st.no),
-    grades: [PILOT_GRADE],
-  }));
+  const assignments: Array<{ loginId: string; grades: number[] }> = (MINIMAL ? [] : STUDENTS)
+    .filter((st) => st.council)
+    .map((st) => ({
+      loginId: buildStudentLoginId(SCHOOL_YEAR, PILOT_GRADE, st.classNo, st.no),
+      grades: [PILOT_GRADE],
+    }));
   for (const a of assignments) {
     await insert(
       `INSERT INTO review_assignments (reviewer_user_id, reviewer_kind, grades, post_types, allowed_results, daily_cap, preset, starts_at, ends_at, is_active, set_by)
