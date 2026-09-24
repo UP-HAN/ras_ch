@@ -92,3 +92,7 @@
 ### 2026-09-25 — 시연 전용 두 번째 사이트 (ras1)
 
 - https://ras1.ches.es.kr: 같은 서버의 별도 인스턴스(/var/app/ras-demo, DB ras_demo, pm2 ras-demo 3301, certbot, noindex). 시연 데이터 스냅샷(/var/backups/ras-point/showcase)을 복원해 두었고 `deploy/demo-refresh.sh [fresh|snapshot]` 로 새로 고친다. 화면에는 시연임을 드러내는 표시가 전혀 없고(사용자 지시), 운영 사이트 관리자 메뉴에만 링크(관리자 /me.demoSiteUrl, 운영 .env DEMO_SITE_URL).
+
+### 2026-09-25 — 실천 변화 리포트 (관리자 지표 페이지)
+
+- `GET /admin/insights` + `/teacher/admin/insights`: 시작 주차(첫 리포트)~이번 주. 모든 수치에 표본 `Sample{n, of, pct, basis(all|submitted|paired), label(ok|partial|tiny|none)}` 을 붙여 "전체 학생 기준 / 제출한 학생 기준 / 같은 학생 비교"를 구분하고, 5명 미만·전체의 절반 미만은 경고 배지. 섹션: 표본 요약, 참여 추이(제출률·활동 학생·캡처형 비율), 사용시간(주차별 평균·중앙값, 같은 학생 시작 vs 최근 구간 변화·감소 학생 비율, 구간 분포, 지난주 대비 감소 리포트 비율), 목표(달성 체크·상위 목표·앱 종류/앱 변화), 문화(댓글·엄지척·읽기, 토론·자치회 참여율), 반별 표, 등급·칭호. 순수 함수 `lib/insights.ts`(테스트 7), 인쇄 스타일. ras·ras1 모두 배포.
