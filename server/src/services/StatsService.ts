@@ -2,6 +2,7 @@
  * 통계 (TCH-01 반 대시보드, TCH-05 반 통계 CSV, ADM-05 전교 통계). 포인트는 항상 원장 SUM.
  */
 import { classMissionFor } from './MissionService.js';
+import { pendingCountsForClass } from './PendingService.js';
 import { query } from '../db/query.js';
 import { AppError } from '../lib/apiResponse.js';
 import type { CsvCell } from '../lib/csvWrite.js';
@@ -37,15 +38,8 @@ export async function classDashboard(classId: number): Promise<ClassDashboardVie
      FROM users u WHERE u.class_id = ? AND u.role = 'student' AND u.status = 'active' ORDER BY u.student_no`,
     [wk, wk, classId],
   );
-  const pending = await query<{ status: string; n: number }>(
-    "SELECT status, COUNT(*) AS n FROM posts WHERE class_id = ? AND deleted_at IS NULL AND status IN ('pending','reviewed','flagged') GROUP BY status",
-    [classId],
-  );
-  const cnt = (s: string) => Number(pending.find((p) => p.status === s)?.n ?? 0);
-  const escalated = await query<{ n: number }>(
-    "SELECT COUNT(*) AS n FROM posts WHERE class_id = ? AND deleted_at IS NULL AND status = 'pending' AND (escalated_at IS NOT NULL OR submitted_at < DATE_SUB(NOW(3), INTERVAL 48 HOUR))",
-    [classId],
-  );
+  // 승인 대기 건수는 대기함·메뉴 배지와 같은 PendingService 기준 (QA #3)
+  const pending = await pendingCountsForClass(classId, klass.grade);
   const submitted = students.filter((s) => Number(s.submitted) === 1).length;
   const totalPoints = students.reduce((a, s) => a + Number(s.points ?? 0), 0);
   return {
@@ -55,13 +49,7 @@ export async function classDashboard(classId: number): Promise<ClassDashboardVie
     studentCount: students.length,
     submitted,
     submissionRate: pct(submitted, students.length),
-    pending: {
-      pending: cnt('pending'),
-      reviewed: cnt('reviewed'),
-      flagged: cnt('flagged'),
-      escalated: Number(escalated[0]?.n ?? 0),
-      total: cnt('pending') + cnt('reviewed') + cnt('flagged'),
-    },
+    pending: { ...pending, total: pending.pending + pending.reviewed + pending.flagged },
     avgWeekPoints: students.length ? Math.round((totalPoints / students.length) * 10) / 10 : 0,
     top5: [...students]
       .filter((s) => Number(s.points ?? 0) > 0)

@@ -17,7 +17,7 @@ import * as postRepo from '../repos/postRepo.js';
 import * as reportRepo from '../repos/reportRepo.js';
 import { currentSchoolYear } from '../repos/schoolYearRepo.js';
 import { advisorGrades, hasRole, type AuthUser } from '../types/auth.js';
-import type { ReportItemView, TeacherCommentsPage } from '../types/api.js';
+import type { ReportItemView, TeacherCommentsPage, TeacherCommentView } from '../types/api.js';
 import { transition } from './PostService.js';
 import { tx } from '../db/query.js';
 import { reversePointsSafe } from './points/safeApply.js';
@@ -80,8 +80,18 @@ export async function listComments(
     limit: opts.flag === 'banned' ? 500 : limit + 1,
   });
   let views = rows.map((r) => toTeacherCommentView(r, findBannedWords(r.body, words)));
-  if (opts.flag === 'banned')
-    views = views.filter((v) => v.bannedHits.length > 0).slice(0, limit + 1);
+  let total: number;
+  if (opts.flag === 'banned') {
+    views = views.filter((v) => v.bannedHits.length > 0);
+    total = views.length;
+    views = views.slice(0, limit + 1);
+  } else {
+    total = await commentRepo.countCommentsForTeacher({
+      classIds,
+      since: opts.since,
+      flag: opts.flag === 'reported' ? 'reported' : 'all',
+    });
+  }
   const page = views.slice(0, limit);
   const last = page[page.length - 1];
 
@@ -95,6 +105,7 @@ export async function listComments(
     scopeId,
     items: page,
     nextCursor: views.length > limit && last ? String(last.id) : null,
+    total,
     counts: {
       today: await commentRepo.countCommentsSince(classIds, todayStart),
       unchecked: await commentRepo.countCommentsSince(classIds, sinceCheck),
@@ -102,6 +113,13 @@ export async function listComments(
       lastCheckedBy: lastCheck?.teacher_name ?? null,
     },
   };
+}
+
+/** 교사용 글 상세 댓글 (QA #2): 숨긴 댓글 포함, 실명 */
+export async function listCommentsOfPost(postId: number): Promise<TeacherCommentView[]> {
+  const words = await listActiveBannedWords();
+  const rows = await commentRepo.listCommentsByTargetForTeacher('post', postId);
+  return rows.map((r) => toTeacherCommentView(r, findBannedWords(r.body, words)));
 }
 
 async function assertCommentManageable(
@@ -216,29 +234,74 @@ async function accessibleClassIds(user: AuthUser): Promise<number[]> {
   return ok;
 }
 
+/** 신고 행 → 대상 종류 (링크·라벨용) */
+export function reportTargetKind(r: {
+  target_type: string;
+  comment_target_type: string | null;
+}): ReportItemView['targetKind'] {
+  if (r.target_type === 'post') return 'post';
+  if (r.comment_target_type === 'news_topic') return 'news_comment';
+  if (r.comment_target_type === 'council_post') return 'council_comment';
+  return 'post_comment';
+}
+
+/**
+ * 신고함 목록 (TCH-04). 같은 대상(글/댓글)에 대한 신고는 카드 1장으로 묶는다 (QA #4).
+ * 처리 상태가 같은 것끼리 묶이므로 "처리 전" 그룹과 "처리됨" 그룹이 따로 나온다.
+ */
 export async function listReports(
   user: AuthUser,
   status: 'open' | 'all',
 ): Promise<ReportItemView[]> {
   const classIds = await accessibleClassIds(user);
   const rows = await reportRepo.listReportsForClasses(classIds, status === 'all' ? 'all' : 'open');
-  return rows.map((r) => ({
-    id: r.id,
-    targetType: r.target_type,
-    targetId: r.target_id,
-    postId: r.target_post_id,
-    reason: r.reason,
-    status: r.status,
-    createdAt: r.created_at.toISOString(),
-    reportCount: Number(r.report_count),
-    reporter: { displayName: r.reporter_display, className: r.reporter_class },
-    target: {
-      preview: r.target_preview,
-      status: r.target_status,
-      authorName: r.target_author_name,
-      className: r.target_class_name,
-    },
-  }));
+  const groups = new Map<string, ReportItemView>();
+  for (const r of rows) {
+    const key = `${r.target_type}:${r.target_id}:${r.status}`;
+    const entry = {
+      id: r.id,
+      reason: r.reason,
+      createdAt: r.created_at.toISOString(),
+      reporter: { displayName: r.reporter_display, className: r.reporter_class },
+    };
+    const g = groups.get(key);
+    if (g) {
+      g.reports.push(entry);
+      if (entry.createdAt > g.latestAt) g.latestAt = entry.createdAt;
+      continue;
+    }
+    groups.set(key, {
+      id: r.id,
+      key,
+      targetType: r.target_type === 'post' ? 'post' : 'comment',
+      targetId: r.target_id,
+      targetKind: reportTargetKind(r),
+      postId: r.target_post_id,
+      commentId: r.target_type === 'comment' ? r.target_id : null,
+      status: r.status,
+      latestAt: entry.createdAt,
+      reportCount: r.status === 'open' ? Number(r.report_count) : 1,
+      reports: [entry],
+      target: {
+        preview: r.target_preview,
+        status: r.target_status,
+        authorName: r.target_author_name,
+        className: r.target_class_name,
+        postType: r.post_type,
+      },
+    });
+  }
+  const out = [...groups.values()];
+  for (const g of out) {
+    g.reports.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    if (g.status !== 'open')
+      g.reportCount = new Set(g.reports.map((x) => x.reporter.displayName)).size;
+  }
+  return out.sort(
+    (a, b) =>
+      Number(b.status === 'open') - Number(a.status === 'open') ||
+      (a.latestAt < b.latestAt ? 1 : -1),
+  );
 }
 
 export type ReportAction = 'keep' | 'hide' | 'delete';

@@ -39,4 +39,6 @@ export const teacherCommentsApi = {
   addBannedWord: (word: string) => api.post<{ id: number }>('/admin/banned-words', { word }),
   setBannedWordActive: (id: number, isActive: boolean) =>
     api.patch<{ updated: boolean }>(`/admin/banned-words/${id}`, { isActive }),
+  /** QA #9 */
+  deleteBannedWord: (id: number) => api.delete<{ deleted: boolean }>(`/admin/banned-words/${id}`),
 };

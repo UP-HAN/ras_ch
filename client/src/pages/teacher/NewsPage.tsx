@@ -56,6 +56,8 @@ function BestSection() {
     queryFn: newsAdminApi.closedForTeacher,
   });
   const [picked, setPicked] = useState<Record<number, Set<number>>>({});
+  // QA #21: 마감 토론은 아코디언 — 기본으로 최신 1개만 펼침
+  const [opened, setOpened] = useState<Set<number> | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
@@ -87,7 +89,7 @@ function BestSection() {
   return (
     <Card title="마감된 토론 · 베스트 의견 뽑기">
       <p className="mb-3 text-base text-ink-muted">
-        학년별로 정해진 수까지 뽑을 수 있어요. 뽑힌 학생은 BEST_OPINION 10P와 알림을 받아요. 담임은
+        학년별로 정해진 수까지 뽑을 수 있어요. 뽑힌 학생은 베스트 의견 10P와 알림을 받아요. 담임은
         담당 반 학생만 고를 수 있어요.
       </p>
       {msg && (
@@ -104,8 +106,18 @@ function BestSection() {
       {q.isLoading && <Spinner className="text-accent-600" />}
       {q.data && q.data.length === 0 && <EmptyState icon="💬" title="아직 마감된 토론이 없어요" />}
       <div className="space-y-4">
-        {q.data?.map((t) => {
+        {q.data?.map((t, idx) => {
           const sel = current(t);
+          const isOpen = opened ? opened.has(t.id) : idx === 0;
+          const toggleOpen = () =>
+            setOpened((prev) => {
+              const next = new Set(prev ?? (q.data?.[0] ? [q.data[0].id] : []));
+              if (next.has(t.id)) next.delete(t.id);
+              else next.add(t.id);
+              return next;
+            });
+          const bestCount = t.grades.flatMap((g) => g.comments).filter((c) => c.isBest).length;
+          const opinionCount = t.grades.reduce((n, g) => n + g.comments.length, 0);
           return (
             <div
               key={t.id}
@@ -113,64 +125,78 @@ function BestSection() {
               data-testid={`closed-topic-${t.id}`}
             >
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={t.type === 'vote' ? 'primary' : 'info'}>
-                  {TOPIC_TYPE_LABEL[t.type]}
-                </Badge>
-                <span className="text-lg font-bold">{t.title}</span>
+                <button
+                  type="button"
+                  onClick={toggleOpen}
+                  aria-expanded={isOpen}
+                  className="flex min-h-tap flex-1 flex-wrap items-center gap-2 text-left"
+                >
+                  <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
+                  <Badge tone={t.type === 'vote' ? 'primary' : 'info'}>
+                    {TOPIC_TYPE_LABEL[t.type]}
+                  </Badge>
+                  <span className="text-lg font-bold">{t.title}</span>
+                  <span className="text-base text-ink-muted">
+                    의견 {opinionCount} · 베스트 {bestCount}
+                  </span>
+                </button>
                 <span className="ml-auto text-base text-ink-muted">마감 {fmt(t.closeAt)}</span>
               </div>
-              {t.type === 'vote' && (
+              {isOpen && t.type === 'vote' && (
                 <div className="my-2 max-w-md">
                   <VoteBar votes={t.votes} compact />
                 </div>
               )}
-              {t.grades.length === 0 && <p className="text-base text-ink-muted">의견이 없어요.</p>}
-              {t.grades.map((g) => (
-                <div key={g.grade} className="mt-2">
-                  <p className="text-base font-semibold">
-                    {g.grade}학년 · 뽑음 {g.comments.filter((c) => sel.has(c.id)).length}/
-                    {t.bestPerGrade}
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {g.comments.map((c) => (
-                      <li
-                        key={c.id}
-                        className={`flex items-start gap-2 rounded-md px-2 py-1 text-base ${sel.has(c.id) ? 'bg-primary-50' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-5 w-5"
-                          disabled={!c.canSelect}
-                          checked={sel.has(c.id)}
-                          onChange={() => toggle(t, c.id)}
-                          aria-label={`${c.authorName} 의견 베스트로`}
-                        />
-                        <span>
-                          <span className="font-semibold">
-                            {c.className} {c.studentNo}번 {c.authorName}
+              {isOpen && t.grades.length === 0 && (
+                <p className="text-base text-ink-muted">의견이 없어요.</p>
+              )}
+              {isOpen &&
+                t.grades.map((g) => (
+                  <div key={g.grade} className="mt-2">
+                    <p className="text-base font-semibold">
+                      {g.grade}학년 · 뽑음 {g.comments.filter((c) => sel.has(c.id)).length}/
+                      {t.bestPerGrade}
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {g.comments.map((c) => (
+                        <li
+                          key={c.id}
+                          className={`flex items-start gap-2 rounded-md px-2 py-1 text-base ${sel.has(c.id) ? 'bg-primary-50' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-5 w-5"
+                            disabled={!c.canSelect}
+                            checked={sel.has(c.id)}
+                            onChange={() => toggle(t, c.id)}
+                            aria-label={`${c.authorName} 의견 베스트로`}
+                          />
+                          <span>
+                            <span className="font-semibold">
+                              {c.className} {c.studentNo}번 {c.authorName}
+                            </span>
+                            {c.stance && (
+                              <Badge
+                                tone={c.stance === 'agree' ? 'success' : 'danger'}
+                                className="ml-1"
+                              >
+                                {c.stance === 'agree' ? '찬성' : '반대'}
+                              </Badge>
+                            )}
+                            <span className="ml-2 text-ink-muted">👍 {c.likeCount}</span>
+                            {c.isBest && (
+                              <Badge tone="primary" className="ml-1">
+                                베스트
+                              </Badge>
+                            )}
+                            <span className="block">{c.body}</span>
                           </span>
-                          {c.stance && (
-                            <Badge
-                              tone={c.stance === 'agree' ? 'success' : 'danger'}
-                              className="ml-1"
-                            >
-                              {c.stance === 'agree' ? '찬성' : '반대'}
-                            </Badge>
-                          )}
-                          <span className="ml-2 text-ink-muted">👍 {c.likeCount}</span>
-                          {c.isBest && (
-                            <Badge tone="primary" className="ml-1">
-                              베스트
-                            </Badge>
-                          )}
-                          <span className="block">{c.body}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {t.grades.length > 0 && (
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              {isOpen && t.grades.length > 0 && (
                 <Button
                   className="mt-3"
                   loading={save.isPending && save.variables?.topicId === t.id}
@@ -212,6 +238,24 @@ function TopicForm({
     sourceUrl: initial?.sourceUrl ?? '',
     publishAt: initial?.publishAt ?? toLocalInput(new Date(Date.now() + 86400000)),
   }));
+  const [tried, setTried] = useState(false);
+  const len = (s: string) => Array.from(s.trim()).length;
+  // 서버 validateTopicInput 과 같은 기준 (QA #21: 빈 폼 제출 시 필드별 오류 표시)
+  const errors = {
+    title: len(form.title) < 2 ? '제목을 2~40자로 적어 주세요.' : undefined,
+    body:
+      len(form.body) < 80 || len(form.body) > 400
+        ? '쉬운 설명을 80~400자로 적어 주세요.'
+        : undefined,
+    questions:
+      form.questions.filter((x) => x.trim()).length < 1
+        ? '생각 열기 질문을 1개 이상 적어 주세요.'
+        : undefined,
+    tags: form.tags.length === 0 ? '태그를 하나 이상 골라 주세요.' : undefined,
+    publishAt: withPublishAt && !form.publishAt ? '게시 시각을 정해 주세요.' : undefined,
+  };
+  const invalid = Object.values(errors).some(Boolean);
+  const show = (k: keyof typeof errors) => (tried ? errors[k] : undefined);
   return (
     <div className="rounded-md border border-line p-3">
       <div className="grid gap-3 md:grid-cols-2">
@@ -230,6 +274,7 @@ function TopicForm({
           label="제목 (40자)"
           value={form.title}
           maxLength={40}
+          error={show('title')}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
           className="md:col-span-2"
         />
@@ -239,6 +284,7 @@ function TopicForm({
           rows={4}
           maxLength={400}
           hint={`${Array.from(form.body).length}자`}
+          error={show('body')}
           onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
           className="md:col-span-2"
         />
@@ -248,6 +294,7 @@ function TopicForm({
             label={`생각 열기 질문 ${i + 1}`}
             value={qv}
             maxLength={100}
+            error={i === 0 ? show('questions') : undefined}
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
@@ -266,11 +313,17 @@ function TopicForm({
             label="게시 시각"
             type="datetime-local"
             value={form.publishAt}
+            error={show('publishAt')}
             onChange={(e) => setForm((f) => ({ ...f, publishAt: e.target.value }))}
           />
         )}
         <div className="md:col-span-2">
           <p className="mb-1 text-base font-semibold">태그</p>
+          {show('tags') && (
+            <p role="alert" className="mb-1 text-base font-medium text-danger-600">
+              {errors.tags}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {TAGS.map((tag) => (
               <Button
@@ -292,13 +345,15 @@ function TopicForm({
       <div className="mt-3 flex gap-2">
         <Button
           loading={busy}
-          onClick={() =>
+          onClick={() => {
+            setTried(true);
+            if (invalid) return;
             onSubmit({
               ...form,
               questions: form.questions.filter((x) => x.trim()),
               publishAt: withPublishAt ? form.publishAt : undefined,
-            })
-          }
+            });
+          }}
         >
           {submitLabel}
         </Button>
@@ -453,72 +508,74 @@ function ScheduleSection() {
       )}
       {topics.isLoading && <Spinner className="text-accent-600" />}
       <ul className="mt-3 divide-y divide-line">
-        {topics.data?.map((t) => (
-          <li key={t.id} className="py-2" data-testid={`admin-topic-${t.id}`}>
-            {editing?.id === t.id ? (
-              <TopicForm
-                initial={{
-                  ...t,
-                  publishAt: t.publishAt ? toLocalInput(new Date(t.publishAt)) : undefined,
-                }}
-                withPublishAt
-                submitLabel="저장"
-                busy={update.isPending}
-                onSubmit={(v) => update.mutate({ id: t.id, input: v })}
-                onCancel={() => setEditing(null)}
-              />
-            ) : (
-              <div className="flex flex-wrap items-center gap-2 text-base">
-                <Badge tone={STATUS_LABEL[t.status]?.tone ?? 'neutral'}>
-                  {STATUS_LABEL[t.status]?.label ?? t.status}
-                </Badge>
-                <span className="text-ink-muted">{fmt(t.publishAt)}</span>
-                <span className="font-semibold">{t.title}</span>
-                <span className="text-ink-muted">
-                  {TOPIC_TYPE_LABEL[t.type]} · {t.source === 'bank' ? '은행' : '직접'}
-                </span>
-                {t.type === 'vote' && t.status !== 'scheduled' && (
+        {[...(topics.data ?? [])]
+          .sort((a, b) => (b.publishAt ?? '').localeCompare(a.publishAt ?? ''))
+          .map((t) => (
+            <li key={t.id} className="py-2" data-testid={`admin-topic-${t.id}`}>
+              {editing?.id === t.id ? (
+                <TopicForm
+                  initial={{
+                    ...t,
+                    publishAt: t.publishAt ? toLocalInput(new Date(t.publishAt)) : undefined,
+                  }}
+                  withPublishAt
+                  submitLabel="저장"
+                  busy={update.isPending}
+                  onSubmit={(v) => update.mutate({ id: t.id, input: v })}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 text-base">
+                  <Badge tone={STATUS_LABEL[t.status]?.tone ?? 'neutral'}>
+                    {STATUS_LABEL[t.status]?.label ?? t.status}
+                  </Badge>
+                  <span className="text-ink-muted">{fmt(t.publishAt)}</span>
+                  <span className="font-semibold">{t.title}</span>
                   <span className="text-ink-muted">
-                    찬 {t.votes.agree} / 반 {t.votes.disagree}
+                    {TOPIC_TYPE_LABEL[t.type]} · {t.source === 'bank' ? '은행' : '직접'}
                   </span>
-                )}
-                <span className="text-ink-muted">💬 {t.commentCount}</span>
-                <span className="ml-auto flex gap-1">
-                  {t.status === 'scheduled' && (
-                    <>
-                      <Button variant="secondary" onClick={() => setEditing(t)}>
-                        수정
-                      </Button>
-                      <Button onClick={() => act.mutate({ id: t.id, what: 'publish' })}>
-                        지금 게시
-                      </Button>
+                  {t.type === 'vote' && t.status !== 'scheduled' && (
+                    <span className="text-ink-muted">
+                      찬 {t.votes.agree} / 반 {t.votes.disagree}
+                    </span>
+                  )}
+                  <span className="text-ink-muted">💬 {t.commentCount}</span>
+                  <span className="ml-auto flex gap-1">
+                    {t.status === 'scheduled' && (
+                      <>
+                        <Button variant="secondary" onClick={() => setEditing(t)}>
+                          수정
+                        </Button>
+                        <Button onClick={() => act.mutate({ id: t.id, what: 'publish' })}>
+                          지금 게시
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            window.confirm('예약을 취소할까요?') &&
+                            act.mutate({ id: t.id, what: 'cancel' })
+                          }
+                        >
+                          취소
+                        </Button>
+                      </>
+                    )}
+                    {t.status === 'live' && (
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         onClick={() =>
-                          window.confirm('예약을 취소할까요?') &&
-                          act.mutate({ id: t.id, what: 'cancel' })
+                          window.confirm('지금 마감할까요? 투표·의견이 잠겨요.') &&
+                          act.mutate({ id: t.id, what: 'close' })
                         }
                       >
-                        취소
+                        지금 마감
                       </Button>
-                    </>
-                  )}
-                  {t.status === 'live' && (
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        window.confirm('지금 마감할까요? 투표·의견이 잠겨요.') &&
-                        act.mutate({ id: t.id, what: 'close' })
-                      }
-                    >
-                      지금 마감
-                    </Button>
-                  )}
-                </span>
-              </div>
-            )}
-          </li>
-        ))}
+                    )}
+                  </span>
+                </div>
+              )}
+            </li>
+          ))}
         {topics.data?.length === 0 && (
           <li className="py-2 text-base text-ink-muted">
             최근 4주~앞으로 3주 사이에 주제가 없어요.

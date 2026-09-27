@@ -43,10 +43,12 @@ export interface ParseResult {
   errors: ImportRowError[];
 }
 
-function yesNo(v: string): YesNo | null {
+/** Y/N 만 허용 (QA #12: X·O 같은 값은 오류). 빈칸은 allowEmpty 일 때만 N */
+function yesNo(v: string, allowEmpty: boolean): YesNo | null {
   const s = v.trim().toUpperCase();
-  if (s === 'Y' || s === '예' || s === 'O') return 'Y';
-  if (s === 'N' || s === '' || s === '아니오' || s === 'X') return 'N';
+  if (s === 'Y') return 'Y';
+  if (s === 'N') return 'N';
+  if (s === '' && allowEmpty) return 'N';
   return null;
 }
 
@@ -84,8 +86,8 @@ export function parseStudentCsv(text: string, allowedGrades: number[]): ParseRes
     const studentNo = Number(get('번호'));
     const name = get('이름');
     const pw = get('초기비밀번호');
-    const consent = yesNo(get('학부모동의'));
-    const reporter = yesNo(get('기자단'));
+    const consent = yesNo(get('학부모동의'), false);
+    const reporter = yesNo(get('기자단'), true);
 
     if (!Number.isInteger(grade) || !allowedGrades.includes(grade))
       problems.push(`학년은 ${allowedGrades.join('·')}만 가능`);
@@ -95,8 +97,8 @@ export function parseStudentCsv(text: string, allowedGrades: number[]): ParseRes
     if (name.length < 2 || name.length > 30) problems.push('이름은 2~30자');
     if (pw && !validatePasswordPolicy('student', pw).ok)
       problems.push('초기비밀번호는 4자 이상(띄어쓰기 없이)');
-    if (consent === null) problems.push('학부모동의는 Y 또는 N');
-    if (reporter === null) problems.push('기자단은 Y 또는 N');
+    if (consent === null) problems.push('학부모동의는 Y 또는 N (X·O 안 됨)');
+    if (reporter === null) problems.push('기자단은 Y 또는 N (비우면 N)');
 
     const key = `${grade}-${classNo}-${studentNo}`;
     if (problems.length === 0) {

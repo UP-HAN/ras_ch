@@ -7,16 +7,9 @@ import { teacherApi } from '@/api/teacher';
 import { COUNCIL_STATUS, COUNCIL_TYPE } from '@/components/council/councilLabels';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, EmptyState, Input, Spinner } from '@/components/ui';
+import { fmtDateTime } from '@/lib/format';
 
-const fmt = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString('ko-KR', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '';
+const fmt = (iso: string | null) => fmtDateTime(iso);
 const toLocal = (iso: string) => {
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, '0');
@@ -127,11 +120,15 @@ function MembersSection() {
             onChange={(e) => setUserId(e.target.value ? Number(e.target.value) : null)}
           >
             <option value="">고르세요</option>
-            {students.data?.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.studentNo}번 {s.name}
-              </option>
-            ))}
+            {students.data?.map((s) => {
+              const cur = active.find((m) => m.userId === s.id);
+              return (
+                <option key={s.id} value={s.id} disabled={!!cur}>
+                  {s.studentNo}번 {s.name}
+                  {cur ? ` (현재 ${cur.title})` : ''}
+                </option>
+              );
+            })}
           </select>
         </label>
         <Input

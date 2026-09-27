@@ -151,7 +151,7 @@ function WeeklyTab() {
       <GradeLists groups={d.grades} emptyText="지난주 명단이 아직 없어요" />
       {canGift && <WeeklyGiftPanel week={d.weekKey} />}
       {d.classes.length > 0 && (
-        <Card title="반별 평균">
+        <Card title={`${weekLabel(d.weekKey)} 반별 평균 포인트`}>
           <ClassTable classes={d.classes} />
         </Card>
       )}

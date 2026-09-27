@@ -65,18 +65,29 @@ function NoticesSection() {
       {q.isLoading && <Spinner className="text-accent-600" />}
       <ul className="mb-4 divide-y divide-line">
         {q.data?.map((n) => {
-          const live =
-            n.isActive &&
-            new Date(n.startsAt).getTime() <= now &&
-            new Date(n.endsAt).getTime() >= now;
+          const startsAt = new Date(n.startsAt).getTime();
+          const endsAt = new Date(n.endsAt).getTime();
+          const live = n.isActive && startsAt <= now && endsAt >= now;
+          // QA #18: 시작 전은 "예정", 끝난 것만 "종료"
+          const state = !n.isActive ? '꺼짐' : live ? '게시 중' : startsAt > now ? '예정' : '종료';
           return (
             <li
               key={n.id}
               className="flex flex-wrap items-center gap-2 py-2 text-base"
               data-testid={`notice-${n.id}`}
             >
-              <Badge tone={live ? 'success' : n.isActive ? 'neutral' : 'warn'}>
-                {live ? '게시 중' : n.isActive ? '기간 밖' : '꺼짐'}
+              <Badge
+                tone={
+                  state === '게시 중'
+                    ? 'success'
+                    : state === '예정'
+                      ? 'info'
+                      : state === '종료'
+                        ? 'neutral'
+                        : 'warn'
+                }
+              >
+                {state}
               </Badge>
               <span className="font-semibold">{n.title}</span>
               <span className="text-ink-muted">

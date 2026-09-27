@@ -344,7 +344,14 @@ function AssignmentSection() {
 
       <div className="rounded-md border border-line p-3">
         <p className="mb-2 text-base font-semibold">
-          {editingId !== null ? `담당 #${editingId} 수정` : '새 담당 추가'}
+          {editingId !== null
+            ? (() => {
+                const a = q.data?.find((x) => x.id === editingId);
+                return a
+                  ? `${a.reviewerName}${a.reviewerClass ? ` (${a.reviewerClass})` : ''} 담당 수정`
+                  : '담당 수정';
+              })()
+            : '새 담당 추가'}
         </p>
         <div className="flex flex-wrap items-end gap-3">
           {editingId === null && (
@@ -502,7 +509,7 @@ function CouncilAccountSection() {
   });
 
   return (
-    <Card title="교사 검토 계정 (APR-12)">
+    <Card title="교사 검토 계정">
       <p className="mb-3 text-base text-ink-muted">
         교사가 임원과 같은 익명 검토 화면으로 1차 검토를 할 수 있는 연결 계정이에요. 만들면 교사
         화면의 &quot;검토 모드로 전환&quot; 버튼으로 바로 오갈 수 있어요. 검토 계정은 포인트를 받지

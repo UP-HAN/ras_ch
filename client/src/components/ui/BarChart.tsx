@@ -34,7 +34,9 @@ export function BarChart({
               </span>
               <div
                 role="img"
-                aria-label={`${d.label} ${d.value ?? '없음'}${unit}`}
+                aria-label={
+                  d.value === null ? `${d.label} 데이터 없음` : `${d.label} ${d.value}${unit}`
+                }
                 className={`w-full rounded-t-md ${d.value === null ? 'bg-line' : color}`}
                 style={{
                   height: `${d.value === null ? 4 : Math.max(4, ((d.value ?? 0) / max) * (height - 40))}px`,

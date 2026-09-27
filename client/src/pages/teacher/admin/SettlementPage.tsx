@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { errorMessage } from '@/api/client';
 import { settlementsApi } from '@/api/settlements';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { fmtDateTime } from '@/lib/format';
 import { Badge, Button, Card, Input, Spinner, Textarea } from '@/components/ui';
 
 const CATEGORIES = [
@@ -33,6 +34,8 @@ const defaultMonth = () => {
   return prevMonthKey(now.toISOString().slice(0, 7));
 };
 const monthLabel = (mk: string) => `${mk.slice(0, 4)}년 ${Number(mk.slice(5))}월`;
+/** 결산 가능한 마지막 달 = 지난달 (QA #11) */
+const maxMonth = () => defaultMonth();
 
 type AwardPick = Record<Category, { userId: number; reason: string } | null>;
 
@@ -194,6 +197,8 @@ export function SettlementPage() {
         </span>
         <Button
           variant="secondary"
+          disabled={month >= maxMonth()}
+          title={month >= maxMonth() ? '지난달까지만 결산할 수 있어요' : undefined}
           onClick={() => {
             setMonth(nextMonthKey(month));
             reset();
@@ -201,7 +206,7 @@ export function SettlementPage() {
         >
           {monthLabel(nextMonthKey(month))} →
         </Button>
-        {s && !confirmed && (
+        {s && !confirmed && s.status !== 'none' && (
           <Button
             className="ml-auto"
             variant="secondary"
@@ -493,8 +498,7 @@ export function SettlementPage() {
           {confirmed && (
             <Card tone="primary">
               <p className="text-base">
-                {s.confirmedAt ? new Date(s.confirmedAt).toLocaleString('ko-KR') : ''}{' '}
-                {s.confirmedByName} 선생님이 확정했어요.
+                {fmtDateTime(s.confirmedAt, true)} {s.confirmedByName} 선생님이 확정했어요.
                 {s.note ? ` 메모: ${s.note}` : ''}
               </p>
             </Card>

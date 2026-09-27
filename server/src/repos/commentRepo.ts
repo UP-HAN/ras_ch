@@ -214,6 +214,57 @@ export async function listCommentsForTeacher(q: TeacherCommentQuery): Promise<Te
   );
 }
 
+/** 같은 조건의 전체 건수 (페이지네이션 표시용, QA #10). 금칙어 필터는 호출자가 후처리 */
+export async function countCommentsForTeacher(
+  q: Pick<TeacherCommentQuery, 'classIds' | 'since' | 'flag'>,
+): Promise<number> {
+  if (q.classIds.length === 0) return 0;
+  const where: string[] = [
+    `u.class_id IN (${q.classIds.map(() => '?').join(',')})`,
+    "c.status <> 'deleted'",
+  ];
+  const params: unknown[] = [...q.classIds];
+  if (q.since) {
+    where.push('c.created_at >= ?');
+    params.push(q.since);
+  }
+  if (q.flag === 'reported')
+    where.push(
+      `(SELECT COUNT(DISTINCT r.reporter_id) FROM reports r WHERE r.target_type = 'comment' AND r.target_id = c.id AND r.status = 'open') > 0`,
+    );
+  const r = await queryOne<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM comments c JOIN users u ON u.id = c.author_id WHERE ${where.join(' AND ')}`,
+    params,
+  );
+  return Number(r?.n ?? 0);
+}
+
+/** 교사용 글 상세: 한 대상의 댓글 전부(숨김 포함, 삭제 제외) 오래된 순 (QA #2) */
+export async function listCommentsByTargetForTeacher(
+  targetType: string,
+  targetId: number,
+  limit = 300,
+): Promise<TeacherCommentRow[]> {
+  return query<TeacherCommentRow>(
+    `SELECT c.*, u.id AS a_id, u.name AS a_name, u.display_name AS a_display_name, u.class_id AS a_class_id,
+            u.student_no AS a_student_no, u.tier AS a_tier, u.is_reporter AS a_is_reporter,
+            k.id AS c_id, k.name AS c_name, k.grade AS c_grade,
+            (SELECT COUNT(DISTINCT r.reporter_id) FROM reports r WHERE r.target_type = 'comment' AND r.target_id = c.id AND r.status = 'open') AS report_count,
+            p.id AS p_id, p.type AS p_type, p.title AS p_title, LEFT(p.body, 60) AS p_body,
+            pa.display_name AS p_author_display, t.title AS t_title, cp.title AS cp_title
+     FROM comments c
+       JOIN users u ON u.id = c.author_id
+       LEFT JOIN classes k ON k.id = u.class_id
+       LEFT JOIN posts p ON c.target_type = 'post' AND p.id = c.target_id
+       LEFT JOIN users pa ON pa.id = p.author_id
+       LEFT JOIN news_topics t ON c.target_type = 'news_topic' AND t.id = c.target_id
+       LEFT JOIN council_posts cp ON c.target_type = 'council_post' AND cp.id = c.target_id
+     WHERE c.target_type = ? AND c.target_id = ? AND c.status <> 'deleted'
+     ORDER BY c.created_at ASC, c.id ASC LIMIT ?`,
+    [targetType, targetId, limit],
+  );
+}
+
 export async function countCommentsSince(classIds: number[], since: string): Promise<number> {
   if (classIds.length === 0) return 0;
   const r = await queryOne<{ n: number }>(

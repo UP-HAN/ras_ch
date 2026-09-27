@@ -49,7 +49,7 @@ export function StudentImportPage() {
           <p className="mb-2 text-base">첫 줄(열 이름)은 아래와 같아야 해요.</p>
           <code className="block rounded bg-primary-50 p-2 text-base">{HEADER}</code>
           <ul className="mt-2 list-disc pl-5 text-base text-ink-muted">
-            <li>학년은 3~6, 학부모동의·기자단은 Y 또는 N</li>
+            <li>학년은 3~6, 학부모동의는 Y 또는 N(필수), 기자단은 Y 또는 N(비우면 N)</li>
             <li>초기비밀번호를 비우면 자동으로 만들어요(4자리 숫자+이름 첫 글자)</li>
             <li>같은 학년·반·번호가 이미 있으면 이름·동의·기자단만 갱신돼요</li>
           </ul>
@@ -100,6 +100,11 @@ export function StudentImportPage() {
                 )}
                 {shown.errors.length > 0 && (
                   <Badge tone="danger">오류 {shown.errors.length}줄</Badge>
+                )}
+                {shown.errors.length > 0 && shown.rows.length > 0 && (
+                  <span className="text-base text-ink-muted">
+                    정상 {shown.rows.length}줄은 오류 줄을 고친 뒤 함께 등록돼요.
+                  </span>
                 )}
                 {result && <Badge tone="primary">등록 완료</Badge>}
               </div>

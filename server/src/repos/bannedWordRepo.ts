@@ -1,4 +1,4 @@
-import { execute, insert, query } from '../db/query.js';
+import { execute, insert, query, queryOne } from '../db/query.js';
 
 export interface BannedWordRow {
   id: number;
@@ -25,4 +25,14 @@ export async function insertBannedWord(word: string): Promise<number> {
 
 export async function setBannedWordActive(id: number, active: boolean): Promise<void> {
   await execute('UPDATE banned_words SET is_active = ? WHERE id = ?', [active ? 1 : 0, id]);
+}
+
+export async function findBannedWord(word: string): Promise<BannedWordRow | null> {
+  return queryOne<BannedWordRow>('SELECT * FROM banned_words WHERE word = ?', [word]);
+}
+
+/** QA #9: 금칙어 삭제 */
+export async function deleteBannedWord(id: number): Promise<boolean> {
+  const r = await execute('DELETE FROM banned_words WHERE id = ?', [id]);
+  return r.affectedRows > 0;
 }

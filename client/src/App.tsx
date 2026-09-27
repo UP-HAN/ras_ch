@@ -32,6 +32,7 @@ import { BannedWordsPage } from '@/pages/teacher/admin/BannedWordsPage';
 import { ApprovalSettingsPage } from '@/pages/teacher/admin/ApprovalSettingsPage';
 import { PointRulesPage } from '@/pages/teacher/admin/PointRulesPage';
 import { ClassPostsPage } from '@/pages/teacher/ClassPostsPage';
+import { TeacherPostPage } from '@/pages/teacher/TeacherPostPage';
 import { CommentsPage } from '@/pages/teacher/CommentsPage';
 import { DashboardPage } from '@/pages/teacher/DashboardPage';
 import { PendingPage } from '@/pages/teacher/PendingPage';
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'pending', element: <PendingPage /> },
       { path: 'posts', element: <ClassPostsPage /> },
+      { path: 'posts/:id', element: <TeacherPostPage /> },
       { path: 'students', element: <StudentsPage /> },
       { path: 'comments', element: <CommentsPage /> },
       { path: 'reports', element: <ReportsPage /> },

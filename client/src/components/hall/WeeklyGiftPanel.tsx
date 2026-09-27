@@ -44,6 +44,9 @@ export function WeeklyGiftPanel({ week }: { week: string }) {
   const d = q.data;
   const n = topN ?? d.perGrade;
   const grades = [...new Set(d.candidates.map((c) => c.grade))].sort((a, b) => a - b);
+  const manualCount = d.candidates.filter((c) => c.gifted && c.method === 'manual').length;
+  const topCount = d.giftedCount - manualCount;
+  const weekNo = Number(week.slice(6));
   const toggle = (id: number) =>
     setPicked((s) => {
       const next = new Set(s);
@@ -52,10 +55,21 @@ export function WeeklyGiftPanel({ week }: { week: string }) {
       return next;
     });
   return (
-    <Card title="🎁 이번 주 선물 주기 (승인 교사)" tone="accent" data-testid="weekly-gift-panel">
+    <Card
+      title={`🎁 ${weekNo}주차 선물 주기 (승인 교사)`}
+      tone="accent"
+      data-testid="weekly-gift-panel"
+    >
       <p className="mb-3 text-base text-ink-muted">
-        학년별 상위 N명(동점 포함)에게 주간 선물 20P를 주거나, 학생을 골라서 줄 수 있어요. 지금까지{' '}
-        <strong>{d.giftedCount}명</strong>이 받았어요.
+        학년별 상위 N명(동점 포함)에게 주간 선물 20P를 주거나, 학생을 골라서 줄 수 있어요. 이 주차에{' '}
+        <strong>{d.giftedCount}명</strong>이 받았어요
+        {d.giftedCount > 0 && (
+          <span className="text-ink-muted">
+            {' '}
+            (상위 {topCount}명 · 직접 선택 {manualCount}명)
+          </span>
+        )}
+        .
       </p>
       <div className="mb-3 flex flex-wrap items-end gap-2">
         <Input
@@ -119,7 +133,10 @@ export function WeeklyGiftPanel({ week }: { week: string }) {
                     <span className="ml-auto font-bold text-primary-700">{c.points}P</span>
                     {c.gifted ? (
                       <>
-                        <span>🎁</span>
+                        <span title={c.method === 'manual' ? '직접 선택' : '상위'}>🎁</span>
+                        {c.method === 'manual' && (
+                          <span className="text-base text-ink-muted">직접 선택</span>
+                        )}
                         <Button variant="ghost" onClick={() => cancel.mutate(c.userId)}>
                           취소
                         </Button>

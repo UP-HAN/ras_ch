@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import { statsApi } from '@/api/stats';
 import { teacherApi } from '@/api/teacher';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { BarChart } from '@/components/ui/BarChart';
 import { Button, Card, Spinner } from '@/components/ui';
+import { useClassParam } from '@/hooks/useClassParam';
 import { useMe } from '@/hooks/useMe';
+import { weekShort } from '@/lib/format';
 
 const wkShort = (wk: string) => `W${Number(wk.slice(6))}`;
 
@@ -38,7 +39,7 @@ function SchoolStats() {
           </tbody>
         </table>
       </Card>
-      <Card title="반별 참여·동의율·이번 달 평균 포인트">
+      <Card title={`반별 참여·동의율·이번 달(${Number(d.monthKey.slice(5))}월) 평균 포인트`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-base">
             <thead>
@@ -48,7 +49,7 @@ function SchoolStats() {
                 <th className="py-2 pr-3">동의율</th>
                 <th className="py-2 pr-3">이번 주 제출률</th>
                 <th className="py-2 pr-3">이번 달 참여율</th>
-                <th className="py-2">평균 포인트</th>
+                <th className="py-2">이번 달 평균 포인트</th>
               </tr>
             </thead>
             <tbody>
@@ -123,8 +124,7 @@ function SchoolStats() {
 export function StatsPage() {
   const { me } = useMe();
   const classes = useQuery({ queryKey: ['teacher', 'classes'], queryFn: teacherApi.classes });
-  const [classId, setClassId] = useState<number | null>(null);
-  const selected = classId ?? classes.data?.[0]?.id ?? null;
+  const { selected, select } = useClassParam(classes.data);
   const dash = useQuery({
     queryKey: ['teacher', 'dashboard', selected],
     queryFn: () => statsApi.classDashboard(selected as number),
@@ -142,7 +142,8 @@ export function StatsPage() {
             <Button
               key={c.id}
               variant={c.id === selected ? 'primary' : 'secondary'}
-              onClick={() => setClassId(c.id)}
+              aria-pressed={c.id === selected}
+              onClick={() => select(c.id)}
             >
               {c.name}
             </Button>
@@ -159,8 +160,9 @@ export function StatsPage() {
         </div>
         {dash.data && (
           <p className="mt-3 text-base text-ink-muted">
-            {dash.data.className}: 이번 주 제출률 {dash.data.submissionRate}% · 평균{' '}
-            {dash.data.avgWeekPoints}P · 미참여 {dash.data.nonParticipants.length}명
+            {dash.data.className}: 이번 주({weekShort(dash.data.weekKey)}) 제출률{' '}
+            {dash.data.submissionRate}% · 이번 주 평균 획득 포인트 {dash.data.avgWeekPoints}P ·
+            미참여 {dash.data.nonParticipants.length}명
           </p>
         )}
       </Card>

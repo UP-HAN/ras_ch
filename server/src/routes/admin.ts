@@ -8,7 +8,13 @@ import { AppError, ok } from '../lib/apiResponse.js';
 import { decodeCsvBuffer } from '../lib/csv.js';
 import { clientIp, currentUser, requireRole } from '../middleware/auth.js';
 import { writeAudit } from '../repos/auditRepo.js';
-import { insertBannedWord, listBannedWords, setBannedWordActive } from '../repos/bannedWordRepo.js';
+import {
+  deleteBannedWord,
+  findBannedWord,
+  insertBannedWord,
+  listBannedWords,
+  setBannedWordActive,
+} from '../repos/bannedWordRepo.js';
 import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
@@ -155,15 +161,15 @@ export function createAdminRouter(): Router {
     const dryRun = req.query.dry_run === '1' || req.query.dry_run === 'true';
     const allowed = await getSetting<number[]>('allowed_grades', [3, 4, 5, 6]);
     const parsed = parseStudentCsv(text, allowed);
+    const a = actor(req);
     if (parsed.errors.length > 0) {
-      const data: ImportResult = {
-        dryRun,
-        created: 0,
-        updated: 0,
-        createdClasses: [],
-        rows: [],
-        errors: parsed.errors,
-      };
+      // QA #12: 오류 줄이 있어도 정상 줄은 미리보기(dry run)로 신규·갱신을 집계해 보여 준다
+      const preview: ImportResult = await importStudents(parsed.rows, {
+        dryRun: true,
+        actorId: a.id,
+        ip: a.ip,
+      });
+      const data: ImportResult = { ...preview, dryRun, errors: parsed.errors };
       res.status(422).json({
         ok: false,
         error: {
@@ -174,7 +180,6 @@ export function createAdminRouter(): Router {
       });
       return;
     }
-    const a = actor(req);
     res.json(ok(await importStudents(parsed.rows, { dryRun, actorId: a.id, ip: a.ip })));
   });
 
@@ -214,6 +219,9 @@ export function createAdminRouter(): Router {
   router.post('/banned-words', async (req, res) => {
     const body = z.object({ word: z.string().trim().min(1).max(50) }).safeParse(req.body);
     if (!body.success) throw AppError.badRequest('금칙어를 1~50자로 적어 주세요.');
+    // QA #9: 중복은 409 (꺼진 말이면 다시 켠다)
+    const dup = await findBannedWord(body.data.word);
+    if (dup && dup.is_active === 1) throw AppError.conflict('이미 등록된 금칙어예요.');
     const id = await insertBannedWord(body.data.word);
     const a = actor(req);
     await writeAudit({
@@ -241,6 +249,21 @@ export function createAdminRouter(): Router {
       ip: a.ip,
     });
     res.json(ok({ updated: true }));
+  });
+
+  router.delete('/banned-words/:id', async (req, res) => {
+    const id = idParam(req.params.id);
+    const deleted = await deleteBannedWord(id);
+    if (!deleted) throw AppError.notFound('금칙어를 찾을 수 없어요.');
+    const a = actor(req);
+    await writeAudit({
+      actorId: a.id,
+      action: 'banned_word.delete',
+      targetType: 'banned_word',
+      targetId: id,
+      ip: a.ip,
+    });
+    res.json(ok({ deleted: true }));
   });
 
   // ----- S4: 규칙표 (PT-05) -----

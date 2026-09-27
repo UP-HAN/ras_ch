@@ -76,6 +76,10 @@ export interface ReportListRow extends ReportRow {
   target_preview: string | null;
   target_status: string | null;
   target_post_id: number | null;
+  /** 댓글 신고일 때 댓글이 달린 곳 (post | news_topic | council_post) */
+  comment_target_type: string | null;
+  comment_target_id: number | null;
+  post_type: string | null;
   report_count: number;
 }
 
@@ -100,6 +104,8 @@ export async function listReportsForClasses(
             COALESCE(p.title, LEFT(p.body, 80), IF(c.target_type = 'news_topic', CONCAT('[토론] ', LEFT(c.body, 70)), LEFT(c.body, 80))) AS target_preview,
             COALESCE(p.status, c.status) AS target_status,
             COALESCE(p.id, IF(c.target_type = 'post', c.target_id, NULL)) AS target_post_id,
+            c.target_type AS comment_target_type, c.target_id AS comment_target_id,
+            COALESCE(p.type, cpp.type) AS post_type,
             (SELECT COUNT(DISTINCT r2.reporter_id) FROM reports r2 WHERE r2.target_type = r.target_type AND r2.target_id = r.target_id AND r2.status = 'open') AS report_count
      FROM reports r
        JOIN users ru ON ru.id = r.reporter_id LEFT JOIN classes rk ON rk.id = ru.class_id
@@ -107,6 +113,7 @@ export async function listReportsForClasses(
        LEFT JOIN users pu ON pu.id = p.author_id LEFT JOIN classes pk ON pk.id = pu.class_id
        LEFT JOIN comments c ON r.target_type = 'comment' AND c.id = r.target_id
        LEFT JOIN users cu ON cu.id = c.author_id LEFT JOIN classes ck ON ck.id = cu.class_id
+       LEFT JOIN posts cpp ON c.target_type = 'post' AND cpp.id = c.target_id
      WHERE (pu.class_id IN (${ph}) OR cu.class_id IN (${ph})) ${statusSql}
      ORDER BY r.status = 'open' DESC, r.created_at DESC LIMIT ?`,
     params,

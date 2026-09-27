@@ -472,6 +472,44 @@ export async function listByClass(
   return attachDetails(rows, getPool());
 }
 
+/** 교사용 반 글 목록: 최신순(id DESC) + 커서 (QA #8, #10) */
+export async function listByClassPage(
+  classId: number,
+  statuses: PostStatus[],
+  types: PostType[],
+  opts: { limit: number; beforeId?: number },
+): Promise<PostBundle[]> {
+  if (statuses.length === 0 || types.length === 0) return [];
+  const params: unknown[] = [classId, ...statuses, ...types];
+  let cursor = '';
+  if (opts.beforeId) {
+    cursor = ' AND p.id < ?';
+    params.push(opts.beforeId);
+  }
+  params.push(opts.limit);
+  const rows = await query<BundleRow>(
+    `${BUNDLE_SELECT} WHERE p.class_id = ? AND p.deleted_at IS NULL
+       AND p.status IN (${statuses.map(() => '?').join(',')}) AND p.type IN (${types.map(() => '?').join(',')})${cursor}
+     ORDER BY p.id DESC LIMIT ?`,
+    params,
+  );
+  return attachDetails(rows, getPool());
+}
+
+export async function countByClass(
+  classId: number,
+  statuses: PostStatus[],
+  types: PostType[],
+): Promise<number> {
+  if (statuses.length === 0 || types.length === 0) return 0;
+  const r = await queryOne<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM posts p WHERE p.class_id = ? AND p.deleted_at IS NULL
+       AND p.status IN (${statuses.map(() => '?').join(',')}) AND p.type IN (${types.map(() => '?').join(',')})`,
+    [classId, ...statuses, ...types],
+  );
+  return Number(r?.n ?? 0);
+}
+
 /** 내 글 목록(학생) */
 export async function listByAuthor(
   authorId: number,

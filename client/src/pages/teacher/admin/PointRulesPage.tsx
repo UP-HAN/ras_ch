@@ -16,10 +16,39 @@ const SCOPE_LABEL: Record<PointCapView['scope'], string> = {
   streak: '연속',
 };
 
-function capText(c: PointCapView): string {
+/** per_object 범위는 규칙마다 "1개"의 뜻이 다르다 (QA #15) */
+const PER_OBJECT_LABEL: Record<string, string> = {
+  STREAK_7: '연속 7일마다',
+  SURVEY_ANSWERED: '설문당',
+  PROPOSAL_ADOPTED: '제안당',
+  NEWS_VOTE: '토론 주제당',
+  BEST_OPINION: '주제당',
+  POST_READ: '글당',
+  LIKE_RECEIVED_POST: '글당',
+  LIKE_RECEIVED_COMMENT: '댓글당',
+  MONTHLY_TOP: '선정당',
+  GROWTH_AWARD: '선정당',
+  MONTHLY_AWARD: '선정당',
+  WEEKLY_GIFT: '선정당',
+};
+
+/** 합산 대상 규칙 이름 (내부 코드 대신 사람이 읽는 이름, QA #14) */
+const SHARE_NAME: Record<string, string> = {
+  COMMENT_WRITTEN: '댓글',
+  NEWS_OPINION: '토론 의견',
+  AGENDA_OPINION: '안건 의견',
+};
+
+function capText(c: PointCapView, ruleCode?: string): string {
   const who = c.by === 'granter' ? '교사당 ' : '';
-  const share = c.share_codes?.length ? ` (+${c.share_codes.join(',')} 합산)` : '';
-  return `${who}${SCOPE_LABEL[c.scope]} ${c.max}${c.unit === 'count' ? '회' : 'P'}${share}`;
+  const scope =
+    c.scope === 'per_object' && ruleCode && PER_OBJECT_LABEL[ruleCode]
+      ? PER_OBJECT_LABEL[ruleCode]
+      : SCOPE_LABEL[c.scope];
+  const share = c.share_codes?.length
+    ? ` (${c.share_codes.map((s) => SHARE_NAME[s] ?? s).join('·')}과 합산)`
+    : '';
+  return `${who}${scope} ${c.max}${c.unit === 'count' ? '회' : 'P'}${share}`;
 }
 
 function RuleEditor({
@@ -287,7 +316,9 @@ export function PointRulesPage() {
                   >
                     <td className="py-2 pr-3">
                       <span className="font-semibold">{r.name}</span>
-                      <span className="ml-2 text-ink-muted">{r.code}</span>
+                      <span className="ml-2 font-mono text-ink-muted/70" aria-label="규칙 코드">
+                        {r.code}
+                      </span>
                     </td>
                     <td className="py-2 pr-3 font-bold text-accent-700">
                       {r.amountMin !== null && r.amountMax !== null
@@ -300,7 +331,7 @@ export function PointRulesPage() {
                       ) : (
                         r.caps.map((c, i) => (
                           <span key={i} className="mr-2 inline-block">
-                            {capText(c)}
+                            {capText(c, r.code)}
                           </span>
                         ))
                       )}

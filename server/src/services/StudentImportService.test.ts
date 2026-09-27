@@ -47,6 +47,18 @@ describe('parseStudentCsv', () => {
     expect(r.errors[2]?.message).toContain('Y 또는 N');
   });
 
+  // QA #12: 학부모동의 X/O/빈칸은 오류, 기자단 빈칸은 N
+  it('학부모동의는 Y/N 만 허용하고 기자단 빈칸은 N', () => {
+    const r = parseStudentCsv(
+      `${HEADER}\n6,1,1,김하나,,X,N\n6,1,2,김두리,,O,N\n6,1,3,김세이,,,N\n6,1,4,김네오,,Y,\n`,
+      [3, 4, 5, 6],
+    );
+    expect(r.errors.map((e) => e.line)).toEqual([2, 3, 4]);
+    expect(r.errors[0]?.message).toContain('학부모동의');
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0]).toMatchObject({ studentNo: 4, parentConsent: 'Y', isReporter: false });
+  });
+
   it('같은 학년·반·번호가 두 번 나오면 중복 오류', () => {
     const r = parseStudentCsv(`${HEADER}\n3,1,5,김초롱,,Y,N\n3,1,5,김보롱,,Y,N\n`, [3, 4, 5, 6]);
     expect(r.rows).toHaveLength(1);

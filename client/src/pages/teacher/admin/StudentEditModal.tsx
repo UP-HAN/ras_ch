@@ -2,11 +2,11 @@ import type { TeacherUser } from '@server-types/api';
 import { useState } from 'react';
 import { adminApi } from '@/api/admin';
 import { errorMessage } from '@/api/client';
-import { Button, Card } from '@/components/ui';
+import { Button, ConfirmDialog, Modal } from '@/components/ui';
 
 type Status = 'active' | 'transferred' | 'graduated' | 'disabled';
 
-/** PATCH /admin/students/:id — 학부모 동의(AUTH-08/09)·기자단(ART-07)·상태(3.1) */
+/** PATCH /admin/students/:id — 학부모 동의(AUTH-08/09)·기자단(ART-07)·상태(3.1). 계정 삭제는 확인 모달 (QA #1) */
 export function StudentEditModal({
   student,
   onClose,
@@ -21,20 +21,16 @@ export function StudentEditModal({
   const [status, setStatus] = useState<Status>(student.status as Status);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const remove = async () => {
-    if (
-      !window.confirm(
-        `${student.name} 학생 계정을 지울까요? 글·댓글·포인트가 있는 학생은 지워지지 않고 "중지"로 바꿔야 해요.`,
-      )
-    )
-      return;
     setBusy(true);
     setError(null);
     try {
       await adminApi.deleteUser(student.id);
       onSaved();
     } catch (e) {
+      setConfirmDelete(false);
       setError(errorMessage(e));
     } finally {
       setBusy(false);
@@ -59,14 +55,10 @@ export function StudentEditModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-30 flex items-center justify-center bg-accent-900/40 p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <Card
+    <>
+      <Modal
         title={`${student.name} (${student.className} ${student.studentNo}번)`}
-        className="w-full max-w-md"
+        onClose={onClose}
       >
         <div className="space-y-4">
           <fieldset>
@@ -78,6 +70,7 @@ export function StudentEditModal({
                 <Button
                   key={v}
                   variant={consent === v ? 'primary' : 'secondary'}
+                  aria-pressed={consent === v}
                   onClick={() => setConsent(v)}
                 >
                   {v === 'Y' ? '동의' : '미동의'}
@@ -117,10 +110,7 @@ export function StudentEditModal({
               {error}
             </p>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="danger" className="mr-auto" onClick={remove} loading={busy}>
-              계정 삭제
-            </Button>
+          <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={onClose}>
               취소
             </Button>
@@ -128,8 +118,28 @@ export function StudentEditModal({
               저장
             </Button>
           </div>
+          <div className="border-t border-line pt-3">
+            <p className="mb-2 text-base text-ink-muted">
+              계정 삭제는 활동 기록이 없는 학생만 가능해요. 기록이 있으면 상태를 “중지”로 바꿔
+              주세요.
+            </p>
+            <Button variant="danger" onClick={() => setConfirmDelete(true)} disabled={busy}>
+              계정 삭제
+            </Button>
+          </div>
         </div>
-      </Card>
-    </div>
+      </Modal>
+      {confirmDelete && (
+        <ConfirmDialog
+          title="계정 삭제"
+          message={`${student.name} 학생 계정을 지울까요? 되돌릴 수 없어요.`}
+          confirmLabel="삭제"
+          danger
+          loading={busy}
+          onConfirm={remove}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+    </>
   );
 }

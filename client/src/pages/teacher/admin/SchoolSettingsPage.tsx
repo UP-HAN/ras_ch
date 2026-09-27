@@ -336,28 +336,53 @@ function ClassesCard({
                   </select>
                 </td>
                 <td className="py-2">
-                  <div className="flex flex-wrap gap-2">
-                    {teachers.map((t) => {
-                      const on = c.teacherIds.includes(t.id);
+                  <div className="flex flex-wrap items-center gap-1">
+                    {c.teacherIds.length === 0 && (
+                      <span className="text-base text-ink-muted">없음</span>
+                    )}
+                    {c.teacherIds.map((id) => {
+                      const t = teachers.find((x) => x.id === id);
+                      if (!t) return null;
                       return (
-                        <label key={t.id} className="flex min-h-tap items-center gap-1">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5"
-                            checked={on}
-                            onChange={() =>
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 rounded-full bg-accent-100 pl-3 text-base"
+                        >
+                          {t.name}
+                          <button
+                            type="button"
+                            aria-label={`${c.name}에서 ${t.name} 배정 해제`}
+                            className="flex min-h-tap min-w-tap items-center justify-center rounded-full text-xl text-ink-muted hover:bg-accent-200"
+                            onClick={() =>
                               assign.mutate({
                                 classId: c.id,
-                                teacherIds: on
-                                  ? c.teacherIds.filter((id) => id !== t.id)
-                                  : [...c.teacherIds, t.id],
+                                teacherIds: c.teacherIds.filter((x) => x !== id),
                               })
                             }
-                          />
-                          {t.name}
-                        </label>
+                          >
+                            ×
+                          </button>
+                        </span>
                       );
                     })}
+                    <select
+                      aria-label={`${c.name} 배정 교사 추가`}
+                      className="min-h-tap rounded-md border-2 border-line-strong bg-surface px-2 text-base"
+                      value=""
+                      onChange={(e) => {
+                        const id = Number(e.target.value);
+                        if (id) assign.mutate({ classId: c.id, teacherIds: [...c.teacherIds, id] });
+                      }}
+                    >
+                      <option value="">+ 교사 추가…</option>
+                      {teachers
+                        .filter((t) => !c.teacherIds.includes(t.id))
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 </td>
               </tr>

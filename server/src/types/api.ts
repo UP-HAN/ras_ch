@@ -300,6 +300,13 @@ export interface PostListPage<T> {
   nextCursor: string | null;
 }
 
+/** 교사 반 글 목록 페이지 (QA #8, #10): 최신순, before 커서, 전체 건수 */
+export interface TeacherPostListPage {
+  items: TeacherPostView[];
+  nextCursor: string | null;
+  total: number;
+}
+
 export interface CaptureGuideView {
   android_samsung: string;
   iphone: string;
@@ -376,6 +383,8 @@ export interface TeacherCommentsPage {
   scopeId: string;
   items: TeacherCommentView[];
   nextCursor: string | null;
+  /** 같은 조건의 전체 건수 (QA #10) */
+  total: number;
   counts: {
     today: number;
     unchecked: number;
@@ -405,21 +414,34 @@ export interface ReadResult {
   reason?: 'TOO_FAST' | 'NOT_SCROLLED' | 'ALREADY_DONE' | 'NOT_ELIGIBLE';
 }
 
+export interface ReportEntryView {
+  id: number;
+  reason: string;
+  createdAt: string;
+  reporter: { displayName: string; className: string | null };
+}
+
+/** 신고함 카드 1장 = 신고 대상 1개 (QA #4). id 는 대표 신고 번호(처리 API 용) */
 export interface ReportItemView {
   id: number;
-  targetType: string;
+  key: string;
+  targetType: 'post' | 'comment';
   targetId: number;
+  /** post: 글 자체 / post_comment: 글의 댓글 / news_comment: 토론 의견 / council_comment: 자치회 글 댓글 */
+  targetKind: 'post' | 'post_comment' | 'news_comment' | 'council_comment';
   postId: number | null;
-  reason: string;
+  commentId: number | null;
   status: 'open' | 'kept' | 'hidden' | 'deleted';
-  createdAt: string;
+  latestAt: string;
+  /** 서로 다른 신고자 수 */
   reportCount: number;
-  reporter: { displayName: string; className: string | null };
+  reports: ReportEntryView[];
   target: {
     preview: string | null;
     status: string | null;
     authorName: string | null;
     className: string | null;
+    postType: string | null;
   };
 }
 
