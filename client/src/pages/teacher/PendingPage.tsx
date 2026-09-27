@@ -288,7 +288,7 @@ export function PendingPage() {
         description="리포트·일기·기사를 확인하고 승인하면 게시되고 포인트가 지급돼요."
         action={
           queue.data && (
-            <Badge tone={twoStep ? 'info' : 'neutral'}>
+            <Badge tone={twoStep ? 'info' : 'neutral'} className="whitespace-nowrap">
               {twoStep ? '2단계 승인 반' : '교사 단독 승인 반'}
             </Badge>
           )

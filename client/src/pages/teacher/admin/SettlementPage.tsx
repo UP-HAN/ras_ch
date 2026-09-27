@@ -293,143 +293,95 @@ export function SettlementPage() {
           </Card>
 
           <Card title="학급 보상 (반별 평균 포인트 1위)">
-            <table className="w-full text-left text-base">
-              <thead>
-                <tr className="border-b border-line text-ink-muted">
-                  <th className="py-2 pr-3">순위</th>
-                  <th className="py-2 pr-3">반</th>
-                  <th className="py-2 pr-3">재적(동의)</th>
-                  <th className="py-2 pr-3">평균</th>
-                  <th className="py-2 pr-3">참여율</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.classes.map((c) => (
-                  <tr
-                    key={c.classId}
-                    className="border-b border-line/60"
-                    data-testid={`class-row-${c.classId}`}
-                  >
-                    <td className="py-2 pr-3">{c.rank}</td>
-                    <td className="py-2 pr-3 font-semibold">{c.className}</td>
-                    <td className="py-2 pr-3">{c.memberCount}명</td>
-                    <td className="py-2 pr-3">{c.avgPoints}P</td>
-                    <td className="py-2 pr-3">{Math.round(c.participationRate * 100)}%</td>
-                    <td className="py-2">
-                      {c.isWinner && <Badge tone="primary">이 달의 학급</Badge>}
-                      {c.skippedReason === 'consecutive' && (
-                        <label className="flex min-h-tap items-center gap-2 text-warn-600">
-                          <span>{SKIP_LABEL.consecutive}</span>
-                          {!confirmed && (
-                            <>
-                              <input
-                                type="checkbox"
-                                className="h-5 w-5"
-                                checked={allowClass}
-                                onChange={(e) => setAllowClass(e.target.checked)}
-                              />
-                              예외 허용
-                            </>
-                          )}
-                        </label>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px] text-left text-base">
+                <thead>
+                  <tr className="border-b border-line text-ink-muted">
+                    <th className="py-2 pr-3">순위</th>
+                    <th className="py-2 pr-3">반</th>
+                    <th className="py-2 pr-3">재적(동의)</th>
+                    <th className="py-2 pr-3">평균</th>
+                    <th className="py-2 pr-3">참여율</th>
+                    <th className="py-2"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {s.classes.map((c) => (
+                    <tr
+                      key={c.classId}
+                      className="border-b border-line/60"
+                      data-testid={`class-row-${c.classId}`}
+                    >
+                      <td className="py-2 pr-3">{c.rank}</td>
+                      <td className="py-2 pr-3 font-semibold">{c.className}</td>
+                      <td className="py-2 pr-3">{c.memberCount}명</td>
+                      <td className="py-2 pr-3">{c.avgPoints}P</td>
+                      <td className="py-2 pr-3">{Math.round(c.participationRate * 100)}%</td>
+                      <td className="py-2">
+                        {c.isWinner && <Badge tone="primary">이 달의 학급</Badge>}
+                        {c.skippedReason === 'consecutive' && (
+                          <label className="flex min-h-tap items-center gap-2 text-warn-600">
+                            <span>{SKIP_LABEL.consecutive}</span>
+                            {!confirmed && (
+                              <>
+                                <input
+                                  type="checkbox"
+                                  className="h-5 w-5"
+                                  checked={allowClass}
+                                  onChange={(e) => setAllowClass(e.target.checked)}
+                                />
+                                예외 허용
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           {s.grades.map((g) => (
             <Card key={g.grade} title={`${g.grade}학년`}>
               <h3 className="mb-2 text-base font-bold">포인트 상위 (선물 대상)</h3>
-              <table className="mb-4 w-full text-left text-base">
-                <thead>
-                  <tr className="border-b border-line text-ink-muted">
-                    <th className="py-1 pr-3">순위</th>
-                    <th className="py-1 pr-3">학생</th>
-                    <th className="py-1 pr-3">포인트</th>
-                    <th className="py-1 pr-3">동점 근거</th>
-                    <th className="py-1">선정</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {g.ranking
-                    .slice(0, Math.max(10, (giftCount ?? s.perGradeGiftCount) + 3))
-                    .map((r) => (
-                      <tr
-                        key={r.userId}
-                        className={`border-b border-line/60 ${r.selected ? 'bg-primary-50' : ''}`}
-                        data-testid={`rank-row-${r.userId}`}
-                      >
-                        <td className="py-1 pr-3">{r.rank}</td>
-                        <td className="py-1 pr-3 font-semibold">
-                          {r.className} {r.studentNo}번 {r.name}
-                        </td>
-                        <td className="py-1 pr-3">{r.points}P</td>
-                        <td className="py-1 pr-3 text-ink-muted">
-                          {r.tiebreak
-                            ? `리포트 ${r.tiebreak.reportCount} · 기사 ${r.tiebreak.articleCount} · 활동 ${r.tiebreak.activeDays}일`
-                            : ''}
-                        </td>
-                        <td className="py-1">
-                          {r.selected && <Badge tone="primary">선물</Badge>}
-                          {r.skippedReason === 'consecutive' && (
-                            <label className="flex min-h-tap items-center gap-2 text-warn-600">
-                              {SKIP_LABEL.consecutive}
-                              {!confirmed && (
-                                <>
-                                  <input
-                                    type="checkbox"
-                                    className="h-5 w-5"
-                                    checked={allowUsers.has(r.userId)}
-                                    onChange={() => toggleAllow(r.userId)}
-                                  />
-                                  예외 허용
-                                </>
-                              )}
-                            </label>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-
-              {g.growth.length > 0 && (
-                <>
-                  <h3 className="mb-2 text-base font-bold">🌱 성장률 부문</h3>
-                  <table className="mb-4 w-full text-left text-base">
-                    <thead>
-                      <tr className="border-b border-line text-ink-muted">
-                        <th className="py-1 pr-3">순위</th>
-                        <th className="py-1 pr-3">학생</th>
-                        <th className="py-1 pr-3">지난달 → 이번 달</th>
-                        <th className="py-1 pr-3">성장률</th>
-                        <th className="py-1">선정</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {g.growth.slice(0, 8).map((r) => (
+              <div className="mb-4 overflow-x-auto">
+                <table className="w-full min-w-[600px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-line text-ink-muted">
+                      <th className="py-1 pr-3">순위</th>
+                      <th className="py-1 pr-3">학생</th>
+                      <th className="py-1 pr-3">포인트</th>
+                      <th className="py-1 pr-3">동점 근거</th>
+                      <th className="py-1">선정</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.ranking
+                      .slice(0, Math.max(10, (giftCount ?? s.perGradeGiftCount) + 3))
+                      .map((r) => (
                         <tr
                           key={r.userId}
                           className={`border-b border-line/60 ${r.selected ? 'bg-primary-50' : ''}`}
+                          data-testid={`rank-row-${r.userId}`}
                         >
                           <td className="py-1 pr-3">{r.rank}</td>
                           <td className="py-1 pr-3 font-semibold">
                             {r.className} {r.studentNo}번 {r.name}
                           </td>
-                          <td className="py-1 pr-3">
-                            {r.prevPoints}P → {r.points}P
+                          <td className="py-1 pr-3">{r.points}P</td>
+                          <td className="py-1 pr-3 text-ink-muted">
+                            {r.tiebreak
+                              ? `리포트 ${r.tiebreak.reportCount} · 기사 ${r.tiebreak.articleCount} · 활동 ${r.tiebreak.activeDays}일`
+                              : ''}
                           </td>
-                          <td className="py-1 pr-3">+{Math.round(r.growthRate * 100)}%</td>
                           <td className="py-1">
-                            {r.selected && <Badge tone="success">성장</Badge>}
-                            {r.skippedReason && (
-                              <label className="flex min-h-tap items-center gap-2 text-ink-muted">
-                                {SKIP_LABEL[r.skippedReason] ?? r.skippedReason}
-                                {r.skippedReason === 'consecutive' && !confirmed && (
+                            {r.selected && <Badge tone="primary">선물</Badge>}
+                            {r.skippedReason === 'consecutive' && (
+                              <label className="flex min-h-tap items-center gap-2 text-warn-600">
+                                {SKIP_LABEL.consecutive}
+                                {!confirmed && (
                                   <>
                                     <input
                                       type="checkbox"
@@ -445,8 +397,62 @@ export function SettlementPage() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                  </tbody>
+                </table>
+              </div>
+
+              {g.growth.length > 0 && (
+                <>
+                  <h3 className="mb-2 text-base font-bold">🌱 성장률 부문</h3>
+                  <div className="mb-4 overflow-x-auto">
+                    <table className="w-full min-w-[600px] text-left text-base">
+                      <thead>
+                        <tr className="border-b border-line text-ink-muted">
+                          <th className="py-1 pr-3">순위</th>
+                          <th className="py-1 pr-3">학생</th>
+                          <th className="py-1 pr-3">지난달 → 이번 달</th>
+                          <th className="py-1 pr-3">성장률</th>
+                          <th className="py-1">선정</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {g.growth.slice(0, 8).map((r) => (
+                          <tr
+                            key={r.userId}
+                            className={`border-b border-line/60 ${r.selected ? 'bg-primary-50' : ''}`}
+                          >
+                            <td className="py-1 pr-3">{r.rank}</td>
+                            <td className="py-1 pr-3 font-semibold">
+                              {r.className} {r.studentNo}번 {r.name}
+                            </td>
+                            <td className="py-1 pr-3">
+                              {r.prevPoints}P → {r.points}P
+                            </td>
+                            <td className="py-1 pr-3">+{Math.round(r.growthRate * 100)}%</td>
+                            <td className="py-1">
+                              {r.selected && <Badge tone="success">성장</Badge>}
+                              {r.skippedReason && (
+                                <label className="flex min-h-tap items-center gap-2 text-ink-muted">
+                                  {SKIP_LABEL[r.skippedReason] ?? r.skippedReason}
+                                  {r.skippedReason === 'consecutive' && !confirmed && (
+                                    <>
+                                      <input
+                                        type="checkbox"
+                                        className="h-5 w-5"
+                                        checked={allowUsers.has(r.userId)}
+                                        onChange={() => toggleAllow(r.userId)}
+                                      />
+                                      예외 허용
+                                    </>
+                                  )}
+                                </label>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </>
               )}
 

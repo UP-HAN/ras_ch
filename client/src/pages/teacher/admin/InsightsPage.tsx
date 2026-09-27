@@ -370,7 +370,7 @@ export function InsightsPage() {
 
       <Card title="6. 반별로 보면" className="mb-4">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-base">
+          <table className="w-full min-w-[760px] text-left text-base">
             <thead>
               <tr className="border-b border-line text-ink-muted">
                 <th className="py-2 pr-3">반</th>

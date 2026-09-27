@@ -124,8 +124,52 @@ export function StudentsPage() {
       {students.data && students.data.length > 0 && (
         <>
           <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-base">
+            <ul className="divide-y divide-line md:hidden" data-testid="students-cards">
+              {students.data.map((s) => (
+                <li key={s.id} className="space-y-2 py-3 text-base">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-semibold">
+                      {s.studentNo}번 {s.name}
+                    </span>
+                    <span className="text-ink-muted">{s.displayName}</span>
+                    <span className="text-ink-muted">{s.loginId}</span>
+                    <Badge tone={s.parentConsent === 'Y' ? 'success' : 'warn'}>
+                      {s.parentConsent === 'Y' ? '동의' : '미동의'}
+                    </Badge>
+                    {s.isReporter && <Badge tone="info">기자단</Badge>}
+                    {s.mustChangePw && <Badge tone="neutral">초기 비번</Badge>}
+                    {s.status !== 'active' && (
+                      <Badge tone="neutral">
+                        {s.status === 'transferred'
+                          ? '전출'
+                          : s.status === 'graduated'
+                            ? '졸업'
+                            : '중지'}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Button variant="primary" onClick={() => setBonusFor(s)}>
+                      칭찬
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setResetting(s)}
+                      loading={reset.isPending && reset.variables?.id === s.id}
+                    >
+                      비밀번호 초기화
+                    </Button>
+                    {me?.role === 'admin' && (
+                      <Button variant="ghost" onClick={() => setEditing(s)}>
+                        수정
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[760px] text-left text-base">
                 <thead>
                   <tr className="border-b border-line text-ink-muted">
                     <th className="py-2 pr-3">번호</th>

@@ -18,30 +18,32 @@ function SchoolStats() {
   return (
     <div className="space-y-4">
       <Card title={`학년별 참여 (이번 주 ${d.weekKey} · 이번 달 ${d.monthKey})`}>
-        <table className="w-full text-left text-base">
-          <thead>
-            <tr className="border-b border-line text-ink-muted">
-              <th className="py-2 pr-3">학년</th>
-              <th className="py-2 pr-3">학생</th>
-              <th className="py-2 pr-3">이번 주 제출률</th>
-              <th className="py-2">이번 달 참여율</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.grades.map((g) => (
-              <tr key={g.grade} className="border-b border-line/60">
-                <td className="py-2 pr-3 font-semibold">{g.grade}학년</td>
-                <td className="py-2 pr-3">{g.students}명</td>
-                <td className="py-2 pr-3">{g.weekSubmissionRate}%</td>
-                <td className="py-2">{g.monthParticipationRate}%</td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-base">
+            <thead>
+              <tr className="border-b border-line text-ink-muted">
+                <th className="py-2 pr-3">학년</th>
+                <th className="py-2 pr-3">학생</th>
+                <th className="py-2 pr-3">이번 주 제출률</th>
+                <th className="py-2">이번 달 참여율</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {d.grades.map((g) => (
+                <tr key={g.grade} className="border-b border-line/60">
+                  <td className="py-2 pr-3 font-semibold">{g.grade}학년</td>
+                  <td className="py-2 pr-3">{g.students}명</td>
+                  <td className="py-2 pr-3">{g.weekSubmissionRate}%</td>
+                  <td className="py-2">{g.monthParticipationRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
       <Card title={`반별 참여·동의율·이번 달(${Number(d.monthKey.slice(5))}월) 평균 포인트`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-base">
+          <table className="w-full min-w-[520px] text-left text-base">
             <thead>
               <tr className="border-b border-line text-ink-muted">
                 <th className="py-2 pr-3">반</th>
@@ -71,7 +73,7 @@ function SchoolStats() {
           </table>
         </div>
       </Card>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card title="주차별 평균 사용시간 (승인 리포트, 분)">
           <BarChart
             unit="분"

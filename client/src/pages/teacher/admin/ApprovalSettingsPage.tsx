@@ -60,66 +60,68 @@ function ApprovalSection() {
     <Card title="승인 모드 (반 → 학년 → 학교 순으로 적용)">
       {q.isLoading && <Spinner className="text-accent-600" />}
       {q.data && (
-        <table className="mb-4 w-full text-left text-base">
-          <thead>
-            <tr className="border-b border-line text-ink-muted">
-              <th className="py-2 pr-3">범위</th>
-              <th className="py-2 pr-3">모드</th>
-              <th className="py-2 pr-3">자동 승격</th>
-              <th className="py-2 pr-3">교사 검토 통과 시 자동 승인</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.data.map((s) => (
-              <tr
-                key={`${s.scope}-${s.scopeId}`}
-                className="border-b border-line/60"
-                data-testid={`approval-${s.scope}`}
-              >
-                <td className="py-2 pr-3 font-semibold">{s.label}</td>
-                <td className="py-2 pr-3">
-                  <Badge tone={s.mode === 'two_step' ? 'info' : 'neutral'}>
-                    {s.mode === 'two_step' ? '2단계' : '교사 단독'}
-                  </Badge>
-                </td>
-                <td className="py-2 pr-3">{s.autoEscalateHours}시간</td>
-                <td className="py-2 pr-3">{s.autoApproveTeacherReview ? '켜짐' : '꺼짐'}</td>
-                <td className="py-2">
-                  <div className="flex gap-1">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        setForm({
-                          scope: s.scope,
-                          scopeId: s.scopeId,
-                          mode: s.mode,
-                          autoEscalateHours: s.autoEscalateHours,
-                          autoApproveTeacherReview: s.autoApproveTeacherReview,
-                        })
-                      }
-                    >
-                      불러오기
-                    </Button>
-                    {s.scope !== 'school' && s.scopeId !== null && (
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-base">
+            <thead>
+              <tr className="border-b border-line text-ink-muted">
+                <th className="py-2 pr-3">범위</th>
+                <th className="py-2 pr-3">모드</th>
+                <th className="py-2 pr-3">자동 승격</th>
+                <th className="py-2 pr-3">교사 검토 통과 시 자동 승인</th>
+                <th className="py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.data.map((s) => (
+                <tr
+                  key={`${s.scope}-${s.scopeId}`}
+                  className="border-b border-line/60"
+                  data-testid={`approval-${s.scope}`}
+                >
+                  <td className="py-2 pr-3 font-semibold">{s.label}</td>
+                  <td className="py-2 pr-3">
+                    <Badge tone={s.mode === 'two_step' ? 'info' : 'neutral'}>
+                      {s.mode === 'two_step' ? '2단계' : '교사 단독'}
+                    </Badge>
+                  </td>
+                  <td className="py-2 pr-3">{s.autoEscalateHours}시간</td>
+                  <td className="py-2 pr-3">{s.autoApproveTeacherReview ? '켜짐' : '꺼짐'}</td>
+                  <td className="py-2">
+                    <div className="flex gap-1">
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         onClick={() =>
-                          remove.mutate({
-                            scope: s.scope as 'grade' | 'class',
-                            scopeId: s.scopeId as number,
+                          setForm({
+                            scope: s.scope,
+                            scopeId: s.scopeId,
+                            mode: s.mode,
+                            autoEscalateHours: s.autoEscalateHours,
+                            autoApproveTeacherReview: s.autoApproveTeacherReview,
                           })
                         }
                       >
-                        지우기
+                        불러오기
                       </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      {s.scope !== 'school' && s.scopeId !== null && (
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            remove.mutate({
+                              scope: s.scope as 'grade' | 'class',
+                              scopeId: s.scopeId as number,
+                            })
+                          }
+                        >
+                          지우기
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-base">
@@ -286,60 +288,66 @@ function AssignmentSection() {
     <Card title="검토 담당 (자치회 임원·교사 검토 계정)">
       {q.isLoading && <Spinner className="text-accent-600" />}
       {q.data && (
-        <table className="mb-4 w-full text-left text-base">
-          <thead>
-            <tr className="border-b border-line text-ink-muted">
-              <th className="py-2 pr-3">담당자</th>
-              <th className="py-2 pr-3">학년</th>
-              <th className="py-2 pr-3">유형</th>
-              <th className="py-2 pr-3">결과</th>
-              <th className="py-2 pr-3">하루</th>
-              <th className="py-2 pr-3">임기</th>
-              <th className="py-2 pr-3">상태</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.data.map((a) => (
-              <tr key={a.id} className="border-b border-line/60" data-testid={`assignment-${a.id}`}>
-                <td className="py-2 pr-3 font-semibold">
-                  {a.reviewerName}
-                  <span className="ml-1 text-ink-muted">
-                    {a.reviewerClass ?? (a.reviewerKind === 'teacher' ? '교사 검토 계정' : '')}
-                  </span>
-                </td>
-                <td className="py-2 pr-3">{a.grades.map((g) => `${g}학년`).join(', ')}</td>
-                <td className="py-2 pr-3">
-                  {a.postTypes.map((t) => POST_TYPE_LABEL[t] ?? t).join(', ')}
-                </td>
-                <td className="py-2 pr-3">
-                  {a.allowedResults === 'pass_hold' ? '통과+보류' : '통과만'}
-                </td>
-                <td className="py-2 pr-3">{a.dailyCap}건</td>
-                <td className="py-2 pr-3 text-ink-muted">
-                  {a.startsAt} ~ {a.endsAt ?? ''}
-                </td>
-                <td className="py-2 pr-3">
-                  <Badge tone={a.isActive ? 'success' : 'neutral'}>
-                    {a.isActive ? '활성' : '중지'}
-                  </Badge>
-                </td>
-                <td className="py-2">
-                  <div className="flex gap-1">
-                    <Button variant="secondary" onClick={() => loadRow(a)}>
-                      수정
-                    </Button>
-                    {a.isActive && (
-                      <Button variant="ghost" onClick={() => deactivate.mutate(a.id)}>
-                        해제
-                      </Button>
-                    )}
-                  </div>
-                </td>
+        <div className="mb-4 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-base">
+            <thead>
+              <tr className="border-b border-line text-ink-muted">
+                <th className="py-2 pr-3">담당자</th>
+                <th className="py-2 pr-3">학년</th>
+                <th className="py-2 pr-3">유형</th>
+                <th className="py-2 pr-3">결과</th>
+                <th className="py-2 pr-3">하루</th>
+                <th className="py-2 pr-3">임기</th>
+                <th className="py-2 pr-3">상태</th>
+                <th className="py-2"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {q.data.map((a) => (
+                <tr
+                  key={a.id}
+                  className="border-b border-line/60"
+                  data-testid={`assignment-${a.id}`}
+                >
+                  <td className="py-2 pr-3 font-semibold">
+                    {a.reviewerName}
+                    <span className="ml-1 text-ink-muted">
+                      {a.reviewerClass ?? (a.reviewerKind === 'teacher' ? '교사 검토 계정' : '')}
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3">{a.grades.map((g) => `${g}학년`).join(', ')}</td>
+                  <td className="py-2 pr-3">
+                    {a.postTypes.map((t) => POST_TYPE_LABEL[t] ?? t).join(', ')}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {a.allowedResults === 'pass_hold' ? '통과+보류' : '통과만'}
+                  </td>
+                  <td className="py-2 pr-3">{a.dailyCap}건</td>
+                  <td className="py-2 pr-3 text-ink-muted">
+                    {a.startsAt} ~ {a.endsAt ?? ''}
+                  </td>
+                  <td className="py-2 pr-3">
+                    <Badge tone={a.isActive ? 'success' : 'neutral'}>
+                      {a.isActive ? '활성' : '중지'}
+                    </Badge>
+                  </td>
+                  <td className="py-2">
+                    <div className="flex gap-1">
+                      <Button variant="secondary" onClick={() => loadRow(a)}>
+                        수정
+                      </Button>
+                      {a.isActive && (
+                        <Button variant="ghost" onClick={() => deactivate.mutate(a.id)}>
+                          해제
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="rounded-md border border-line p-3">
@@ -532,7 +540,7 @@ function CouncilAccountSection() {
       )}
       <ul className="divide-y divide-line">
         {teachers.data?.map((t) => (
-          <li key={t.id} className="flex items-center gap-3 py-2 text-base">
+          <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-base">
             <span className="font-semibold">{t.name}</span>
             <span className="text-ink-muted">{t.loginId}</span>
             {t.hasCouncilAccount ? (

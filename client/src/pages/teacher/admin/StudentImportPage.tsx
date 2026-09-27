@@ -124,32 +124,34 @@ export function StudentImportPage() {
               )}
               {shown.rows.length > 0 && (
                 <div className="max-h-[520px] overflow-auto">
-                  <table className="w-full text-left text-base">
-                    <thead>
-                      <tr className="border-b border-line text-ink-muted">
-                        <th className="py-1 pr-3">줄</th>
-                        <th className="py-1 pr-3">반</th>
-                        <th className="py-1 pr-3">번호</th>
-                        <th className="py-1 pr-3">아이디</th>
-                        <th className="py-1 pr-3">처리</th>
-                        {result && <th className="py-1">초기 비밀번호</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shown.rows.map((r) => (
-                        <tr key={r.line} className="border-b border-line/60">
-                          <td className="py-1 pr-3">{r.line}</td>
-                          <td className="py-1 pr-3">{r.className}</td>
-                          <td className="py-1 pr-3">{r.studentNo}</td>
-                          <td className="py-1 pr-3">{r.loginId}</td>
-                          <td className="py-1 pr-3">{r.action === 'create' ? '신규' : '갱신'}</td>
-                          {result && (
-                            <td className="py-1 font-mono">{r.initialPassword ?? '(유지)'}</td>
-                          )}
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left text-base">
+                      <thead>
+                        <tr className="border-b border-line text-ink-muted">
+                          <th className="py-1 pr-3">줄</th>
+                          <th className="py-1 pr-3">반</th>
+                          <th className="py-1 pr-3">번호</th>
+                          <th className="py-1 pr-3">아이디</th>
+                          <th className="py-1 pr-3">처리</th>
+                          {result && <th className="py-1">초기 비밀번호</th>}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {shown.rows.map((r) => (
+                          <tr key={r.line} className="border-b border-line/60">
+                            <td className="py-1 pr-3">{r.line}</td>
+                            <td className="py-1 pr-3">{r.className}</td>
+                            <td className="py-1 pr-3">{r.studentNo}</td>
+                            <td className="py-1 pr-3">{r.loginId}</td>
+                            <td className="py-1 pr-3">{r.action === 'create' ? '신규' : '갱신'}</td>
+                            {result && (
+                              <td className="py-1 font-mono">{r.initialPassword ?? '(유지)'}</td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </>

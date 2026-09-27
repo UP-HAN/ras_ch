@@ -129,7 +129,7 @@ function BestSection() {
                   type="button"
                   onClick={toggleOpen}
                   aria-expanded={isOpen}
-                  className="flex min-h-tap flex-1 flex-wrap items-center gap-2 text-left"
+                  className="flex min-h-tap w-full min-w-0 flex-wrap items-center gap-2 text-left sm:w-auto sm:flex-1"
                 >
                   <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
                   <Badge tone={t.type === 'vote' ? 'primary' : 'info'}>
@@ -140,7 +140,7 @@ function BestSection() {
                     의견 {opinionCount} · 베스트 {bestCount}
                   </span>
                 </button>
-                <span className="ml-auto text-base text-ink-muted">마감 {fmt(t.closeAt)}</span>
+                <span className="text-base text-ink-muted sm:ml-auto">마감 {fmt(t.closeAt)}</span>
               </div>
               {isOpen && t.type === 'vote' && (
                 <div className="my-2 max-w-md">

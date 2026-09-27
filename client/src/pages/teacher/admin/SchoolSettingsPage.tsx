@@ -32,7 +32,7 @@ export function SchoolSettingsPage() {
         </p>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         <YearsCard
           years={years.data ?? []}
           onDone={(m) => {
@@ -178,78 +178,80 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
           (지금만 보여요)
         </p>
       )}
-      <table className="mb-3 w-full text-left text-base">
-        <thead>
-          <tr className="border-b border-line text-ink-muted">
-            <th className="py-1 pr-2">이름</th>
-            <th className="py-1 pr-2">ID</th>
-            <th className="py-1 pr-2">승인 권한</th>
-            <th className="py-1 pr-2">학년군 지도</th>
-            <th className="py-1"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {teachers.map((t) => (
-            <tr key={t.id} className="border-b border-line/60">
-              <td className="py-1 pr-2 font-semibold">
-                {t.name} {t.role === 'admin' && <Badge tone="primary">관리자</Badge>}
-              </td>
-              <td className="py-1 pr-2 text-ink-muted">{t.loginId}</td>
-              <td className="py-1 pr-2">
-                <label className="flex min-h-tap items-center gap-2 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5"
-                    checked={t.isApprover || t.role === 'admin'}
-                    disabled={t.role === 'admin'}
+      <div className="mb-3 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-base">
+          <thead>
+            <tr className="border-b border-line text-ink-muted">
+              <th className="py-1 pr-2">이름</th>
+              <th className="py-1 pr-2">ID</th>
+              <th className="py-1 pr-2">승인 권한</th>
+              <th className="py-1 pr-2">학년군 지도</th>
+              <th className="py-1"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {teachers.map((t) => (
+              <tr key={t.id} className="border-b border-line/60">
+                <td className="py-1 pr-2 font-semibold">
+                  {t.name} {t.role === 'admin' && <Badge tone="primary">관리자</Badge>}
+                </td>
+                <td className="py-1 pr-2 text-ink-muted">{t.loginId}</td>
+                <td className="py-1 pr-2">
+                  <label className="flex min-h-tap items-center gap-2 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5"
+                      checked={t.isApprover || t.role === 'admin'}
+                      disabled={t.role === 'admin'}
+                      onChange={(e) =>
+                        roles.mutate({
+                          id: t.id,
+                          isApprover: e.target.checked,
+                          advisorGradeGroup: (t.advisorGradeGroup as GradeGroup | null) ?? null,
+                        })
+                      }
+                    />
+                    승인
+                  </label>
+                </td>
+                <td className="py-1">
+                  <select
+                    aria-label={`${t.name} 학년군 지도`}
+                    className="min-h-tap rounded-md border-2 border-line-strong bg-surface px-2 text-base"
+                    value={t.advisorGradeGroup ?? ''}
                     onChange={(e) =>
                       roles.mutate({
                         id: t.id,
-                        isApprover: e.target.checked,
-                        advisorGradeGroup: (t.advisorGradeGroup as GradeGroup | null) ?? null,
+                        isApprover: t.isApprover,
+                        advisorGradeGroup: (e.target.value || null) as GradeGroup | null,
                       })
                     }
-                  />
-                  승인
-                </label>
-              </td>
-              <td className="py-1">
-                <select
-                  aria-label={`${t.name} 학년군 지도`}
-                  className="min-h-tap rounded-md border-2 border-line-strong bg-surface px-2 text-base"
-                  value={t.advisorGradeGroup ?? ''}
-                  onChange={(e) =>
-                    roles.mutate({
-                      id: t.id,
-                      isApprover: t.isApprover,
-                      advisorGradeGroup: (e.target.value || null) as GradeGroup | null,
-                    })
-                  }
-                >
-                  <option value="">없음</option>
-                  <option value="3-4">3-4학년군</option>
-                  <option value="5-6">5-6학년군</option>
-                </select>
-              </td>
-              <td className="py-1">
-                {t.role !== 'admin' && (
-                  <Button
-                    variant="ghost"
-                    loading={remove.isPending && remove.variables === t.id}
-                    onClick={() =>
-                      window.confirm(
-                        `${t.name} 교사 계정을 지울까요? 승인 기록 등 활동이 있으면 지워지지 않아요.`,
-                      ) && remove.mutate(t.id)
-                    }
                   >
-                    삭제
-                  </Button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                    <option value="">없음</option>
+                    <option value="3-4">3-4학년군</option>
+                    <option value="5-6">5-6학년군</option>
+                  </select>
+                </td>
+                <td className="py-1">
+                  {t.role !== 'admin' && (
+                    <Button
+                      variant="ghost"
+                      loading={remove.isPending && remove.variables === t.id}
+                      onClick={() =>
+                        window.confirm(
+                          `${t.name} 교사 계정을 지울까요? 승인 기록 등 활동이 있으면 지워지지 않아요.`,
+                        ) && remove.mutate(t.id)
+                      }
+                    >
+                      삭제
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <form
         className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
         onSubmit={(e: FormEvent) => {
@@ -301,7 +303,7 @@ function ClassesCard({
   return (
     <Card title="반">
       <div className="overflow-x-auto">
-        <table className="mb-3 w-full text-left text-base">
+        <table className="w-full min-w-[640px] text-left text-base">
           <thead>
             <tr className="border-b border-line text-ink-muted">
               <th className="py-1 pr-2">반</th>

@@ -103,8 +103,59 @@ export function ClassPostsPage() {
       {posts.data && items.length === 0 && <EmptyState icon="📄" title="글이 없어요" />}
       {posts.data && items.length > 0 && (
         <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-base">
+          <ul className="divide-y divide-line md:hidden" data-testid="posts-cards">
+            {items.map((p) => (
+              <li key={p.id} className="space-y-1 py-3 text-base">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <Link to={`/teacher/posts/${p.id}`} className="font-semibold underline">
+                    {p.author.studentNo}번 {p.author.name}
+                  </Link>
+                  <Badge
+                    tone={
+                      p.type === 'article' ? 'primary' : p.type === 'diary' ? 'neutral' : 'info'
+                    }
+                  >
+                    {POST_TYPE_LABEL[p.type] ?? p.type}
+                  </Badge>
+                  <Badge
+                    tone={
+                      p.status === 'approved'
+                        ? 'success'
+                        : p.status === 'rejected'
+                          ? 'danger'
+                          : p.status === 'hidden'
+                            ? 'warn'
+                            : 'info'
+                    }
+                  >
+                    {STATUS_LABEL[p.status] ?? p.status}
+                  </Badge>
+                </div>
+                {p.type === 'article' && p.title && (
+                  <Link to={`/teacher/posts/${p.id}`} className="block text-ink-muted underline">
+                    {p.title}
+                  </Link>
+                )}
+                <p className="text-ink-muted">
+                  {p.weekKey ?? fmtDate(p.approvedAt ?? p.submittedAt ?? p.createdAt)}
+                  {p.report ? ` · ${minutesLabel(p.report.avgMinutesPerDay)}` : ''} ·{' '}
+                  {p.visibility === 'school' ? '전교' : '우리 반'}
+                </p>
+                {p.status === 'approved' && (
+                  <Button variant="secondary" onClick={() => hide.mutate(p.id)}>
+                    숨기기
+                  </Button>
+                )}
+                {p.status === 'hidden' && (
+                  <Button variant="secondary" onClick={() => unhide.mutate(p.id)}>
+                    다시 보이기
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[720px] text-left text-base">
               <thead>
                 <tr className="border-b border-line text-ink-muted">
                   <th className="py-2 pr-3">학생</th>

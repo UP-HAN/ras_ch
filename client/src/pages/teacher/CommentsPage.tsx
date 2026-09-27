@@ -204,8 +204,61 @@ export function CommentsPage() {
       {first && items.length === 0 && <EmptyState icon="💬" title="댓글이 없어요" />}
       {first && items.length > 0 && (
         <Card title={`댓글 ${items.length}/${first.total}건`} data-testid="comments-table">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-base">
+          <ul className="divide-y divide-line md:hidden" data-testid="comments-cards">
+            {items.map((c) => (
+              <li
+                key={c.id}
+                className={`space-y-1 py-3 text-base ${c.status === 'hidden' ? 'bg-warn-50/50' : ''}`}
+              >
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-semibold">
+                    {c.author.className} {c.author.studentNo}번 {c.author.name}
+                  </span>
+                  <span className="text-ink-muted">{fmtDateTime(c.createdAt)}</span>
+                  {c.reportCount > 0 && <Badge tone="danger">신고 {c.reportCount}</Badge>}
+                  {c.bannedHits.length > 0 && (
+                    <Badge tone="warn">금칙어: {c.bannedHits.join(', ')}</Badge>
+                  )}
+                  {c.status === 'hidden' && <Badge tone="neutral">숨김</Badge>}
+                </div>
+                <p className={c.status === 'hidden' ? 'line-through text-ink-muted' : ''}>
+                  {c.body}
+                </p>
+                <p className="text-ink-muted">
+                  <TargetCell t={c.target} />
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {c.status === 'visible' ? (
+                    <Button variant="secondary" onClick={() => hide.mutate(c.id)}>
+                      숨김
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" onClick={() => unhide.mutate(c.id)}>
+                      해제
+                    </Button>
+                  )}
+                  <select
+                    aria-label="정형 안내 보내기"
+                    className="min-h-tap rounded-md border-2 border-line-strong bg-surface px-2 text-base"
+                    value=""
+                    onChange={(e) => {
+                      const code = e.target.value as (typeof NOTICES)[number]['code'] | '';
+                      if (code) notifyM.mutate({ id: c.id, code });
+                    }}
+                  >
+                    <option value="">안내 보내기…</option>
+                    {NOTICES.map((n) => (
+                      <option key={n.code} value={n.code}>
+                        {n.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[820px] text-left text-base">
               <thead>
                 <tr className="border-b border-line text-ink-muted">
                   <th className="py-2 pr-3">시각</th>

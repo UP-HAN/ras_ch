@@ -80,7 +80,7 @@ export function DashboardPage() {
               <div className="h-full bg-primary-500" style={{ width: `${d.submissionRate}%` }} />
             </div>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
             <Card title={`이번 주(${wk}) 획득 포인트 상위 5명`}>
               <p className="mb-2 text-base text-ink-muted">
                 리포트뿐 아니라 댓글·엄지척·출석으로 얻은 포인트도 포함이에요. 그래서 이번 주
