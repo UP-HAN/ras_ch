@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { adminApi, type GradeGroup } from '@/api/admin';
 import { errorMessage } from '@/api/client';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Badge, Button, Card, Input } from '@/components/ui';
+import { Badge, Button, Card, ConfirmDialog, Input } from '@/components/ui';
 
 /** ADM-01: 학년도·반·교사 관리, 교사 역할 지정(승인 권한·학년군 지도교사) */
 export function SchoolSettingsPage() {
@@ -299,17 +299,32 @@ function ClassesCard({
     onSuccess: () => onDone('반 배정 교사를 바꿨어요.'),
     onError,
   });
+  // 반 삭제 (시범 명단 정리용). 학생이 남아 있거나 활동 기록이 있으면 서버가 409 로 막는다
+  const [removing, setRemoving] = useState<ClassView | null>(null);
+  const remove = useMutation({
+    mutationFn: (classId: number) => adminApi.deleteClass(classId),
+    onSuccess: () => {
+      const name = removing?.name ?? '';
+      setRemoving(null);
+      onDone(`${name} 반을 지웠어요.`);
+    },
+    onError: (e) => {
+      setRemoving(null);
+      onError(e);
+    },
+  });
 
   return (
     <Card title="반">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left text-base">
+        <table className="w-full min-w-[760px] text-left text-base">
           <thead>
             <tr className="border-b border-line text-ink-muted">
               <th className="py-1 pr-2">반</th>
               <th className="py-1 pr-2">학생</th>
               <th className="py-1 pr-2">담임</th>
-              <th className="py-1">배정 교사(여러 명 가능)</th>
+              <th className="py-1 pr-2">배정 교사(여러 명 가능)</th>
+              <th className="py-1">삭제</th>
             </tr>
           </thead>
           <tbody>
@@ -337,7 +352,7 @@ function ClassesCard({
                     ))}
                   </select>
                 </td>
-                <td className="py-2">
+                <td className="py-2 pr-2">
                   <div className="flex flex-wrap items-center gap-1">
                     {c.teacherIds.length === 0 && (
                       <span className="text-base text-ink-muted">없음</span>
@@ -387,11 +402,36 @@ function ClassesCard({
                     </select>
                   </div>
                 </td>
+                <td className="py-2">
+                  <Button
+                    variant="danger"
+                    aria-label={`${c.name} 반 지우기`}
+                    disabled={c.studentCount > 0 || remove.isPending}
+                    onClick={() => setRemoving(c)}
+                  >
+                    지우기
+                  </Button>
+                  {c.studentCount > 0 && (
+                    <p className="mt-1 text-base text-ink-muted">학생이 있어요</p>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {removing && (
+        <ConfirmDialog
+          title={`${removing.name} 반 지우기`}
+          message={`${removing.name} 반을 지울까요? 되돌릴 수 없어요. 글·순위·결산 같은 활동 기록이 있는 반은 지울 수 없어요.`}
+          confirmLabel="지우기"
+          danger
+          requireText={removing.name}
+          loading={remove.isPending}
+          onConfirm={() => remove.mutate(removing.id)}
+          onCancel={() => setRemoving(null)}
+        />
+      )}
       <form
         className="flex flex-wrap items-end gap-2"
         onSubmit={(e: FormEvent) => {

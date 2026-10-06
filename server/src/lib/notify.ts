@@ -19,7 +19,8 @@ export type NotificationType =
   | 'achievement'
   | 'class_mission'
   | 'weekly_gift'
-  | 'council_post';
+  | 'council_post'
+  | 'bug_report';
 
 export interface NotificationPayload {
   message: string;

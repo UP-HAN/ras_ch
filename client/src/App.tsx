@@ -4,6 +4,8 @@ import { StudentShell } from '@/components/layout/StudentShell';
 import { TeacherShell } from '@/components/layout/TeacherShell';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { BugReportPage } from '@/pages/common/BugReportPage';
+import { BugReportsPage } from '@/pages/teacher/admin/BugReportsPage';
 import { ContentPage } from '@/pages/teacher/admin/ContentPage';
 import { InsightsPage } from '@/pages/teacher/admin/InsightsPage';
 import { SettlementPage } from '@/pages/teacher/admin/SettlementPage';
@@ -74,6 +76,7 @@ const router = createBrowserRouter([
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'me', element: <MyPage /> },
       { path: 'me/points', element: <MyPointsPage /> },
+      { path: 'me/bug-report', element: <BugReportPage /> }, // BUG-01, BUG-02
       { path: 'review', element: <ReviewQueuePage /> },
       { path: 'review/:id', element: <ReviewPostPage /> },
     ],
@@ -97,6 +100,7 @@ const router = createBrowserRouter([
       { path: 'hall-of-fame', element: <HallOfFamePage /> },
       { path: 'news', element: <NewsPage /> },
       { path: 'council', element: <CouncilPage /> },
+      { path: 'bug-report', element: <BugReportPage /> }, // BUG-01, BUG-02
       { path: 'admin/school', element: <SchoolSettingsPage /> },
       { path: 'admin/students-import', element: <StudentImportPage /> },
       { path: 'admin/banned-words', element: <BannedWordsPage /> },
@@ -106,6 +110,7 @@ const router = createBrowserRouter([
       { path: 'admin/content', element: <ContentPage /> },
       { path: 'admin/insights', element: <InsightsPage /> },
       { path: 'admin/backups', element: <BackupsPage /> },
+      { path: 'admin/bug-reports', element: <BugReportsPage /> }, // BUG-03
     ],
   },
 ]);

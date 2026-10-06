@@ -1243,3 +1243,42 @@ export interface BackupListView {
   lastError: { op: string; at: string; message: string } | null;
   points: BackupPointView[];
 }
+
+// ----- 버그 신고 (BUG-01~05) -----
+// 학생 화면은 "불편한 점 알리기", 교사·관리자 화면은 "버그 신고"로 부른다(2026-10-06 결정).
+
+export type BugStatusView = 'received' | 'checking' | 'resolved' | 'held';
+
+/** 신고자 본인에게 내려가는 모습 (BUG-02). 작성자 정보는 본인이므로 넣지 않는다 */
+export interface BugReportView {
+  id: number;
+  title: string;
+  body: string;
+  pagePath: string | null;
+  imagePath: string | null;
+  status: BugStatusView;
+  adminReply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+}
+
+/** 관리자 목록에만 신고자 실명·반이 들어간다 (BUG-05) */
+export interface BugReportAdminView extends BugReportView {
+  reporterId: number;
+  reporterName: string | null;
+  reporterRole: string | null;
+  className: string | null;
+}
+
+export interface BugReportMineView {
+  /** 오늘 더 보낼 수 있는 수 (BUG-01 하루 상한) */
+  remainingToday: number;
+  perDayMax: number;
+  reports: BugReportView[];
+}
+
+export interface BugReportAdminListView {
+  total: number;
+  openCount: number;
+  reports: BugReportAdminView[];
+}

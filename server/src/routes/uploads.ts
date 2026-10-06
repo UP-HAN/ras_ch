@@ -11,6 +11,7 @@ import { loadUser, loadUserWith, requireAuth, type UserLoader } from '../middlew
 import { findImageByPath } from '../repos/postRepo.js';
 import { canReviewPost } from '../services/ReviewService.js';
 import { canViewImage as canViewCouncilImage } from '../services/CouncilPostService.js';
+import { canViewImage as canViewBugImage } from '../services/BugReportService.js';
 
 export function createUploadsRouter(opts: { userLoader?: UserLoader } = {}): Router {
   const router = Router();
@@ -25,7 +26,8 @@ export function createUploadsRouter(opts: { userLoader?: UserLoader } = {}): Rou
     const img = await findImageByPath(rel);
     if (!img) {
       // 자치회 글 이미지 (P2-2): 게시·만료 글은 누구나, 승인 전은 임원·교사만
-      if (await canViewCouncilImage(user, rel)) {
+      // 버그 신고 캡처 (BUG-05): 신고자 본인과 관리자만
+      if ((await canViewCouncilImage(user, rel)) || (await canViewBugImage(user, rel))) {
         res.sendFile(absoluteImagePath(rel), {
           headers: { 'Cache-Control': 'private, max-age=3600', 'Content-Type': 'image/webp' },
           dotfiles: 'deny',

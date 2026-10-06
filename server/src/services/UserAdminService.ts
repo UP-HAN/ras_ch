@@ -165,6 +165,97 @@ export interface BulkDeleteResult {
   skipped: Array<{ id: number; name: string; studentNo: number | null }>;
 }
 
+// ---------- 반 삭제 (시범 명단 정리용) ----------
+
+/** 이 표에 행이 있으면 "활동 기록"으로 보고 반 삭제를 막는다 */
+const CLASS_ACTIVITY_TABLES = new Set([
+  'posts',
+  'weekly_scores',
+  'weekly_class_scores',
+  'monthly_scores',
+  'monthly_class_scores',
+  'monthly_settlements',
+  'class_mission_results',
+]);
+
+async function classForeignKeys(conn: PoolConnection): Promise<FkRef[]> {
+  return (
+    await query<{ t: string; c: string; n: string }>(
+      `SELECT k.TABLE_NAME AS t, k.COLUMN_NAME AS c, col.IS_NULLABLE AS n
+       FROM information_schema.KEY_COLUMN_USAGE k
+       JOIN information_schema.COLUMNS col
+         ON col.TABLE_SCHEMA = k.TABLE_SCHEMA AND col.TABLE_NAME = k.TABLE_NAME AND col.COLUMN_NAME = k.COLUMN_NAME
+       WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME = 'classes'`,
+      [],
+      conn,
+    )
+  ).map((r) => ({ table: r.t, column: r.c, nullable: r.n === 'YES' }));
+}
+
+export const CLASS_HAS_STUDENTS_MESSAGE =
+  '이 반에 아직 학생이 있어요. 학생 관리에서 "이 반 학생 모두 지우기"를 먼저 해 주세요.';
+export const CLASS_BLOCKED_MESSAGE =
+  '이 반에 활동 기록(글·주간 순위·결산 등)이 있어서 지울 수 없어요.';
+
+/**
+ * 반 삭제 — 학생이 없고 활동 기록이 없을 때만 (시범 명단 정리용).
+ * 배정 교사(teacher_classes)·담임 연결만 정리하고 반 행을 지운다.
+ */
+export async function deleteClass(actor: Actor, classId: number): Promise<void> {
+  await tx(async (conn) => {
+    const klass = await queryOne<{ id: number; name: string }>(
+      'SELECT id, name FROM classes WHERE id = ? FOR UPDATE',
+      [classId],
+      conn,
+    );
+    if (!klass) throw AppError.notFound('반을 찾을 수 없어요.');
+
+    const students = await queryOne<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM users WHERE class_id = ?',
+      [classId],
+      conn,
+    );
+    if (Number(students?.n ?? 0) > 0) throw AppError.conflict(CLASS_HAS_STUDENTS_MESSAGE);
+
+    const fks = await classForeignKeys(conn);
+    const blockedBy: string[] = [];
+    for (const fk of fks) {
+      if (!CLASS_ACTIVITY_TABLES.has(fk.table)) continue;
+      const r = await queryOne<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM \`${fk.table}\` WHERE \`${fk.column}\` = ?`,
+        [classId],
+        conn,
+      );
+      if (Number(r?.n ?? 0) > 0 && !blockedBy.includes(fk.table)) blockedBy.push(fk.table);
+    }
+    if (blockedBy.length > 0) throw AppError.conflict(CLASS_BLOCKED_MESSAGE);
+
+    // 남은 참조(배정 교사 등)를 정리한다
+    for (const fk of fks) {
+      if (fk.table === 'classes') continue;
+      if (fk.nullable)
+        await execute(
+          `UPDATE \`${fk.table}\` SET \`${fk.column}\` = NULL WHERE \`${fk.column}\` = ?`,
+          [classId],
+          conn,
+        );
+      else await execute(`DELETE FROM \`${fk.table}\` WHERE \`${fk.column}\` = ?`, [classId], conn);
+    }
+    await execute('DELETE FROM classes WHERE id = ?', [classId], conn);
+    await writeAudit(
+      {
+        actorId: actor.id,
+        action: 'class.delete',
+        targetType: 'class',
+        targetId: classId,
+        payload: { name: klass.name },
+        ip: actor.ip,
+      },
+      conn,
+    );
+  });
+}
+
 /** 반의 학생 전체 삭제 — 활동 없는 학생만 지우고 나머지는 남긴다 (시범 명단 → 실제 CSV 교체용) */
 export async function deleteClassStudents(
   actor: Actor,

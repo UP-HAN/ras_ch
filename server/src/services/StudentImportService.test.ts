@@ -88,3 +88,41 @@ describe('parseStudentCsv', () => {
     expect(r.rows[0]?.parentConsent).toBe('N');
   });
 });
+
+// 화면에서 받는 양식(학생등록양식.csv)의 열 이름은 괄호로 설명을 달고 있다.
+// 선생님이 받은 파일을 그대로 채워 올려도 읽혀야 한다 (StudentImportPage 의 TEMPLATE_HEADER 와 같은 문자열).
+describe('양식 파일 헤더(괄호 설명 포함)', () => {
+  const TEMPLATE_HEADER =
+    '학년(3-6),반(숫자),번호(출석번호),이름,초기비밀번호(비우면 자동),학부모동의(Y 또는 N),기자단(Y 또는 N)';
+
+  it('괄호 설명이 붙은 열 이름도 그대로 읽는다', () => {
+    const r = parseStudentCsv(`${TEMPLATE_HEADER}\n5,3,7,박하늘,,Y,N\n`, [3, 4, 5, 6]);
+    expect(r.errors).toEqual([]);
+    expect(r.rows).toEqual([
+      {
+        line: 2,
+        grade: 5,
+        classNo: 3,
+        studentNo: 7,
+        name: '박하늘',
+        initialPassword: null,
+        parentConsent: 'Y',
+        isReporter: false,
+      },
+    ]);
+  });
+
+  it('엑셀이 붙이는 BOM 이 있어도 읽는다', () => {
+    const r = parseStudentCsv(`\ufeff${TEMPLATE_HEADER}\n6,1,1,최보름,,N,Y\n`, [3, 4, 5, 6]);
+    expect(r.errors).toEqual([]);
+    expect(r.rows[0]?.name).toBe('최보름');
+    expect(r.rows[0]?.parentConsent).toBe('N');
+    expect(r.rows[0]?.isReporter).toBe(true);
+  });
+
+  it('양식만 받아 아무것도 안 적고 올리면 빈 결과(오류 아님)', () => {
+    const r = parseStudentCsv(`${TEMPLATE_HEADER}\n`, [3, 4, 5, 6]);
+    expect(r.errors).toEqual([]);
+    expect(r.rows).toEqual([]);
+  });
+});

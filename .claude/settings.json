@@ -10,7 +10,11 @@
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git restore *)",
+      "Bash(grep -v '^$')",
+      "Bash(curl -s --max-time 10 http://localhost:3000/healthz)",
+      "Bash(node repro-csv.mjs)"
     ]
   }
 }

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
+import { bugReportsApi } from '@/api/bugReports';
 import { reviewApi } from '@/api/review';
 import { teacherPostsApi } from '@/api/teacherPosts';
 import { useMe, useMeCache } from '@/hooks/useMe';
@@ -23,6 +24,7 @@ const TEACHER_MENU = [
   { to: '/teacher/hall-of-fame', label: '명예의 전당' },
   { to: '/teacher/news', label: '토론 주제' },
   { to: '/teacher/council', label: '학생자치회' },
+  { to: '/teacher/bug-report', label: '버그 신고' },
 ];
 
 const ADMIN_MENU = [
@@ -35,6 +37,7 @@ const ADMIN_MENU = [
   { to: '/teacher/admin/content', label: '공지·문구' },
   { to: '/teacher/admin/insights', label: '실천 변화 리포트' },
   { to: '/teacher/admin/backups', label: '백업·복원' },
+  { to: '/teacher/admin/bug-reports', label: '버그 신고함' },
 ];
 
 function MenuList({
@@ -85,6 +88,13 @@ export function TeacherShell() {
     queryFn: teacherPostsApi.pendingCounts,
     refetchInterval: 60_000,
   });
+  // 관리자 메뉴 "버그 신고함" 배지: 아직 처리가 남은 건수 (BUG-03)
+  const bugCount = useQuery({
+    queryKey: ['admin', 'bug-reports', 'count'],
+    queryFn: bugReportsApi.adminOpenCount,
+    enabled: me?.role === 'admin',
+    refetchInterval: 60_000,
+  });
 
   const logout = async () => {
     await authApi.logout();
@@ -111,7 +121,11 @@ export function TeacherShell() {
       {me?.role === 'admin' && (
         <div>
           <p className="mb-1 px-3 text-base font-bold text-ink-muted">관리자</p>
-          <MenuList items={ADMIN_MENU} onNavigate={close} />
+          <MenuList
+            items={ADMIN_MENU}
+            onNavigate={close}
+            badges={{ '/teacher/admin/bug-reports': bugCount.data?.open ?? 0 }}
+          />
           {me.demoSiteUrl && (
             <a
               href={me.demoSiteUrl}

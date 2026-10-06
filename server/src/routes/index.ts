@@ -10,6 +10,7 @@ import {
 import { createAdminRouter } from './admin.js';
 import { createAdminBackupsRouter } from './adminBackups.js';
 import { createAuthRouter } from './auth.js';
+import { createBugReportsRouter } from './bugReports.js';
 import { createCouncilRouter } from './council.js';
 import { createCouncilAdminRouter } from './councilAdmin.js';
 import { createWeeklyGiftsRouter } from './weeklyGifts.js';
@@ -63,6 +64,7 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/council', createCouncilRouter());
   router.use('/news', createNewsRouter());
   router.use('/posts', createPostsRouter());
+  router.use('/bug-reports', createBugReportsRouter()); // BUG-01, BUG-02
   router.use('/settings', createSettingsRouter());
   router.use('/', createReactionsRouter());
 

@@ -33,6 +33,16 @@
 
 ### B. 버그 신고 게시판
 
+요구사항 ID (코드 주석·커밋·테스트 이름에 인용):
+
+- **BUG-01 신고 작성**: 로그인한 학생·교사가 제목(2~100자)·내용(5~2000자)·(선택)캡처 1장으로 신고한다. 신고 당시 화면 경로를 함께 보내되 서버가 앱 내부 경로만 받아들인다(외부 URL·주입은 버린다). 한 사람당 하루 5건까지(도배 방지, 초과 시 409).
+- **BUG-02 내 신고 보기**: 본인이 낸 신고와 관리자 답변·상태만 본다. 남의 신고는 목록에도 상세에도 나오지 않는다(403).
+- **BUG-03 관리자 처리**: 관리자만 전체 목록을 보고 상태(`받음`/`확인 중`/`해결`/`보류`)를 바꾸고 답변을 단다. 답변을 비우면 상태만 바뀌고 이전 답변은 보존한다.
+- **BUG-04 알림**: 상태가 바뀌거나 답변이 달리면 신고자에게 인앱 알림(`bug_report`)이 간다. 교사는 알림 화면이 없으므로 "내 신고" 목록에서 확인한다.
+- **BUG-05 권한·개인정보**: 전체 목록·상태 변경·답변은 admin 전용(403). 캡처 이미지는 신고자와 관리자만 열람(그 외 404, 비로그인 401). 학생용 응답에 실명·반을 넣지 않는다(절대 규칙 4). 작성·답변을 감사 로그에 남긴다.
+
+화면 문구(2026-10-06 결정): 학생 화면은 **"불편한 점 알리기"**, 교사·관리자 화면은 **"버그 신고"**. DB·API·코드 이름은 `bug_report` 로 통일한다.
+
 - 본보기: 공지(noticeRepo → NoticeService → routes/admin.ts → ContentPage), 사진은 `processPhotos`(PostService.ts), 알림 `lib/notify.ts`.
 - 만들 것: `server/migrations/008_bug_reports.sql`(bug_reports: reporter, title, body, page_path, status 접수/확인 중/해결/보류, admin_reply, 캡처 1장), `repos/bugReportRepo.ts`, `lib/bugReportRules.ts`(+test), `services/BugReportService.ts`, `routes/bugReports.ts`(로그인 사용자: 작성·내 신고 / admin: 전체·상태·답변), `routes/uploads.ts` 에 캡처 열람 권한(신고자·관리자) 추가, `notify` 타입 `bug_report`.
 - 클라이언트: `pages/common/BugReportPage.tsx`(작성 + 내 신고 목록, 학생·교사 공용), `pages/teacher/admin/BugReportsPage.tsx`(목록·상태·답변), 학생은 내 정보 "계정" 카드에 진입 버튼, 교사 메뉴 "버그 신고", 관리자 메뉴 "버그 신고함"(열린 건수 배지).

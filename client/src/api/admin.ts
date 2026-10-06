@@ -63,4 +63,6 @@ export const adminApi = {
       deleted: number;
       skipped: Array<{ id: number; name: string; studentNo: number | null }>;
     }>(`/admin/classes/${classId}/students`),
+  /** 반 자체 삭제. 학생이 남아 있거나 활동 기록이 있으면 409 */
+  deleteClass: (classId: number) => api.delete<{ deleted: boolean }>(`/admin/classes/${classId}`),
 };

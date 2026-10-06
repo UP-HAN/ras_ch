@@ -157,6 +157,10 @@ export function MyPage() {
         )}
         <Card title="계정">
           <div className="space-y-2">
+            {/* BUG-01: 학생 화면에서는 "불편한 점 알리기"로 부른다 */}
+            <Button block variant="secondary" onClick={() => navigate('/me/bug-report')}>
+              불편한 점 알리기
+            </Button>
             <Button block variant="secondary" onClick={() => navigate('/change-password')}>
               비밀번호 바꾸기
             </Button>

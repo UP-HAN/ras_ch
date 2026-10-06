@@ -5,6 +5,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { AppError, ok } from '../lib/apiResponse.js';
+import { BUG_STATUSES, isBugStatus } from '../lib/bugReportRules.js';
 import { decodeCsvBuffer } from '../lib/csv.js';
 import { clientIp, currentUser, requireRole } from '../middleware/auth.js';
 import { writeAudit } from '../repos/auditRepo.js';
@@ -18,7 +19,8 @@ import {
 import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
-import { deleteClassStudents, deleteUser } from '../services/UserAdminService.js';
+import * as bugs from '../services/BugReportService.js';
+import { deleteClass, deleteClassStudents, deleteUser } from '../services/UserAdminService.js';
 import * as settings from '../services/AdminSettingsService.js';
 import { gamifySettingsView, updateGamifySettings } from '../services/GamifyService.js';
 import { rebuildPoints } from '../services/PointsQueryService.js';
@@ -203,6 +205,11 @@ export function createAdminRouter(): Router {
   });
   router.delete('/classes/:id/students', async (req, res) => {
     res.json(ok(await deleteClassStudents(actor(req), idParam(req.params.id))));
+  });
+  // 반 자체 삭제: 학생이 없고 활동 기록이 없을 때만 (409)
+  router.delete('/classes/:id', async (req, res) => {
+    await deleteClass(actor(req), idParam(req.params.id));
+    res.json(ok({ deleted: true }));
   });
 
   // ----- 금칙어 (RCT-04, ADM-02) -----
@@ -451,6 +458,47 @@ export function createAdminRouter(): Router {
     if (body.data.from > body.data.to) throw AppError.badRequest('시작일이 종료일보다 늦어요.');
     res.json(
       ok(await rebuildPoints(currentUser(req), body.data.from, body.data.to, clientIp(req))),
+    );
+  });
+
+  // ----- 버그 신고함 (BUG-03, BUG-04) -----
+  router.get('/bug-reports', async (req, res) => {
+    const status = isBugStatus(req.query.status) ? req.query.status : undefined;
+    const before = Number(req.query.before);
+    const limit = Number(req.query.limit);
+    res.json(
+      ok(
+        await bugs.listForAdmin({
+          status,
+          limit: Number.isInteger(limit) ? limit : undefined,
+          before: Number.isInteger(before) && before > 0 ? before : undefined,
+        }),
+      ),
+    );
+  });
+
+  /** 교사 메뉴 배지용 — 아직 처리가 남은 건수만 */
+  router.get('/bug-reports/count', async (_req, res) => {
+    res.json(ok({ open: await bugs.openCount() }));
+  });
+
+  router.patch('/bug-reports/:id', async (req, res) => {
+    const body = z
+      .object({
+        status: z.enum(BUG_STATUSES),
+        adminReply: z.string().nullable().optional(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('상태와 답변을 확인해 주세요.');
+    res.json(
+      ok(
+        await bugs.reply(
+          currentUser(req),
+          idParam(req.params.id),
+          { status: body.data.status, adminReply: body.data.adminReply ?? null },
+          clientIp(req),
+        ),
+      ),
     );
   });
 
