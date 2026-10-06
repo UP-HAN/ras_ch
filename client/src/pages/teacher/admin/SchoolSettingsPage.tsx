@@ -160,6 +160,21 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
     onSuccess: () => onDone('교사 계정을 지웠어요.'),
     onError,
   });
+  // 교사 비밀번호 초기화 (AUTH-04 보강): 임시 비밀번호는 지금 한 번만 보여 준다
+  const [resettingPw, setResettingPw] = useState<TeacherView | null>(null);
+  const [tempPw, setTempPw] = useState<{ name: string; pw: string } | null>(null);
+  const resetPw = useMutation({
+    mutationFn: (id: number) => adminApi.resetTeacherPassword(id),
+    onSuccess: (r) => {
+      setTempPw({ name: resettingPw?.name ?? '', pw: r.tempPassword });
+      setResettingPw(null);
+      onDone('교사 비밀번호를 초기화했어요.');
+    },
+    onError: (e) => {
+      setResettingPw(null);
+      onError(e);
+    },
+  });
   const roles = useMutation({
     mutationFn: (t: { id: number; isApprover: boolean; advisorGradeGroup: GradeGroup | null }) =>
       adminApi.setTeacherRoles(t.id, {
@@ -172,6 +187,26 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
 
   return (
     <Card title="교사">
+      {tempPw && (
+        <p className="mb-3 rounded-md bg-accent-50 p-3 text-base">
+          <strong>{tempPw.name}</strong> 선생님의 임시 비밀번호는{' '}
+          <code className="font-extrabold">{tempPw.pw}</code> 예요. 알려 주세요. 첫 로그인 때 새
+          비밀번호로 바꾸게 돼요. (지금만 보여요)
+          <Button className="mt-2" variant="secondary" onClick={() => setTempPw(null)}>
+            확인했어요
+          </Button>
+        </p>
+      )}
+      {resettingPw && (
+        <ConfirmDialog
+          title="교사 비밀번호 초기화"
+          message={`${resettingPw.name} 선생님의 비밀번호를 초기화할까요? 쓰던 비밀번호로는 로그인할 수 없게 되고, 새 임시 비밀번호가 한 번만 표시돼요.`}
+          confirmLabel="초기화"
+          loading={resetPw.isPending}
+          onConfirm={() => resetPw.mutate(resettingPw.id)}
+          onCancel={() => setResettingPw(null)}
+        />
+      )}
       {created && (
         <p className="mb-3 rounded-md bg-accent-50 p-3 text-base">
           {created.loginId} 의 초기 비밀번호: <code className="font-extrabold">{created.pw}</code>{' '}
@@ -233,19 +268,28 @@ function TeachersCard({ teachers, onDone, onError }: { teachers: TeacherView[] }
                   </select>
                 </td>
                 <td className="py-1">
-                  {t.role !== 'admin' && (
+                  <div className="flex flex-wrap gap-1">
                     <Button
-                      variant="ghost"
-                      loading={remove.isPending && remove.variables === t.id}
-                      onClick={() =>
-                        window.confirm(
-                          `${t.name} 교사 계정을 지울까요? 승인 기록 등 활동이 있으면 지워지지 않아요.`,
-                        ) && remove.mutate(t.id)
-                      }
+                      variant="secondary"
+                      loading={resetPw.isPending && resetPw.variables === t.id}
+                      onClick={() => setResettingPw(t)}
                     >
-                      삭제
+                      비번 초기화
                     </Button>
-                  )}
+                    {t.role !== 'admin' && (
+                      <Button
+                        variant="ghost"
+                        loading={remove.isPending && remove.variables === t.id}
+                        onClick={() =>
+                          window.confirm(
+                            `${t.name} 교사 계정을 지울까요? 승인 기록 등 활동이 있으면 지워지지 않아요.`,
+                          ) && remove.mutate(t.id)
+                        }
+                      >
+                        삭제
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

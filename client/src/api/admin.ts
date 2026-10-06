@@ -1,6 +1,7 @@
 import type {
   ClassView,
   ImportResult,
+  ResetPasswordResult,
   SchoolYearView,
   TeacherUser,
   TeacherView,
@@ -56,6 +57,9 @@ export const adminApi = {
       status?: 'active' | 'transferred' | 'graduated' | 'disabled';
     },
   ) => api.patch<{ updated: boolean }>(`/admin/students/${id}`, patch),
+  /** 교사 비밀번호 초기화 (관리자 전용). 임시 비밀번호를 1회만 돌려준다 */
+  resetTeacherPassword: (id: number) =>
+    api.post<ResetPasswordResult>(`/admin/teachers/${id}/reset-password`),
   /** 활동 기록 없는 계정만 삭제(교사·학생). 있으면 409 */
   deleteUser: (id: number) => api.delete<{ deleted: boolean }>(`/admin/users/${id}`),
   deleteClassStudents: (classId: number) =>

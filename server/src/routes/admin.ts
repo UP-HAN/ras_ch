@@ -19,6 +19,7 @@ import {
 import type { BannedWordView } from '../types/api.js';
 import { getSetting } from '../repos/settingsRepo.js';
 import * as admin from '../services/AdminService.js';
+import { getAuthService } from '../services/AuthService.js';
 import * as bugs from '../services/BugReportService.js';
 import { deleteClass, deleteClassStudents, deleteUser } from '../services/UserAdminService.js';
 import * as settings from '../services/AdminSettingsService.js';
@@ -29,7 +30,7 @@ import * as notices from '../services/NoticeService.js';
 import { schoolStats } from '../services/StatsService.js';
 import { buildInsights } from '../services/InsightsService.js';
 import { importStudents, parseStudentCsv } from '../services/StudentImportService.js';
-import type { ImportResult } from '../types/api.js';
+import type { ImportResult, ResetPasswordResult } from '../types/api.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -196,6 +197,23 @@ export function createAdminRouter(): Router {
     if (!body.success) throw AppError.badRequest('수정 값을 확인해 주세요.');
     await admin.updateStudent(actor(req), idParam(req.params.id), body.data);
     res.json(ok({ updated: true }));
+  });
+
+  // 교사 비밀번호 초기화 (AUTH-04 보강): 임시 비밀번호를 1회만 돌려준다
+  router.post('/teachers/:id/reset-password', async (req, res) => {
+    const id = idParam(req.params.id);
+    const a = actor(req);
+    if (id === a.id) throw AppError.badRequest('내 비밀번호는 "비밀번호 바꾸기"에서 바꿔 주세요.');
+    const tempPassword = await getAuthService().resetTeacherPassword(id);
+    await writeAudit({
+      actorId: a.id,
+      action: 'teacher.reset_password',
+      targetType: 'user',
+      targetId: id,
+      ip: a.ip,
+    });
+    const data: ResetPasswordResult = { tempPassword };
+    res.json(ok(data));
   });
 
   // ----- 계정 삭제 (시범 명단 정리): 활동 없는 계정만, 나머지는 상태 변경 -----

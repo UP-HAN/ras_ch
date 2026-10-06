@@ -37,6 +37,9 @@ const defaultDeps: AuthDeps = {
 
 const INVALID = () => AppError.unauthorized('아이디나 비밀번호가 맞지 않아요. 다시 확인해 주세요.');
 
+/** 교사 임시 비밀번호 뒤에 붙이는 임의 4자 (8자 정책을 넘기기 위해) */
+const randomSuffix = (): string => Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+
 export function createAuthService(deps: AuthDeps = defaultDeps) {
   return {
     async login(
@@ -105,6 +108,21 @@ export function createAuthService(deps: AuthDeps = defaultDeps) {
       const user = await deps.findById(studentId);
       if (!user || user.role !== 'student') throw AppError.notFound('학생을 찾을 수 없어요.');
       const temp = generateTempPassword(user.name);
+      await deps.updatePassword(user.id, await hashPassword(temp), true);
+      return temp;
+    },
+
+    /**
+     * 교사 비밀번호 초기화 (AUTH-04 보강, 2026-10-06): 관리자만 부른다.
+     * 교사는 8자 이상이어야 하므로 학생용 임시 비밀번호(5자)에 임의의 4자를 덧붙인다
+     * (createTeacher 의 초기 비밀번호와 같은 방식).
+     */
+    async resetTeacherPassword(teacherId: number): Promise<string> {
+      const user = await deps.findById(teacherId);
+      if (!user || user.role === 'student') throw AppError.notFound('교사를 찾을 수 없어요.');
+      const temp = `${generateTempPassword(user.name)}${randomSuffix()}`;
+      const policy = validatePasswordPolicy(user.role, temp);
+      if (!policy.ok) throw AppError.badRequest(policy.message as string);
       await deps.updatePassword(user.id, await hashPassword(temp), true);
       return temp;
     },
