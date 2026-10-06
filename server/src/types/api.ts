@@ -1202,3 +1202,44 @@ export interface InsightsView {
   tiers: Array<{ tier: string; count: number }>;
   achievementsRate: Sample;
 }
+
+// ----- 백업·복원 (BKP-01~05) -----
+
+export type BackupKind = 'auto' | 'manual' | 'prerestore';
+
+export interface BackupPointView {
+  id: string;
+  kind: BackupKind;
+  label: string;
+  createdAt: string;
+  createdBy: number | null;
+  lastMigration: string | null;
+  dbBytes: number;
+  uploadsBytes: number;
+  fileCount: number;
+  /** 지금 서버 코드로 복원 가능한지(더 새로운 스키마의 백업은 불가) */
+  restorable: boolean;
+}
+
+export interface BackupRestoreView {
+  id: string;
+  safetyPointId: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+  ok: boolean | null;
+  phase: string;
+  error: string | null;
+  requestedBy: number | null;
+}
+
+export interface BackupListView {
+  /** BACKUP_DIR 가 설정된 서버에서만 true */
+  enabled: boolean;
+  keepDays: number;
+  diskFreeBytes: number;
+  diskTotalBytes: number;
+  busy: { op: string; startedAt: string; targetId?: string } | null;
+  lastRestore: BackupRestoreView | null;
+  lastError: { op: string; at: string; message: string } | null;
+  points: BackupPointView[];
+}

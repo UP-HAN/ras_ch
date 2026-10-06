@@ -8,6 +8,7 @@ import {
   loadUserWith,
 } from '../middleware/auth.js';
 import { createAdminRouter } from './admin.js';
+import { createAdminBackupsRouter } from './adminBackups.js';
 import { createAuthRouter } from './auth.js';
 import { createCouncilRouter } from './council.js';
 import { createCouncilAdminRouter } from './councilAdmin.js';
@@ -55,6 +56,7 @@ export function createApiRouter(opts: ApiRouterOptions = {}): Router {
   router.use('/admin/news', createNewsAdminRouter());
   router.use('/admin/council', createCouncilAdminRouter());
   router.use('/admin/weekly', createWeeklyGiftsRouter());
+  router.use('/admin/backups', createAdminBackupsRouter()); // BKP-01~05
   router.use('/admin', createAdminRouter());
   router.use('/hall-of-fame', createHallOfFameRouter());
   router.use('/teacher', createTeacherRouter());

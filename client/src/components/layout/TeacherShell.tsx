@@ -34,6 +34,7 @@ const ADMIN_MENU = [
   { to: '/teacher/admin/settlements', label: '월간 결산' },
   { to: '/teacher/admin/content', label: '공지·문구' },
   { to: '/teacher/admin/insights', label: '실천 변화 리포트' },
+  { to: '/teacher/admin/backups', label: '백업·복원' },
 ];
 
 function MenuList({

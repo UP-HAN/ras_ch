@@ -8,6 +8,7 @@ import { registerNewsJobs } from './jobs/newsJobs.js';
 import { registerWeeklyTop } from './jobs/weeklyTop.js';
 import { registerRecountCaches } from './jobs/recountCaches.js';
 import { registerCouncilJobs } from './jobs/councilJobs.js';
+import { registerBackupJob } from './jobs/backupPoint.js';
 import { logger } from './lib/logger.js';
 import { LedgerPointService } from './services/points/LedgerPointService.js';
 import { setPointService } from './services/points/PointService.js';
@@ -20,6 +21,7 @@ registerMonthlyDraft();
 registerNewsJobs();
 registerRecountCaches();
 registerCouncilJobs();
+registerBackupJob();
 
 const app = createApp();
 const server = app.listen(env.PORT, () => {

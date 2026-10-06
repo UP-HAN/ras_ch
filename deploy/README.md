@@ -44,7 +44,7 @@ chmod +x deploy/backup.sh && crontab -e
 ## 2. 확인
 
 - `curl -s https://ras.ches.es.kr/healthz` → `{"ok":true,"data":{"status":"ok","db":"ok"}}`
-- `pm2 logs ras-point --lines 50` 에 "초롱 RAS 포인트 서버 시작" 과 배치 등록 7건(weeklyTop·monthlyDraft·recountCaches·autoEscalate·newsReserve·newsPublish·councilExpire)
+- `pm2 logs ras-point --lines 50` 에 "초롱 RAS 포인트 서버 시작" 과 배치 등록 8건(weeklyTop·monthlyDraft·recountCaches·autoEscalate·newsReserve·newsPublish·councilExpire·backupPoint)
 - 브라우저: 로그인 화면, PWA 설치 배너(HTTPS + manifest + sw)
 
 ## 3. 최초 관리자 계정
@@ -115,3 +115,40 @@ sudo nginx -t && sudo systemctl reload nginx && sudo certbot --nginx -d ras1.che
 - 시연 전 데이터 새로 고침: `./deploy/demo-refresh.sh` (오늘 기준 6주치를 새로 생성, 약 15분) 또는 `./deploy/demo-refresh.sh snapshot` (보관 스냅샷 그대로 복원, 약 1분). 스냅샷은 `/var/backups/ras-point/showcase/`(DB dump + uploads).
 - 코드 업데이트 때는 운영과 같은 방법으로 `/var/app/ras-demo` 에도 `git pull` + dist 업로드 후 `pm2 reload ras-demo`.
 - 스크립트는 `.env` 의 `DB_NAME` 이 `ras_demo` 가 아니면 중단하므로 운영 DB 를 건드릴 수 없다.
+
+## 9. 백업 지점·복원 (BKP-01~05, 2026-10-06)
+
+관리자 화면 **백업·복원**에서 "지금 백업"·삭제·"이 시점으로 복원"을 한다. 백업 지점 하나 = `<BACKUP_DIR>/<id>/` 폴더(`db.sql.gz` + `uploads.tar` + `manifest.json`). 매일 03:30 자동 백업(앱 안의 배치), 자동·복원 직전 백업은 `BACKUP_KEEP_DAYS`(14일) 뒤 정리(최근 자동 3개는 남김), 직접 만든 백업은 지울 때까지 보관. 기존 `backup.sh` cron 은 그대로 둔다(이중 안전장치).
+
+켜기 (인스턴스마다 **서로 다른 폴더**):
+
+```bash
+mkdir -p /var/backups/ras-point/points && chmod 700 /var/backups/ras-point/points   # 운영
+mkdir -p /var/backups/ras-demo/points && chmod 700 /var/backups/ras-demo/points     # 시연
+# 각 .env 에 추가
+#   BACKUP_DIR=/var/backups/ras-point/points   (시연은 /var/backups/ras-demo/points)
+#   BACKUP_KEEP_DAYS=14
+pm2 reload ras-point   # .env 는 앱이 직접 읽으므로 reload 만으로 반영 (--update-env 는 쓰지 않는다: 셸 환경이 섞임)
+```
+
+- 폴더의 `.instance.json` 에 처음 쓴 `DB_NAME` 이 기록된다. 다른 DB 의 앱이 같은 폴더를 가리키면 모든 동작을 거부한다(시연이 운영 백업을 건드리는 사고 방지).
+- 복원은 앱이 `setsid -f node server/dist/ops/backupCli.js restore <id> --pm2-id <자기 pm_id>` 를 띄워서 한다: 검증 → `pm2 stop` → 복원 직전 백업 → 사진 임시 풀기 → 테이블 전부 삭제·가져오기 → 마이그레이션 → 사진 교체 → 세션 삭제(모두 다시 로그인)·감사 로그 → `pm2 start`. DB 단계 실패 시 복원 직전 백업으로 자동 되돌린다. 진행·결과는 `<BACKUP_DIR>/last-restore.json`, 출력은 `<BACKUP_DIR>/restore.log`.
+- **복원 중에는 배포하지 않는다**(`pm2 reload` 가 멈춘 앱을 다시 켤 수 있다).
+
+SSH 로 직접 (화면을 못 쓸 때):
+
+```bash
+cd /var/app/ras
+node server/dist/ops/backupCli.js list
+node server/dist/ops/backupCli.js create --label "배포 전"
+node server/dist/ops/backupCli.js restore <id> --pm2-id $(pm2 id ras-point | tr -dc 0-9)
+```
+
+`last-restore.json` 의 phase 가 `needs-manual` 이면(복원·되돌리기 모두 실패, 앱은 멈춘 상태) 수동 복구:
+
+```bash
+cd /var/app/ras && P=/var/backups/ras-point/points/<복원 직전 id>
+gunzip -c $P/db.sql.gz | mysql -u ras -p ras_point        # 덤프에 DROP TABLE 포함
+tar -tf $P/uploads.tar | head                               # 사진 확인 후 필요하면: (cd server/uploads && tar -xf $P/uploads.tar)
+npm run db:migrate && pm2 start ras-point
+```

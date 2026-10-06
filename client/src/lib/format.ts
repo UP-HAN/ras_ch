@@ -23,5 +23,15 @@ export function fmtDate(iso: string | null | undefined): string {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' });
 }
 
+/** 바이트 → "1.2GB" / "345MB" / "12KB" (백업 크기 표시용) */
+export function fmtBytes(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n) || n < 0) return '';
+  const KB = 1024;
+  if (n < KB) return `${n}B`;
+  if (n < KB * KB) return `${Math.round(n / KB)}KB`;
+  if (n < KB * KB * KB) return `${Math.round(n / KB / KB)}MB`;
+  return `${(n / KB / KB / KB).toFixed(1)}GB`;
+}
+
 /** "2026-W39" → "39주차" */
 export const weekShort = (wk: string) => `${Number(wk.slice(6))}주차`;

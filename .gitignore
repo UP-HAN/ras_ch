@@ -11,6 +11,7 @@ server/uploads/*
 Thumbs.db
 .vite/
 test-results/
+.claude/settings.local.json
 
 # 문서 원본 묶음(중복)
 ras-point-kit.zip

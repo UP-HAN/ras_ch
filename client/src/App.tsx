@@ -29,6 +29,7 @@ import { CouncilPage } from '@/pages/teacher/CouncilPage';
 import { SchoolSettingsPage } from '@/pages/teacher/admin/SchoolSettingsPage';
 import { StudentImportPage } from '@/pages/teacher/admin/StudentImportPage';
 import { BannedWordsPage } from '@/pages/teacher/admin/BannedWordsPage';
+import { BackupsPage } from '@/pages/teacher/admin/BackupsPage';
 import { ApprovalSettingsPage } from '@/pages/teacher/admin/ApprovalSettingsPage';
 import { PointRulesPage } from '@/pages/teacher/admin/PointRulesPage';
 import { ClassPostsPage } from '@/pages/teacher/ClassPostsPage';
@@ -104,6 +105,7 @@ const router = createBrowserRouter([
       { path: 'admin/settlements', element: <SettlementPage /> },
       { path: 'admin/content', element: <ContentPage /> },
       { path: 'admin/insights', element: <InsightsPage /> },
+      { path: 'admin/backups', element: <BackupsPage /> },
     ],
   },
 ]);
