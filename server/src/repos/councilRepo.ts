@@ -478,3 +478,15 @@ export async function findMember(id: number): Promise<CouncilMemberRowFull | nul
   const rows = await listMembers();
   return rows.find((m) => m.id === id) ?? null;
 }
+
+/** 지금 임원인 학생 id 집합 (교사 학생 목록에서 임원 표시용) */
+export async function activeMemberUserIds(userIds: number[]): Promise<Set<number>> {
+  if (userIds.length === 0) return new Set();
+  const rows = await query<{ user_id: number }>(
+    `SELECT DISTINCT user_id FROM council_members
+      WHERE is_active = 1 AND term_start <= CURDATE() AND (term_end IS NULL OR term_end >= CURDATE())
+        AND user_id IN (${userIds.map(() => '?').join(',')})`,
+    userIds,
+  );
+  return new Set(rows.map((r) => r.user_id));
+}

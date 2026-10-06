@@ -39,9 +39,11 @@ import {
 } from '../middleware/auth.js';
 import { writeAudit } from '../repos/auditRepo.js';
 import * as classRepo from '../repos/classRepo.js';
+import { activeMemberUserIds } from '../repos/councilRepo.js';
 import { currentSchoolYear } from '../repos/schoolYearRepo.js';
 import * as userRepo from '../repos/userRepo.js';
 import { getAuthService } from '../services/AuthService.js';
+import * as ts from '../services/TeacherStudentService.js';
 import type { ClassView, ResetPasswordResult } from '../types/api.js';
 import { advisorGrades, hasRole } from '../types/auth.js';
 
@@ -50,6 +52,13 @@ const postIdParam = (raw: unknown): number => {
   if (!Number.isInteger(id) || id <= 0) throw AppError.badRequest('글 번호가 올바르지 않아요.');
   return id;
 };
+
+/** /students/:id 의 학생 번호 (실제 접근 권한은 서비스가 반 기준으로 검사한다, AUTH-07) */
+function studentIdOf(req: { params: Record<string, string | undefined> }): number {
+  const n = Number(req.params.id);
+  if (!Number.isInteger(n) || n <= 0) throw AppError.badRequest('학생 번호가 올바르지 않아요.');
+  return n;
+}
 
 export function createTeacherRouter(): Router {
   const router = Router();
@@ -96,7 +105,67 @@ export function createTeacherRouter(): Router {
     const klass = await classRepo.findClassById(classId);
     if (!klass) throw AppError.notFound('반을 찾을 수 없어요.');
     const rows = await userRepo.listStudentsByClass(classId);
-    res.json(ok(rows.map((r) => toTeacherUser({ user: r, klass, isCouncil: false }))));
+    // 지금 자치회 임원인 학생을 표시한다 (담임이 임원을 정할 수 있으므로)
+    const council = await activeMemberUserIds(rows.map((r) => r.id));
+    res.json(ok(rows.map((r) => toTeacherUser({ user: r, klass, isCouncil: council.has(r.id) }))));
+  });
+
+  // ----- 담임·배정 교사의 학생 관리 (2026-10-06 사용자 요청). 자기 반만, 다른 반은 403 -----
+  router.post('/classes/:id/students', requireClassAccess('id'), async (req, res) => {
+    const body = z
+      .object({
+        studentNo: z.number().int().min(1).max(99),
+        name: z.string().min(1).max(20),
+        parentConsent: z.enum(['Y', 'N']),
+        isReporter: z.boolean().default(false),
+        initialPassword: z.string().max(64).nullable().default(null),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('번호와 이름을 확인해 주세요.');
+    const result = await ts.addStudent(
+      currentUser(req),
+      Number(req.params.id),
+      body.data,
+      clientIp(req),
+    );
+    res.status(201).json(ok(result));
+  });
+
+  router.patch('/students/:id', async (req, res) => {
+    const body = z
+      .object({
+        isReporter: z.boolean().optional(),
+        parentConsent: z.enum(['Y', 'N']).optional(),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('수정 값을 확인해 주세요.');
+    await ts.editStudent(currentUser(req), studentIdOf(req), body.data, clientIp(req));
+    res.json(ok({ updated: true }));
+  });
+
+  router.delete('/students/:id', async (req, res) => {
+    await ts.removeStudent(currentUser(req), studentIdOf(req), clientIp(req));
+    res.json(ok({ deleted: true }));
+  });
+
+  // 자치회 임원 지정·해제 (CNC-03)
+  router.post('/students/:id/council', async (req, res) => {
+    const body = z
+      .object({
+        title: z.string().min(1).max(20),
+        termStart: z.string(),
+        termEnd: z.string().nullable().default(null),
+      })
+      .safeParse(req.body);
+    if (!body.success) throw AppError.badRequest('직책과 임기를 확인해 주세요.');
+    res.json(
+      ok(await ts.setCouncilMember(currentUser(req), studentIdOf(req), body.data, clientIp(req))),
+    );
+  });
+
+  router.delete('/students/:id/council', async (req, res) => {
+    await ts.clearCouncilMember(currentUser(req), studentIdOf(req), clientIp(req));
+    res.json(ok({ removed: true }));
   });
 
   // AUTH-04 담임 비밀번호 초기화 → 임시 비밀번호 1회 반환

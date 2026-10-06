@@ -5,7 +5,9 @@ import { adminApi } from '@/api/admin';
 import { errorMessage } from '@/api/client';
 import { teacherApi } from '@/api/teacher';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { AddStudentModal } from '@/components/teacher/AddStudentModal';
 import { BonusModal } from '@/components/teacher/BonusModal';
+import { CouncilModal } from '@/components/teacher/CouncilModal';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Spinner } from '@/components/ui';
 import { useClassParam } from '@/hooks/useClassParam';
 import { useMe } from '@/hooks/useMe';
@@ -30,9 +32,52 @@ export function StudentsPage() {
   const [bonusFor, setBonusFor] = useState<TeacherUser | null>(null);
   const [resetting, setResetting] = useState<TeacherUser | null>(null);
   const [removingAll, setRemovingAll] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [councilFor, setCouncilFor] = useState<TeacherUser | null>(null);
+  const [removing, setRemoving] = useState<TeacherUser | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cls = classes.data?.find((c) => c.id === selected);
+  const refreshStudents = () => {
+    void qc.invalidateQueries({ queryKey: ['teacher'] });
+  };
+  /** 비어 있는 다음 번호 (학생 추가 기본값) */
+  const nextNo = (students.data ?? []).reduce((m, s) => Math.max(m, s.studentNo ?? 0), 0) + 1;
+
+  // 담임·배정 교사도 자기 반 학생을 고칠 수 있다 (2026-10-06 사용자 요청)
+  const toggleReporter = useMutation({
+    mutationFn: (s: TeacherUser) => teacherApi.editStudent(s.id, { isReporter: !s.isReporter }),
+    onSuccess: (_r, s) => {
+      setMsg(`${s.name} 학생을 기자단에서 ${s.isReporter ? '뺐어요' : '넣었어요'}.`);
+      setError(null);
+      refreshStudents();
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+
+  const clearCouncil = useMutation({
+    mutationFn: (s: TeacherUser) => teacherApi.clearCouncil(s.id),
+    onSuccess: (_r, s) => {
+      setMsg(`${s.name} 학생의 자치회 임원을 해제했어요.`);
+      setError(null);
+      refreshStudents();
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+
+  const removeOne = useMutation({
+    mutationFn: (s: TeacherUser) => teacherApi.deleteStudent(s.id),
+    onSuccess: (_r, s) => {
+      setRemoving(null);
+      setMsg(`${s.name} 학생을 지웠어요.`);
+      setError(null);
+      refreshStudents();
+    },
+    onError: (e) => {
+      setRemoving(null);
+      setError(errorMessage(e));
+    },
+  });
 
   const reset = useMutation({
     mutationFn: (s: TeacherUser) =>
@@ -63,11 +108,57 @@ export function StudentsPage() {
     },
   });
 
+  /**
+   * 학생 한 명의 동작 버튼 (카드·표에서 같이 쓴다).
+   * 기자단·임원은 눌러서 켜고 끄는 토글이라 지금 상태가 색으로 보인다.
+   */
+  const RowActions = ({ s }: { s: TeacherUser }) => (
+    <div className="flex flex-wrap gap-1">
+      <Button variant="primary" onClick={() => setBonusFor(s)}>
+        칭찬
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => setResetting(s)}
+        loading={reset.isPending && reset.variables?.id === s.id}
+      >
+        비번 초기화
+      </Button>
+      <Button
+        variant={s.isReporter ? 'primary' : 'ghost'}
+        aria-pressed={s.isReporter}
+        title={s.isReporter ? '눌러서 기자단에서 빼기' : '눌러서 기자단으로 넣기'}
+        loading={toggleReporter.isPending && toggleReporter.variables?.id === s.id}
+        onClick={() => toggleReporter.mutate(s)}
+      >
+        기자단
+      </Button>
+      <Button
+        variant={s.isCouncil ? 'primary' : 'ghost'}
+        aria-pressed={s.isCouncil}
+        title={s.isCouncil ? '눌러서 임원 해제' : '눌러서 자치회 임원으로 지정'}
+        loading={clearCouncil.isPending && clearCouncil.variables?.id === s.id}
+        onClick={() => (s.isCouncil ? clearCouncil.mutate(s) : setCouncilFor(s))}
+      >
+        임원
+      </Button>
+      {me?.role === 'admin' && (
+        <Button variant="ghost" onClick={() => setEditing(s)}>
+          수정
+        </Button>
+      )}
+      <Button variant="danger" onClick={() => setRemoving(s)}>
+        지우기
+      </Button>
+    </div>
+  );
+
   return (
     <>
       <PageHeader
         title="학생 관리"
-        description="반을 고르면 학생 목록이 나와요. 비밀번호를 잊은 학생은 초기화해 주세요."
+        description="반을 고르면 학생 목록이 나와요. 전학 온 학생은 추가하고, 기자단·자치회 임원도 여기서 정해요."
+        action={cls ? <Button onClick={() => setAdding(true)}>+ 학생 추가</Button> : undefined}
       />
 
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="반 선택">
@@ -118,7 +209,8 @@ export function StudentsPage() {
         <EmptyState
           icon="🧑‍🎓"
           title="아직 학생이 없어요"
-          description="관리자 메뉴의 학생 CSV 등록으로 계정을 만들어요."
+          description="위의 “+ 학생 추가”로 한 명씩 넣거나, 관리자 메뉴의 학생 CSV 등록으로 한꺼번에 만들어요."
+          action={cls ? <Button onClick={() => setAdding(true)}>+ 학생 추가</Button> : undefined}
         />
       )}
       {students.data && students.data.length > 0 && (
@@ -137,6 +229,7 @@ export function StudentsPage() {
                       {s.parentConsent === 'Y' ? '동의' : '미동의'}
                     </Badge>
                     {s.isReporter && <Badge tone="info">기자단</Badge>}
+                    {s.isCouncil && <Badge tone="primary">자치회 임원</Badge>}
                     {s.mustChangePw && <Badge tone="neutral">초기 비번</Badge>}
                     {s.status !== 'active' && (
                       <Badge tone="neutral">
@@ -148,30 +241,14 @@ export function StudentsPage() {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Button variant="primary" onClick={() => setBonusFor(s)}>
-                      칭찬
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setResetting(s)}
-                      loading={reset.isPending && reset.variables?.id === s.id}
-                    >
-                      비밀번호 초기화
-                    </Button>
-                    {me?.role === 'admin' && (
-                      <Button variant="ghost" onClick={() => setEditing(s)}>
-                        수정
-                      </Button>
-                    )}
-                  </div>
+                  <RowActions s={s} />
                 </li>
               ))}
             </ul>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[760px] text-left text-base">
+              <table className="w-full min-w-[900px] text-left text-base">
                 <thead>
-                  <tr className="border-b border-line text-ink-muted">
+                  <tr className="border-b border-line whitespace-nowrap text-ink-muted">
                     <th className="py-2 pr-3">번호</th>
                     <th className="py-2 pr-3">이름</th>
                     <th className="py-2 pr-3">표시 이름</th>
@@ -195,8 +272,11 @@ export function StudentsPage() {
                         </Badge>
                       </td>
                       <td className="py-2 pr-3">
-                        {s.isReporter && <Badge tone="info">기자단</Badge>}
-                        {s.mustChangePw && <Badge tone="neutral">초기 비번</Badge>}
+                        <div className="flex flex-wrap gap-1">
+                          {s.isReporter && <Badge tone="info">기자단</Badge>}
+                          {s.isCouncil && <Badge tone="primary">자치회 임원</Badge>}
+                          {s.mustChangePw && <Badge tone="neutral">초기 비번</Badge>}
+                        </div>
                       </td>
                       <td className="py-2 pr-3">
                         {s.status === 'active'
@@ -208,23 +288,7 @@ export function StudentsPage() {
                               : '중지'}
                       </td>
                       <td className="py-2">
-                        <div className="flex gap-1">
-                          <Button variant="primary" onClick={() => setBonusFor(s)}>
-                            칭찬
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setResetting(s)}
-                            loading={reset.isPending && reset.variables?.id === s.id}
-                          >
-                            비밀번호 초기화
-                          </Button>
-                          {me?.role === 'admin' && (
-                            <Button variant="ghost" onClick={() => setEditing(s)}>
-                              수정
-                            </Button>
-                          )}
-                        </div>
+                        <RowActions s={s} />
                       </td>
                     </tr>
                   ))}
@@ -292,6 +356,52 @@ export function StudentsPage() {
             setEditing(null);
             void qc.invalidateQueries({ queryKey: ['teacher', 'students', selected] });
           }}
+        />
+      )}
+      {adding && cls && (
+        <AddStudentModal
+          klass={cls}
+          nextNo={nextNo}
+          onClose={() => setAdding(false)}
+          onAdded={(r) => {
+            setAdding(false);
+            const row = r.rows[0];
+            setMsg(
+              row
+                ? `${cls.name} ${row.studentNo}번 학생을 넣었어요. 아이디 ${row.loginId}${
+                    row.initialPassword
+                      ? `, 초기 비밀번호 ${row.initialPassword} (지금만 보여요)`
+                      : ''
+                  }`
+                : '학생을 넣었어요.',
+            );
+            setError(null);
+            refreshStudents();
+          }}
+        />
+      )}
+      {councilFor && (
+        <CouncilModal
+          student={councilFor}
+          onClose={() => setCouncilFor(null)}
+          onSaved={(m) => {
+            setCouncilFor(null);
+            setMsg(m);
+            setError(null);
+            refreshStudents();
+          }}
+        />
+      )}
+      {removing && (
+        <ConfirmDialog
+          title={`${removing.name} 학생 지우기`}
+          message={`${removing.name}(${removing.studentNo}번) 학생을 지울까요? 되돌릴 수 없어요. 글·댓글·포인트가 있는 학생은 지워지지 않아요.`}
+          confirmLabel="지우기"
+          danger
+          requireText={removing.name}
+          loading={removeOne.isPending}
+          onConfirm={() => removeOne.mutate(removing)}
+          onCancel={() => setRemoving(null)}
         />
       )}
     </>

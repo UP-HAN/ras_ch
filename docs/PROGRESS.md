@@ -145,3 +145,12 @@
 - 절차에서 걸렸던 것: **마이그레이션 `.sql` 은 `server/dist` 에 들어가지 않는다.** dist 만 올리면 008 이 적용되지 않아 `git pull` 이 반드시 필요하다(deploy/README 4절에 이미 적혀 있음). HANDOFF 주의사항에 순서를 명시했다.
 - 확인: 두 사이트 `/healthz` 200·`db: ok`, `/api/v1/bug-reports/mine` 과 `/api/v1/admin/bug-reports/count` 가 401(경로 존재), 배포된 번들에 "불편한 점 알리기"·"버그 신고함"·"양식 다운받기"·"반 지우기" 문구 포함, 배치 8건 등록.
 - 운영 데이터 보존 확인: 반 5-4·5-7·6-1·6-6·6-7, 교사 황예영·정현정·김유리·전유리 + 관리자, 학생 0명 그대로. `bug_reports` 표 0건으로 정상 생성.
+
+### 2026-10-06 — 담임의 학생 관리 (AUTH-07, CNC-03, 사용자 요청)
+
+- 요청: 담임 선생님이 **자기 반 학생을 추가·삭제**하고, **자치회 임원·기자단**도 정할 수 있게. (전학생 여부를 아는 사람이 직접 넣도록)
+- 서버: `services/TeacherStudentService.ts` — `assertMyStudent`(학생의 반을 기존 `canAccessClass` 로 검사, 아니면 403)를 거친 뒤 **관리자와 똑같은 서비스를 재사용**한다(추가 `importStudents` 1행 → 아이디 생성·display_name 재계산 동일, 수정 `AdminService.updateStudent`, 삭제 `UserAdminService.deleteUser`(활동 있으면 409), 임원 `CouncilAdminService.addMember/removeMember`). 라우트는 `routes/teacher.ts` 에 `POST /teacher/classes/:id/students`(requireClassAccess), `PATCH|DELETE /teacher/students/:id`, `POST|DELETE /teacher/students/:id/council`.
+- 학생 목록(`GET /teacher/classes/:id/students`)이 `isCouncil` 을 **항상 false 로 내려주던 것을 고쳐** 실제 임원 여부를 표시한다(`councilRepo.activeMemberUserIds`).
+- 클라이언트: 학생 관리 화면에 "+ 학생 추가"(`AddStudentModal` — 번호·이름·학부모동의·기자단·초기 비밀번호, 비우면 자동), 행마다 **기자단·임원 토글**(눌린 상태가 색으로 보임)과 "지우기"(이름 입력 확인). 임원 지정은 `CouncilModal`(직책 프리셋·임기). 표 최소 너비 760→900px, 머리글 줄바꿈 방지.
+- 권한 주의: **승인 권한 교사(approver)와 학년군 지도교사는 원래 담당 범위의 모든 반에 접근**한다(`canAccessClass`). 테스트에서 t2(6학년 부장, approver)가 6-3 학생을 고칠 수 있는 것은 정상이며, 평교사 t4 로는 403 이 나온다.
+- 검증: e2e 21건 — 추가(아이디 자동·초기 비밀번호 1회)·목록 반영, **다른 반 추가/수정/삭제/임원 지정 전부 403**, 기자단 토글, 임원 지정·중복 409·해제, 삭제, 학생 호출 403. vitest 285 회귀, 360/1280 점검 통과.
