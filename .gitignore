@@ -18,3 +18,9 @@ ras-point-kit.zip
 
 # 디자인 작업 원본(큰 PNG)
 outputs/art/
+
+# 영상 촬영용 시연 계정 메모(비밀번호 포함, 커밋 금지)
+outputs/video/ACCOUNTS.local.md
+outputs/video/shots/
+outputs/video/check/
+outputs/video/*.mp4
