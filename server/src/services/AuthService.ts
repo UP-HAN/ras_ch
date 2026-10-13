@@ -8,6 +8,7 @@ import { AppError } from '../lib/apiResponse.js';
 import {
   generateTempPassword,
   hashPassword,
+  studentResetPassword,
   validatePasswordPolicy,
   verifyPassword,
 } from '../lib/password.js';
@@ -107,7 +108,8 @@ export function createAuthService(deps: AuthDeps = defaultDeps) {
     async resetPassword(studentId: number): Promise<string> {
       const user = await deps.findById(studentId);
       if (!user || user.role !== 'student') throw AppError.notFound('학생을 찾을 수 없어요.');
-      const temp = generateTempPassword(user.name);
+      // 아이들이 치기 쉬운 학교 공통 임시 비밀번호 (2026-10-13 사용자 결정)
+      const temp = studentResetPassword();
       await deps.updatePassword(user.id, await hashPassword(temp), true);
       return temp;
     },

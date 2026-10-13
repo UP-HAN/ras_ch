@@ -317,7 +317,7 @@ export function StudentsPage() {
       {resetting && (
         <ConfirmDialog
           title="비밀번호 초기화"
-          message={`${resetting.name} 학생의 비밀번호를 초기화할까요? 학생은 기존 비밀번호로 로그인할 수 없게 되고, 새 임시 비밀번호가 한 번만 표시돼요.`}
+          message={`${resetting.name} 학생의 비밀번호를 초기화할까요? 학생은 기존 비밀번호로 로그인할 수 없게 되고, 임시 비밀번호(cr8000**)로 바뀌어요. 학생이 그 비밀번호로 로그인하면 새 비밀번호를 정하게 돼요.`}
           confirmLabel="초기화"
           loading={reset.isPending}
           onConfirm={() => reset.mutate(resetting)}

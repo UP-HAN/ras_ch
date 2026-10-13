@@ -40,8 +40,21 @@ export function generateInitialPassword(name: string): string {
   return `${digits}${first}`;
 }
 
-/** 담임 초기화용 임시 비밀번호: 4자리 숫자 + 이름 첫 글자 (같은 규칙) */
+/** 교사 초기화용 임시 비밀번호의 앞부분: 4자리 숫자 + 이름 첫 글자 (같은 규칙) */
 export const generateTempPassword = generateInitialPassword;
+
+/**
+ * 학생 비밀번호 초기화 때 주는 임시 비밀번호 (AUTH-04, 2026-10-13 사용자 결정).
+ * 아이들이 따라 치기 쉽게 학교에서 정한 한 가지 값을 쓴다(명단 등록 때와 같은 값).
+ * 초기화 후 첫 로그인에서 새 비밀번호로 바꾸게 한다(must_change_pw). 바꾸고 싶으면 .env 의
+ * STUDENT_RESET_PASSWORD 로 덮어쓴다.
+ */
+export const DEFAULT_STUDENT_RESET_PASSWORD = 'cr8000**';
+
+export function studentResetPassword(): string {
+  const v = process.env.STUDENT_RESET_PASSWORD?.trim();
+  return v ? v : DEFAULT_STUDENT_RESET_PASSWORD;
+}
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_ROUNDS);

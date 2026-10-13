@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../lib/apiResponse.js';
-import { hashPassword } from '../lib/password.js';
+import { hashPassword, verifyPassword } from '../lib/password.js';
 import type { UserRow } from '../types/db.js';
 import { createAuthService, LOCK_MINUTES, LOCK_THRESHOLD, type AuthDeps } from './AuthService.js';
 
@@ -139,12 +139,23 @@ describe('AuthService.changePassword / resetPassword', () => {
     });
   });
 
-  it('초기화는 4자리 숫자+이름 첫 글자 임시 비밀번호를 주고 변경을 강제한다', async () => {
+  it('학생 초기화는 학교 공통 임시 비밀번호(cr8000**)를 주고 변경을 강제한다 (AUTH-04)', async () => {
     const user = await makeUser({ must_change_pw: 0 });
     const { deps } = fakeDeps(user);
     const temp = await createAuthService(deps).resetPassword(1);
-    expect(temp).toMatch(/^\d{4}류$/);
+    expect(temp).toBe('cr8000**');
+    expect(await verifyPassword('cr8000**', user.password_hash)).toBe(true);
     expect(user.must_change_pw).toBe(1);
+  });
+
+  it('STUDENT_RESET_PASSWORD 로 임시 비밀번호를 바꿀 수 있다 (AUTH-04)', async () => {
+    process.env.STUDENT_RESET_PASSWORD = 'school123';
+    try {
+      const user = await makeUser({ must_change_pw: 0 });
+      expect(await createAuthService(fakeDeps(user).deps).resetPassword(1)).toBe('school123');
+    } finally {
+      delete process.env.STUDENT_RESET_PASSWORD;
+    }
   });
 
   it('학생이 아니면 초기화 불가', async () => {
