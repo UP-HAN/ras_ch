@@ -2,11 +2,12 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { postsApi } from '@/api/posts';
 import { articlesApi } from '@/api/reactions';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ArticleCard } from '@/components/post/ArticleCard';
 import { ARTICLE_TAGS } from '@/components/post/articleMeta';
 import { ReportCard } from '@/components/post/ReportCard';
-import { Button, EmptyState, Spinner } from '@/components/ui';
+import { Button, EmptyState } from '@/components/ui';
 import { CouncilList } from './CouncilListPage';
 import { cn } from '@/lib/cn';
 
@@ -97,13 +98,10 @@ export function PostListPage() {
           </Button>
         </div>
       )}
-      {q.isLoading && (
-        <div className="flex justify-center py-10">
-          <Spinner size="lg" className="text-primary-600" />
-        </div>
-      )}
+      {q.isLoading && <PageLoading />}
       {tab !== 'council' && !q.isLoading && items.length === 0 && (
         <EmptyState
+          illustration="sleep"
           title={tab === 'articles' ? '아직 게시된 기사가 없어요' : '아직 게시된 리포트가 없어요'}
           description="선생님이 승인하면 여기에 보여요."
         />

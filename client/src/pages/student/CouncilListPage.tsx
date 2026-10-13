@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { councilApi } from '@/api/council';
 import { CouncilCard } from '@/components/council/CouncilCard';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Button, EmptyState, Spinner } from '@/components/ui';
+import { Button, EmptyState } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 
@@ -60,14 +61,11 @@ export function CouncilList({ standalone = false }: { standalone?: boolean }) {
           ✏️ 자치회 글 쓰기
         </Button>
       )}
-      {q.isLoading && (
-        <div className="flex justify-center py-10">
-          <Spinner size="lg" className="text-accent-600" />
-        </div>
-      )}
+      {q.isLoading && <PageLoading />}
       {q.data && q.data.length === 0 && (
         <EmptyState
           icon="🏫"
+          illustration="sleep"
           title={scope === 'live' ? '지금 게시 중인 자치회 글이 없어요' : '아직 글이 없어요'}
           description={scope === 'live' ? '자치회 임원이 올리면 여기에 보여요.' : undefined}
         />

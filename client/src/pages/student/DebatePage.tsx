@@ -3,9 +3,10 @@ import type { NewsProposalInput } from '@server-types/api';
 import { useState } from 'react';
 import { errorMessage } from '@/api/client';
 import { newsApi } from '@/api/news';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TopicCard } from '@/components/news/TopicCard';
-import { Button, Card, EmptyState, Input, Spinner, Textarea } from '@/components/ui';
+import { Button, Card, EmptyState, Input, Textarea } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
 
@@ -131,6 +132,7 @@ export function DebatePage() {
       <PageHeader
         title="토론방"
         description="뉴스를 읽고, 투표하고, 내 생각을 써 봐요."
+        illustration="think"
         action={
           me?.isCouncil && !proposing ? (
             <Button variant="secondary" onClick={() => setProposing(true)}>
@@ -176,10 +178,11 @@ export function DebatePage() {
       </div>
       {tab === 'live' && (
         <>
-          {live.isLoading && <Spinner size="lg" className="text-primary-600" />}
+          {live.isLoading && <PageLoading />}
           {live.data && live.data.items.length === 0 && (
             <EmptyState
               icon="💬"
+              illustration="think"
               title="지금 진행 중인 토론이 없어요"
               description="새 토론 주제는 정해진 요일 아침 8시에 올라와요."
             />
@@ -193,9 +196,9 @@ export function DebatePage() {
       )}
       {tab === 'closed' && (
         <>
-          {closed.isLoading && <Spinner size="lg" className="text-primary-600" />}
+          {closed.isLoading && <PageLoading />}
           {!closed.isLoading && closedItems.length === 0 && (
-            <EmptyState icon="📚" title="아직 지난 토론이 없어요" />
+            <EmptyState icon="📚" illustration="think" title="아직 지난 토론이 없어요" />
           )}
           <div className="space-y-3">
             {closedItems.map((t) => (

@@ -5,9 +5,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { councilApi } from '@/api/council';
 import { COUNCIL_STATUS, COUNCIL_TYPE } from '@/components/council/councilLabels';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ReactionsSection } from '@/components/post/Reactions';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
 import { useReadTracker } from '@/hooks/useReadTracker';
 import { cn } from '@/lib/cn';
 
@@ -118,16 +119,13 @@ export function CouncilPostPage() {
   useReadTracker(readable ? { type: 'council_post', id: postId } : null, readable);
 
   if (q.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-accent-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!p) {
     return (
       <EmptyState
         icon="🙈"
+        illustration="oops"
         title="이 글은 볼 수 없어요"
         action={<Button onClick={() => navigate('/council')}>자치회 게시판으로</Button>}
       />

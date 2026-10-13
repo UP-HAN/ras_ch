@@ -1,0 +1,297 @@
+/*
+ * 움직임 모음 (디자인 개편 01-spec 6.4). 새 라이브러리 없이 CSS keyframes 만 쓴다.
+ *  - 움직이는 속성은 transform·opacity 만 (게이지 너비만 예외로 width transition)
+ *  - 반복 움직임은 한 화면에 최대 3개(불꽃·마스코트·로고)
+ *  - prefers-reduced-motion: reduce 이면 모두 끈다 (맨 아래)
+ *  - 교사 화면(.motion-off 안)에는 움직임을 넣지 않는다
+ */
+
+/* #1 카드·모달 등장: 280ms, 카드 순서대로 40ms 씩 늦게(최대 6장) */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-pop-in {
+  animation: pop-in 280ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.anim-stagger > :nth-child(2) {
+  --i: 1;
+}
+.anim-stagger > :nth-child(3) {
+  --i: 2;
+}
+.anim-stagger > :nth-child(4) {
+  --i: 3;
+}
+.anim-stagger > :nth-child(5) {
+  --i: 4;
+}
+.anim-stagger > :nth-child(n + 6) {
+  --i: 5;
+}
+
+/* #3 포인트 축하: 마스코트 통통(위로 12px 2번) + 색종이 1200ms */
+@keyframes hop {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+  25%,
+  75% {
+    transform: translateY(-12px);
+  }
+}
+.anim-hop {
+  animation: hop 900ms ease-in-out 1;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), var(--dy, 220px)) rotate(360deg);
+  }
+}
+.anim-confetti {
+  animation: confetti-fall 1200ms cubic-bezier(0.2, 0.6, 0.4, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* #4 등급 올라감: 이모지 0.4 → 1.2 → 1 (600ms 1회), 뒤 빛줄기 8s 회전 */
+@keyframes tier-emoji {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.anim-tier-emoji {
+  display: inline-block;
+  animation: tier-emoji 600ms ease-out 1 both;
+}
+@keyframes rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.anim-rays {
+  animation: rays-spin 8s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* #5 출석 도장: 크기 2 → 1, -12deg 로 "쾅" + 살짝 흔들림. 450ms 1회 */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2) rotate(-12deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+  70% {
+    transform: scale(1) rotate(-15deg);
+  }
+  85% {
+    transform: scale(1) rotate(-9deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+.anim-stamp {
+  transform: rotate(-12deg);
+  animation: stamp 450ms ease-out 1 both;
+}
+
+/* #6 게이지: 너비 0 → 값 900ms, 다 차면 하얀 빛이 왼→오 1번(1200ms) */
+.anim-gauge-fill {
+  transition: width 900ms ease-out;
+}
+@keyframes gauge-shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.anim-gauge-shine {
+  animation: gauge-shine 1200ms ease-in-out 900ms 1 both;
+}
+
+/* #7 연속 출석 불꽃: 1600ms 반복 */
+@keyframes flame {
+  0%,
+  100% {
+    transform: scale(1) rotate(-4deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(4deg);
+  }
+}
+.anim-flame {
+  display: inline-block;
+  transform-origin: 50% 90%;
+  animation: flame 1600ms ease-in-out infinite;
+}
+
+/* #8 마스코트 둥실: 0 → -6px → 0, 3000ms 반복 */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.anim-float {
+  animation: float 3000ms ease-in-out infinite;
+}
+
+/* #9 불러오는 중 마스코트: 위쪽 중심 -6deg ↔ 6deg, 1200ms 반복 */
+@keyframes swing {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+.anim-swing {
+  transform-origin: 50% 0;
+  animation: swing 1200ms ease-in-out infinite;
+}
+
+/* #10 하단 탭 활성: 1 → 1.18 → 1, 위로 3px. 300ms 1회 */
+@keyframes tab-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.18);
+  }
+}
+.anim-tab-bounce {
+  animation: tab-bounce 300ms ease-out 1;
+}
+
+/* #11 반짝: 흰 사선 빛이 1번 지나감. 1000ms 1회 */
+@keyframes sparkle {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+.anim-sparkle {
+  position: relative;
+  overflow: hidden;
+}
+.anim-sparkle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent);
+  pointer-events: none;
+  animation: sparkle 1000ms ease-out 1 both;
+}
+
+/* #12 헤더 초롱 로고: 위쪽 중심 -4deg ↔ 4deg, 3000ms 반복 */
+@keyframes lantern {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+.anim-lantern {
+  transform-origin: 50% 0;
+  animation: lantern 3000ms ease-in-out infinite;
+}
+
+/* #13 버튼 누름: 누르는 동안 아래로 2px, 그림자 줄어듦(Button 의 active:shadow). 120ms */
+.anim-press {
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 120ms ease-out;
+}
+.anim-press:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* #14 명예의 전당 1~3위: 좌우 ±8deg 2번. 600ms 1회 */
+@keyframes medal {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0);
+  }
+  12.5%,
+  62.5% {
+    transform: rotate(-8deg);
+  }
+  37.5%,
+  87.5% {
+    transform: rotate(8deg);
+  }
+}
+.anim-medal {
+  display: inline-block;
+  animation: medal 600ms ease-in-out 1;
+}
+
+/* 교사 화면: 움직임 없음 (01-spec 6.2) */
+.motion-off [class*='anim-'],
+.motion-off [class*='anim-']::after {
+  animation: none !important;
+  transition: none !important;
+}
+.motion-off .anim-press:active:not(:disabled) {
+  transform: none;
+}
+.motion-off .anim-sparkle::after,
+.motion-off .anim-gauge-shine,
+.motion-off .anim-confetti {
+  display: none;
+}
+
+/* 움직임 줄이기 설정: 모든 .anim-* 를 끈다. 숫자는 바로 최종값, 축하 창은 정지 상태 */
+@media (prefers-reduced-motion: reduce) {
+  [class*='anim-'],
+  [class*='anim-']::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .anim-press:active:not(:disabled) {
+    transform: none;
+  }
+  .anim-confetti,
+  .anim-gauge-shine,
+  .anim-sparkle::after {
+    display: none;
+  }
+}

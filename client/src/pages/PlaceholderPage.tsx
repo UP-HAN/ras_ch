@@ -16,6 +16,7 @@ export function PlaceholderPage({
       <PageHeader title={title} description={description} />
       <EmptyState
         icon="🚧"
+        illustration="oops"
         title="준비 중이에요"
         description={`이 화면은 ${sprint}에서 만들어요.`}
       />

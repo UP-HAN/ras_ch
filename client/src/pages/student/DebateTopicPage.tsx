@@ -5,11 +5,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { newsApi } from '@/api/news';
 import { AuthorChip } from '@/components/common/AuthorChip';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { TOPIC_TYPE_LABEL } from '@/components/news/topicLabels';
 import { VoteBar } from '@/components/news/VoteBar';
 import { ReactionsSection } from '@/components/post/Reactions';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
 import { useReadTracker } from '@/hooks/useReadTracker';
 
 /** 토론 주제 상세 (NWS-06, 07, 08, 10): 설명·질문·투표·비율·의견 댓글(도우미·입장 배지)·베스트 의견 */
@@ -38,16 +39,13 @@ export function DebateTopicPage() {
   useReadTracker(q.data ? { type: 'news_topic', id: topicId } : null, !!q.data);
 
   if (q.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-primary-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!q.data) {
     return (
       <EmptyState
         icon="🙈"
+        illustration="think"
         title="토론 주제를 찾을 수 없어요"
         action={<Button onClick={() => navigate('/debate')}>토론방으로</Button>}
       />
@@ -60,6 +58,7 @@ export function DebateTopicPage() {
     <>
       <PageHeader
         title={t.title}
+        illustration="think"
         action={<Badge tone={closed ? 'neutral' : 'success'}>{closed ? '마감' : '진행 중'}</Badge>}
       />
       <div className="space-y-4">

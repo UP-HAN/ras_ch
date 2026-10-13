@@ -28,7 +28,7 @@ export function Modal({
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-30 flex items-center justify-center bg-accent-900/40 p-4"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-accent-900/50 p-4"
       role="dialog"
       aria-modal="true"
       data-testid={testId}

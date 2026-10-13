@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { postsApi } from '@/api/posts';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ArticleDetail } from '@/components/post/ArticleDetail';
 import { ReactionsSection } from '@/components/post/Reactions';
 import { ReportDetail } from '@/components/post/ReportDetail';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
 import { useReadTracker } from '@/hooks/useReadTracker';
 
 const STATUS: Record<
@@ -51,16 +52,13 @@ export function PostDetailPage() {
   );
 
   if (q.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-primary-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!post) {
     return (
       <EmptyState
         icon="🙈"
+        illustration="oops"
         title="이 글은 볼 수 없어요"
         description={errorMessage(q.error, '')}
         action={

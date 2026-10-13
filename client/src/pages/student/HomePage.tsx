@@ -1,4 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Tier } from '@server-types/db';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
@@ -9,7 +11,14 @@ import { TierBadge } from '@/components/common/TierBadge';
 import { CouncilCard } from '@/components/council/CouncilCard';
 import { TopicCard } from '@/components/news/TopicCard';
 import { ReportCard } from '@/components/post/ReportCard';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { AttendanceStamp } from '@/components/fun/AttendanceStamp';
+import { Celebration } from '@/components/fun/Celebration';
+import { Mascot } from '@/components/fun/Mascot';
+import { PageLoading } from '@/components/fun/PageLoading';
+import { TierUpModal } from '@/components/fun/TierUpModal';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
+import { checkCelebrations, checkStamp, safeStorage, seoulToday } from '@/lib/celebrate';
+import { useCountUp } from '@/lib/motion';
 
 type CardSpec = {
   text: string;
@@ -68,6 +77,11 @@ const REPORT_CARD: Record<string, CardSpec> = {
   },
 };
 
+type CelebrationItem = { kind: 'tier'; tier: Tier } | { kind: 'points'; points: number };
+
+/** 리포트를 올릴 차례(none·draft·rejected)면 연필 든 초롱이를 보여 준다 (01-spec 6.6) */
+const WRITE_TURN = new Set(['none', 'draft', 'rejected']);
+
 /** 학생 홈 (6.1, CMN-05): 내 상태 → 리포트 카드 → 알림 → 우리 반 최근 글 */
 export function HomePage() {
   const navigate = useNavigate();
@@ -85,17 +99,50 @@ export function HomePage() {
     enabled: canReview === true,
   });
 
+  // 01-spec 6.5: 축하 판단(등급 → 포인트 순서, 최대 2개)과 출석 도장은 localStorage 로만
+  const [celebrations, setCelebrations] = useState<CelebrationItem[]>([]);
+  const home = q.data;
+  const userId = home?.me.id;
+  const weekKey = home?.weekKey;
+  const weekPointsNow = home?.weekPoints;
+  const tierNow = home?.me.tier;
+  useEffect(() => {
+    if (userId === undefined || weekKey === undefined || weekPointsNow === undefined || !tierNow)
+      return;
+    const r = checkCelebrations(safeStorage(), {
+      userId,
+      weekKey,
+      weekPoints: weekPointsNow,
+      tier: tierNow,
+    });
+    const next: CelebrationItem[] = [];
+    if (r.tierUp) next.push({ kind: 'tier', tier: r.tierUp });
+    if (r.pointsGain) next.push({ kind: 'points', points: r.pointsGain });
+    // 바깥 저장소(localStorage)와 비교한 결과를 화면에 반영한다. 홈 값이 바뀔 때만 실행된다
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (next.length > 0) setCelebrations(next);
+  }, [userId, weekKey, weekPointsNow, tierNow]);
+
+  const stampChecked = useRef(false);
+  const [stampAnimate, setStampAnimate] = useState(false);
+  const hasAttendance = !!attendance.data;
+  useEffect(() => {
+    if (!hasAttendance || userId === undefined || stampChecked.current) return;
+    stampChecked.current = true;
+    setStampAnimate(checkStamp(safeStorage(), userId, seoulToday()));
+  }, [hasAttendance, userId]);
+
+  const weekPointsShown = useCountUp(weekPointsNow ?? 0, 800);
+  const closeCelebration = () => setCelebrations((list) => list.slice(1));
+
   if (q.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-primary-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!q.data) {
     return (
       <EmptyState
         icon="😵"
+        illustration="oops"
         title="불러오지 못했어요"
         description="잠시 후 다시 열어 주세요."
         action={<Button onClick={() => q.refetch()}>다시 시도</Button>}
@@ -116,6 +163,8 @@ export function HomePage() {
   } = q.data;
   const missionsDone = missions.filter((m) => m.done).length;
   const card = REPORT_CARD[report.status] ?? (REPORT_CARD.none as CardSpec);
+  const allMissionsDone = missionsDone === missions.length && missions.length > 0;
+  const current = celebrations[0];
   const openNotification = async (id: number, link?: string) => {
     await meApi.readNotification(id).catch(() => undefined);
     await qc.invalidateQueries({ queryKey: ['me', 'home'] });
@@ -123,20 +172,27 @@ export function HomePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="anim-stagger space-y-4">
+      {current?.kind === 'tier' && <TierUpModal tier={current.tier} onClose={closeCelebration} />}
+      {current?.kind === 'points' && (
+        <Celebration points={current.points} onClose={closeCelebration} />
+      )}
       {notices.map((n) => (
         <section
           key={n.id}
           data-testid="notice-banner"
-          className="rounded-lg border border-accent-100 bg-accent-50 px-4 py-3"
+          className="anim-pop-in rounded-xl border-2 border-mint-400/40 bg-mint-100 px-4 py-3"
         >
-          <p className="text-base font-bold text-accent-700">📢 {n.title}</p>
+          <p className="text-base font-bold text-mint-700">📢 {n.title}</p>
           <p className="mt-1 whitespace-pre-wrap text-base">{n.body}</p>
         </section>
       ))}
       {councilPinned.length > 0 && (
-        <section data-testid="council-pinned" className="space-y-2">
-          <p className="text-base font-bold text-accent-700">🏫 학생자치회</p>
+        <section
+          data-testid="council-pinned"
+          className="anim-pop-in space-y-2 rounded-xl border-2 border-primary-200 bg-primary-50 p-3"
+        >
+          <p className="text-base font-bold text-primary-700">🏫 학생자치회</p>
           {councilPinned.map((p) => (
             <CouncilCard key={p.id} post={p} banner />
           ))}
@@ -148,9 +204,10 @@ export function HomePage() {
           <TopicCard t={debate} home />
         </section>
       )}
-      <Card tone="primary">
+      <Card tone="hero">
         <div className="flex items-center justify-between gap-3">
-          <div>
+          <Mascot name="hello" size={64} sticker className="self-start" />
+          <div className="min-w-0 flex-1">
             <p className="text-base text-ink-muted">안녕하세요</p>
             <p className="text-2xl font-extrabold">
               {me.className ? `${me.className} ` : ''}
@@ -169,13 +226,28 @@ export function HomePage() {
           </div>
           <div className="text-right">
             <p className="text-base text-ink-muted">이번 주 포인트</p>
-            <p className="text-3xl font-extrabold text-primary-700">{weekPoints}P</p>
+            <p
+              className="font-display text-3xl font-extrabold text-primary-700"
+              aria-label={`${weekPoints}P`}
+            >
+              {weekPointsShown}P
+            </p>
             {attendance.data && (
-              <p className="text-base text-ink-muted">
-                {attendance.data.streak >= 2
-                  ? `🔥 ${attendance.data.streak}일 연속 출석`
-                  : '✅ 오늘 출석'}
-              </p>
+              <div className="mt-1 flex items-center justify-end gap-1">
+                <p className="text-base text-ink">
+                  {attendance.data.streak >= 2 ? (
+                    <>
+                      <span className="anim-flame" aria-hidden="true">
+                        🔥
+                      </span>{' '}
+                      {attendance.data.streak}일 연속 출석
+                    </>
+                  ) : (
+                    '✅ 오늘 출석'
+                  )}
+                </p>
+                <AttendanceStamp animate={stampAnimate} />
+              </div>
             )}
           </div>
         </div>
@@ -183,11 +255,19 @@ export function HomePage() {
 
       <Card
         title={
-          missionsDone === missions.length && missions.length > 0
-            ? '🎉 이번 주 미션 완료!'
-            : '이번 주 미션'
+          allMissionsDone ? (
+            <>
+              <span className="anim-sparkle inline-block rounded-md" aria-hidden="true">
+                🎉
+              </span>{' '}
+              이번 주 미션 완료!
+            </>
+          ) : (
+            '이번 주 미션'
+          )
         }
-        tone={missionsDone === missions.length && missions.length > 0 ? 'primary' : 'default'}
+        action={allMissionsDone ? <Mascot name="cheer" size={56} sticker /> : undefined}
+        tone="mint"
         data-testid="missions-card"
       >
         <MissionGauge
@@ -227,7 +307,7 @@ export function HomePage() {
               ? '🎉 우리 반 미션 달성!'
               : `우리 반 미션 (${classMission.className})`
           }
-          tone={classMission.achieved ? 'accent' : 'default'}
+          tone="primary"
           data-testid="class-mission-card"
         >
           <p className="mb-2 text-base">
@@ -247,7 +327,7 @@ export function HomePage() {
       )}
 
       {review.data?.hasAssignment && (
-        <Card title="리포트 검토" tone="accent" data-testid="review-card">
+        <Card title="리포트 검토" tone="mint" data-testid="review-card">
           <p className="mb-3 text-base">
             {review.data.pending > 0
               ? `검토를 기다리는 글이 ${review.data.pending}건 있어요.`
@@ -259,7 +339,13 @@ export function HomePage() {
         </Card>
       )}
 
-      <Card title="이번 주 리포트" tone={card.tone}>
+      <Card
+        title="이번 주 리포트"
+        tone="primary"
+        action={
+          WRITE_TURN.has(report.status) ? <Mascot name="write" size={72} sticker /> : undefined
+        }
+      >
         <p className="mb-3 text-base">{card.text}</p>
         {card.button && (
           <Button
@@ -277,6 +363,7 @@ export function HomePage() {
         {notifications.length === 0 ? (
           <EmptyState
             icon="🔔"
+            illustration="sleep"
             title="새 알림이 없어요"
             description="선생님이 확인하면 여기에 알려 드려요."
           />
@@ -289,7 +376,7 @@ export function HomePage() {
                   <button
                     type="button"
                     onClick={() => openNotification(n.id, payload.link)}
-                    className={`flex min-h-tap w-full items-center rounded-md px-3 py-2 text-left text-base ${n.readAt ? 'bg-paper text-ink-muted' : 'bg-primary-50 font-semibold'}`}
+                    className={`flex min-h-tap w-full items-center rounded-md px-3 py-2 text-left text-base ${n.readAt ? 'bg-surface/60 text-ink-muted' : 'bg-surface font-semibold shadow-card'}`}
                   >
                     {n.readAt ? '' : '🔔 '}
                     {String(payload.message ?? n.type)}
@@ -319,7 +406,11 @@ export function HomePage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="아직 글이 없어요" description="첫 번째 리포트를 올려 볼까요?" />
+          <EmptyState
+            illustration="sleep"
+            title="아직 글이 없어요"
+            description="첫 번째 리포트를 올려 볼까요?"
+          />
         )}
       </Card>
     </div>

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { reviewApi } from '@/api/review';
 import { useMe, useMeCache } from '@/hooks/useMe';
+import { LanternLogo } from '@/components/fun/LanternLogo';
 import { cn } from '@/lib/cn';
 import { ChatIcon, HomeIcon, PencilIcon, TrophyIcon, UserIcon } from './icons';
 
@@ -29,26 +30,28 @@ export function StudentShell() {
   };
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-paper/95 px-4 backdrop-blur">
-        <a
-          href="/"
-          className="flex min-h-tap items-center gap-2 text-lg font-extrabold text-accent-600"
-        >
-          <span aria-hidden="true">🏮</span> 초롱 RAS 포인트
+      <header className="sticky top-0 z-10 flex h-14 items-center justify-between bg-surface/95 px-4 backdrop-blur">
+        <a href="/" className="flex min-h-tap items-center gap-2">
+          <LanternLogo swing />
+          <span className="font-display text-xl font-extrabold text-primary-700">
+            초롱 RAS 포인트
+          </span>
         </a>
         {canReview && (
           <NavLink
             to="/review"
             className={({ isActive }) =>
               cn(
-                'inline-flex min-h-tap items-center rounded-md px-3 text-base font-bold',
-                isActive ? 'bg-accent-600 text-white' : 'bg-accent-100 text-accent-900',
+                'anim-press inline-flex min-h-tap items-center rounded-full px-4 text-base font-bold',
+                isActive ? 'bg-primary-700 text-white' : 'bg-primary-100 text-primary-800',
               )
             }
           >
             🔍 검토
           </NavLink>
         )}
+        {/* 헤더 아래 4px 무지개 띠 (01-spec 6.3) */}
+        <div aria-hidden="true" className="bg-rainbow absolute inset-x-0 -bottom-1 h-1" />
       </header>
       {me?.role === 'council_teacher' && (
         <div
@@ -74,7 +77,7 @@ export function StudentShell() {
 
       <nav
         aria-label="주요 메뉴"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface safe-bottom"
+        className="fixed inset-x-0 bottom-0 z-10 rounded-t-[20px] bg-surface shadow-[0_-4px_16px_rgb(46_125_50/0.12)] safe-bottom"
       >
         <ul className="mx-auto grid h-tab-bar max-w-[480px] grid-cols-5">
           {TABS.map(({ to, label, Icon, ...t }) => (
@@ -97,15 +100,27 @@ export function StudentShell() {
                   end={'end' in t ? t.end : false}
                   className={({ isActive }) =>
                     cn(
-                      'flex min-h-tap flex-1 flex-col items-center justify-center gap-0.5 font-semibold',
-                      isActive ? 'text-primary-700' : 'text-ink-muted',
+                      'flex min-h-tap flex-1 flex-col items-center justify-center gap-0.5',
+                      isActive ? 'font-bold text-primary-700' : 'font-semibold text-ink-muted',
                     )
                   }
                 >
-                  <Icon />
-                  <span className="text-base leading-tight whitespace-pre-line text-center">
-                    {label}
-                  </span>
+                  {({ isActive }) => (
+                    <>
+                      {/* 활성 탭: 아이콘 뒤 알약 + 통통 1회 (6.4 #10) */}
+                      <span
+                        className={cn(
+                          'flex h-8 w-14 items-center justify-center rounded-full',
+                          isActive && 'anim-tab-bounce bg-primary-100',
+                        )}
+                      >
+                        <Icon />
+                      </span>
+                      <span className="text-base leading-tight whitespace-pre-line text-center">
+                        {label}
+                      </span>
+                    </>
+                  )}
                 </NavLink>
               )}
             </li>

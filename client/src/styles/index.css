@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './motion.css';
 
 @layer base {
   html {
@@ -9,7 +10,10 @@
   }
   body {
     margin: 0;
-    background: var(--color-paper);
+    /* 연두 바탕 위 초록 물방울 무늬 (22px 간격) */
+    background-color: var(--color-paper);
+    background-image: radial-gradient(rgb(108 191 69 / 0.14) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
     color: var(--color-ink);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
@@ -35,6 +39,12 @@
 }
 
 @layer utilities {
+  .bg-hero {
+    background-image: var(--gradient-hero);
+  }
+  .bg-rainbow {
+    background-image: var(--gradient-rainbow);
+  }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

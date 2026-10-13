@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { Illustration } from '@/components/fun/Mascot';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
@@ -11,9 +12,16 @@ export function WritePage() {
   return (
     <>
       <PageHeader title="글쓰기" description="무엇을 쓸까요?" />
-      <div className="space-y-4">
+      <div className="anim-stagger space-y-4">
+        {/* 01-spec 6.6: 활동 그림(가로 꽉, 160px). 그림이 없으면 숨긴다 */}
+        <Illustration
+          name="activities"
+          width={960}
+          height={640}
+          className="block h-[160px] w-full rounded-xl border-2 border-primary-200 object-cover shadow-card"
+        />
         <PoliteNotice />
-        <Card title="📱 폰프리 주간 리포트">
+        <Card title="📱 폰프리 주간 리포트" tone="primary">
           <p className="mb-3 text-base">
             이번 주 내 폰 사용 습관을 돌아봐요. 캡처 2장과 성찰 글을 올려요.
           </p>
@@ -21,7 +29,7 @@ export function WritePage() {
             리포트 쓰기
           </Button>
         </Card>
-        <Card title="📰 RAS 기사">
+        <Card title="📰 RAS 기사" tone="mint">
           <p className="mb-3 text-base">
             학교에서 겪은 독서·예술·스포츠·폰프리 활동을 기사로 써요. 승인되면 전교에 게시돼요.
           </p>

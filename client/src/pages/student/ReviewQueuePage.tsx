@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import { reviewApi } from '@/api/review';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Card, EmptyState, Spinner } from '@/components/ui';
 import { POST_TYPE_LABEL } from '@/lib/reviewLabels';
@@ -17,11 +18,7 @@ export function ReviewQueuePage() {
   });
 
   if (summary.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-primary-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!summary.data?.hasAssignment) {
     return (
@@ -61,7 +58,12 @@ export function ReviewQueuePage() {
 
       {queue.isLoading && <Spinner className="text-primary-600" />}
       {queue.data && queue.data.length === 0 && (
-        <EmptyState icon="🎉" title="검토할 글이 없어요" description="다 했어요! 고마워요." />
+        <EmptyState
+          icon="🎉"
+          illustration="cheer"
+          title="검토할 글이 없어요"
+          description="다 했어요! 고마워요."
+        />
       )}
       {queue.data && queue.data.length > 0 && (
         <ul className="space-y-3">

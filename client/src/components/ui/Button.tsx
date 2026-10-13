@@ -13,14 +13,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
+/** 통통한 "젤리" 버튼 (01-spec 6.3): 아래 그림자가 있고, 누르면 2px 내려가며 그림자가 줄어든다(6.4 #13) */
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 disabled:bg-primary-300',
+    'bg-primary-600 text-white shadow-[var(--shadow-pop)] hover:bg-primary-700 active:shadow-[0_2px_0_var(--color-primary-800)] disabled:bg-primary-300 disabled:shadow-none',
   secondary:
-    'bg-surface text-primary-700 border-2 border-primary-300 hover:bg-primary-50 active:bg-primary-100 disabled:text-ink-muted disabled:border-line',
+    'bg-surface text-primary-700 border-2 border-primary-300 shadow-[var(--shadow-pop-soft)] hover:bg-primary-50 active:bg-primary-100 active:shadow-[0_1px_0_var(--color-primary-200)] disabled:text-ink-muted disabled:border-line disabled:shadow-none',
   ghost:
     'bg-transparent text-ink hover:bg-primary-50 active:bg-primary-100 disabled:text-ink-muted',
-  danger: 'bg-danger-600 text-white hover:bg-red-800 disabled:bg-red-300',
+  danger:
+    'bg-danger-600 text-white shadow-[0_4px_0_#7f1d1d] hover:bg-red-800 active:shadow-[0_2px_0_#7f1d1d] disabled:bg-red-300 disabled:shadow-none',
 };
 
 const SIZE: Record<ButtonSize, string> = {
@@ -50,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-md font-semibold select-none transition-colors',
+        'anim-press inline-flex items-center justify-center gap-2 rounded-lg font-bold select-none',
         'disabled:cursor-not-allowed',
         VARIANT[variant],
         SIZE[size],

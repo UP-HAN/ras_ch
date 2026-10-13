@@ -9,7 +9,7 @@ interface FieldProps {
 }
 
 const FIELD_BASE =
-  'w-full rounded-md border-2 bg-surface px-3 text-base text-ink placeholder:text-ink-muted focus:border-info-600 focus:outline-none disabled:bg-primary-50';
+  'w-full rounded-lg border-2 bg-surface px-3 text-base text-ink placeholder:text-ink-muted focus:border-primary-400 focus:shadow-[0_0_0_3px_var(--color-primary-100)] focus:outline-none disabled:bg-primary-50';
 
 function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
   return (

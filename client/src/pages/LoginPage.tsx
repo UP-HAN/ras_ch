@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { errorMessage } from '@/api/client';
+import { Illustration, Mascot } from '@/components/fun/Mascot';
 import { Button, Card, Input } from '@/components/ui';
 import { isTeacherRole, useMe, useMeCache } from '@/hooks/useMe';
 
@@ -14,6 +15,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [heroOk, setHeroOk] = useState(true);
 
   if (!isLoading && me) return <Navigate to={isTeacherRole(me) ? '/teacher' : '/'} replace />;
 
@@ -35,12 +37,20 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col justify-center px-4 py-8">
-      <div className="mb-6 text-center">
-        <div className="text-5xl" aria-hidden="true">
-          🏮
-        </div>
-        <h1 className="mt-2 text-2xl font-extrabold text-accent-700">초롱 RAS 포인트</h1>
-        <p className="text-base text-ink-muted">폰은 쉬go, 포인트는 쌓이go</p>
+      <div className="mb-6 flex flex-col items-center text-center">
+        {/* 01-spec 6.6: 큰 그림 → 겹치게 흰 원 안 초롱이 → 사이트 이름 → 구호. 그림이 없으면 빈 자리 없이 숨긴다 */}
+        <Illustration
+          name="loginHero"
+          width={960}
+          height={640}
+          className="h-[180px] w-full rounded-xl border-2 border-primary-200 object-cover shadow-card"
+          onMissing={() => setHeroOk(false)}
+        />
+        <Mascot name="hello" size={96} sticker className={heroOk ? 'relative -mt-10' : undefined} />
+        <h1 className="mt-2 font-display text-3xl font-extrabold text-accent-700">
+          초롱 RAS 포인트
+        </h1>
+        <p className="text-base font-semibold text-ink-muted">폰은 쉬go, 포인트는 쌓이go</p>
       </div>
       <Card>
         <form onSubmit={submit} className="space-y-4" noValidate>

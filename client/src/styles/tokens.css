@@ -1,41 +1,61 @@
 /*
  * 디자인 토큰 (TASKS 0-4, PRD 10장 접근성)
  *  - 글자 최소 16px, 터치 영역 44px, 색 대비 4.5:1 이상 조합만 사용
- *  - 초롱(등불) 주황 + 밤하늘 남색. 3학년도 읽기 쉬운 크고 따뜻한 화면
+ *  - 2026-10-13 사용자 결정: 사이트 전체 초록·연두·민트 톤('초롱'↔초록). primary = 초록, accent = 짙은 숲초록
+ *  - 노랑·하늘·분홍·보라(sun·sky·berry·grape)는 배지·색종이 같은 작은 포인트로만 쓴다
  * Tailwind v4 @theme: 아래 변수는 bg-primary-600, text-ink, text-lg 같은 유틸리티가 된다.
  */
 @theme {
   --font-sans:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
     'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  /* 2026-10-13 사용자 결정: 제목 글꼴은 바꾸지 않는다(본문 글꼴 그대로) */
+  --font-display: var(--font-sans);
 
-  /* 등불 주황: 500은 장식용(흰 글자 금지), 600 이상은 흰 글자 가능(대비 4.5:1+) */
-  --color-primary-50: #fff7ed;
-  --color-primary-100: #ffedd5;
-  --color-primary-200: #fed7aa;
-  --color-primary-300: #fdba74;
-  --color-primary-400: #f8a24a;
-  --color-primary-500: #f28c28;
-  --color-primary-600: #c96a0f;
-  --color-primary-700: #a3540b;
-  --color-primary-800: #7c3f08;
-  --color-primary-900: #5a2e06;
+  /* 초록(주 강조색): 400·500은 장식용(흰 글자 금지), 600 이상은 흰 글자 가능(대비 5.1:1+) */
+  --color-primary-50: #f0fae6;
+  --color-primary-100: #dcf3c8;
+  --color-primary-200: #bfe6a0;
+  --color-primary-300: #9ad46f;
+  --color-primary-400: #6cbf45;
+  --color-primary-500: #4ea83a;
+  --color-primary-600: #2e7d32;
+  --color-primary-700: #24682a;
+  --color-primary-800: #1b5121;
+  --color-primary-900: #123a17;
 
-  /* 밤하늘 남색: 교사 화면 메뉴·강조 */
-  --color-accent-50: #eef3f9;
-  --color-accent-100: #d8e3f0;
-  --color-accent-500: #2f5486;
-  --color-accent-600: #1e3a5f;
-  --color-accent-700: #162c48;
-  --color-accent-900: #0b1626;
+  /* 밝은 색 5계열 (디자인 개편 01-spec 3.2): 100 = 바탕, 400 = 장식(글자 금지), 700 = 글자 */
+  --color-sun-100: #fff3c4;
+  --color-sun-400: #ffd84d;
+  --color-sun-700: #8a5a00;
+  --color-mint-100: #d5f7ea;
+  --color-mint-400: #3ccf9a;
+  --color-mint-700: #0f7a58;
+  --color-sky-100: #dcf0ff;
+  --color-sky-400: #4fb3ff;
+  --color-sky-700: #1764b0;
+  --color-berry-100: #ffe0ec;
+  --color-berry-400: #ff6fa3;
+  --color-berry-700: #b8205e;
+  --color-grape-100: #ece4ff;
+  --color-grape-400: #9a7bff;
+  --color-grape-700: #5b3cc4;
+
+  /* 짙은 숲초록: 교사 화면 메뉴·강조, 헤더 (흰 글자 대비 7.6:1+) */
+  --color-accent-50: #eaf6f1;
+  --color-accent-100: #cfeadf;
+  --color-accent-500: #2f7d66;
+  --color-accent-600: #1d5e4c;
+  --color-accent-700: #164a3c;
+  --color-accent-900: #0b2a22;
 
   /* 중립 */
-  --color-paper: #fff9f2;
+  --color-paper: #f6fbef;
   --color-surface: #ffffff;
   --color-ink: #1f2937;
   --color-ink-muted: #5b6472;
-  --color-line: #e7e0d6;
-  --color-line-strong: #cfc5b7;
+  --color-line: #dcebd0;
+  --color-line-strong: #b9cfae;
 
   /* 상태색: 흰 글자 대비 4.5:1 이상 */
   --color-success-600: #15803d;
@@ -64,10 +84,19 @@
   --spacing-tab-bar: 64px;
   --spacing-sidebar: 240px;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 
-  --shadow-card: 0 1px 2px rgb(31 41 55 / 0.06), 0 2px 8px rgb(31 41 55 / 0.06);
+  --shadow-card: 0 2px 0 rgb(220 235 208 / 1), 0 6px 16px rgb(46 125 50 / 0.08);
+  /* 주 버튼 아래 "젤리" 그림자 / 보조 버튼 */
+  --shadow-pop: 0 4px 0 #1b5121;
+  --shadow-pop-soft: 0 3px 0 #bfe6a0;
+}
+
+/* 그라데이션 (@theme 밖): 홈 맨 위 카드, 헤더 아래 띠·게이지 */
+:root {
+  --gradient-hero: linear-gradient(135deg, #f0fae6 0%, #d5f7ea 55%, #e3f6ff 100%);
+  --gradient-rainbow: linear-gradient(90deg, #2e7d32, #6cbf45, #b5e550, #3ccf9a, #26b5a0);
 }

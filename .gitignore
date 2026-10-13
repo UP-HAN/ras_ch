@@ -15,3 +15,6 @@ test-results/
 
 # 문서 원본 묶음(중복)
 ras-point-kit.zip
+
+# 디자인 작업 원본(큰 PNG)
+outputs/art/

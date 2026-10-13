@@ -6,6 +6,7 @@ import { bugReportsApi } from '@/api/bugReports';
 import { reviewApi } from '@/api/review';
 import { teacherPostsApi } from '@/api/teacherPosts';
 import { useMe, useMeCache } from '@/hooks/useMe';
+import { LanternLogo } from '@/components/fun/LanternLogo';
 import { cn } from '@/lib/cn';
 import { CloseIcon, MenuIcon } from './icons';
 
@@ -109,8 +110,10 @@ export function TeacherShell() {
 
   const nav = (
     <nav aria-label="교사 메뉴" className="flex min-h-full flex-col gap-6 p-4">
-      <div className="text-xl font-extrabold text-accent-700">
-        <span aria-hidden="true">🏮</span> 초롱 RAS 포인트
+      <div>
+        <div className="flex items-center gap-2 font-display text-xl font-extrabold text-accent-700">
+          <LanternLogo /> 초롱 RAS 포인트
+        </div>
         <div className="text-base font-medium text-ink-muted">교사 화면</div>
       </div>
       <MenuList
@@ -177,8 +180,10 @@ export function TeacherShell() {
   );
 
   return (
-    <div className="min-h-dvh bg-paper lg:flex">
+    <div className="motion-off min-h-dvh bg-paper lg:flex">
       <aside className="hidden w-sidebar shrink-0 border-r border-line bg-surface lg:block">
+        {/* 사이드바 맨 위 4px 무지개 띠 (01-spec 6.2) */}
+        <div aria-hidden="true" className="bg-rainbow h-1" />
         {nav}
       </aside>
 
@@ -193,7 +198,10 @@ export function TeacherShell() {
           >
             {open ? <CloseIcon /> : <MenuIcon />}
           </button>
-          <span className="text-lg font-extrabold text-accent-700">초롱 RAS 포인트 · 교사</span>
+          <span className="flex items-center gap-2 font-display text-lg font-extrabold text-accent-700">
+            <LanternLogo /> 초롱 RAS 포인트 · 교사
+          </span>
+          <div aria-hidden="true" className="bg-rainbow absolute inset-x-0 bottom-0 h-1" />
         </header>
         {open && (
           <div className="fixed inset-0 z-20 lg:hidden" role="dialog" aria-modal="true">
@@ -204,6 +212,7 @@ export function TeacherShell() {
               onClick={() => setOpen(false)}
             />
             <aside className="absolute inset-y-0 left-0 w-sidebar overflow-y-auto overscroll-contain bg-surface shadow-card">
+              <div aria-hidden="true" className="bg-rainbow h-1" />
               {nav}
             </aside>
           </div>

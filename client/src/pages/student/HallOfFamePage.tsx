@@ -4,21 +4,37 @@ import { useState } from 'react';
 import { hallApi } from '@/api/hallOfFame';
 import { WeeklyGiftPanel } from '@/components/hall/WeeklyGiftPanel';
 import { useMe } from '@/hooks/useMe';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { Badge, Button, Card, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 const TABS = ['주간 TOP', '월간', '학급', '역대'] as const;
 type Tab = (typeof TABS)[number];
+
+/** 1~3위 메달 (01-spec 6.6, 6.4 #14) */
+const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 const weekLabel = (wk: string) => `${wk.slice(0, 4)}년 ${Number(wk.slice(6))}주차`;
 const monthLabel = (mk: string) => `${mk.slice(0, 4)}년 ${Number(mk.slice(5))}월`;
 
 function StudentChip({ s }: { s: HallStudent }) {
   return (
-    <li className="flex min-h-tap items-center gap-2 rounded-md bg-paper px-3 text-base">
+    <li
+      className={cn(
+        'flex min-h-tap items-center gap-2 rounded-md px-3 text-base',
+        s.rank === 1 ? 'bg-sun-100' : 'bg-paper',
+      )}
+    >
       {s.rank !== undefined && (
-        <span className="w-8 font-extrabold text-primary-700">{s.rank}위</span>
+        <span className="w-14 shrink-0 font-extrabold text-primary-700">
+          {MEDAL[s.rank] && (
+            <span className="anim-medal" aria-hidden="true">
+              {MEDAL[s.rank]}
+            </span>
+          )}
+          {s.rank}위
+        </span>
       )}
       <span className="text-ink-muted">{s.className}</span>
       <span className="font-semibold">
@@ -44,7 +60,8 @@ function GradeLists({
   emptyText: string;
 }) {
   const nonEmpty = groups.filter((g) => g.students.length > 0);
-  if (nonEmpty.length === 0) return <EmptyState icon="🏆" title={emptyText} />;
+  if (nonEmpty.length === 0)
+    return <EmptyState icon="🏆" illustration="trophy" title={emptyText} />;
   return (
     <div className="space-y-3">
       {nonEmpty.map((g) => (
@@ -116,11 +133,12 @@ function WeeklyTab() {
     queryKey: ['hall', 'weekly', week ?? 'latest'],
     queryFn: () => hallApi.weekly(week),
   });
-  if (q.isLoading) return <Spinner size="lg" className="text-primary-600" />;
+  if (q.isLoading) return <PageLoading />;
   if (!q.data)
     return (
       <EmptyState
         icon="🏆"
+        illustration="trophy"
         title="아직 명단이 없어요"
         description="매주 월요일 아침에 새로 올라와요."
       />
@@ -165,8 +183,8 @@ function MonthlyTab() {
     queryKey: ['hall', 'monthly', month ?? 'latest'],
     queryFn: () => hallApi.monthly(month),
   });
-  if (q.isLoading) return <Spinner size="lg" className="text-primary-600" />;
-  if (!q.data) return <EmptyState icon="🏆" title="아직 명단이 없어요" />;
+  if (q.isLoading) return <PageLoading />;
+  if (!q.data) return <EmptyState icon="🏆" illustration="trophy" title="아직 명단이 없어요" />;
   const d = q.data;
   return (
     <div className="space-y-4">
@@ -188,6 +206,7 @@ function MonthlyTab() {
       {!d.confirmed ? (
         <EmptyState
           icon="🗓️"
+          illustration="trophy"
           title="아직 결산 전이에요"
           description="선생님이 확정하면 여기에 올라와요."
         />
@@ -223,8 +242,8 @@ function MonthlyTab() {
 
 function ClassTab() {
   const q = useQuery({ queryKey: ['hall', 'classes'], queryFn: hallApi.classes });
-  if (q.isLoading) return <Spinner size="lg" className="text-primary-600" />;
-  if (!q.data) return <EmptyState icon="🏫" title="아직 기록이 없어요" />;
+  if (q.isLoading) return <PageLoading />;
+  if (!q.data) return <EmptyState icon="🏫" illustration="trophy" title="아직 기록이 없어요" />;
   return (
     <div className="space-y-4">
       <Card title="이 달의 학급 (월별)">
@@ -256,11 +275,12 @@ function ClassTab() {
 
 function AllTimeTab() {
   const q = useQuery({ queryKey: ['hall', 'all-time'], queryFn: hallApi.allTime });
-  if (q.isLoading) return <Spinner size="lg" className="text-primary-600" />;
+  if (q.isLoading) return <PageLoading />;
   if (!q.data || q.data.months.length === 0)
     return (
       <EmptyState
         icon="📜"
+        illustration="trophy"
         title="아직 역대 기록이 없어요"
         description="첫 달 결산이 끝나면 여기에 쌓여요."
       />
@@ -291,7 +311,7 @@ export function HallOfFamePage() {
   const [tab, setTab] = useState<Tab>('주간 TOP');
   return (
     <>
-      <PageHeader title="명예의 전당" />
+      <PageHeader title="명예의 전당" illustration="trophy" />
       <div
         role="tablist"
         aria-label="명예의 전당 구분"

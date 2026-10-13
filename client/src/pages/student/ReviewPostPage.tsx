@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { reviewApi } from '@/api/review';
+import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { tagLabel, typeLabel } from '@/components/post/articleMeta';
 import { minutesLabel, UsageDiff } from '@/components/post/UsageDiff';
-import { Badge, Button, Card, EmptyState, Spinner, Textarea } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Textarea } from '@/components/ui';
 import { HOLD_NOTE_MIN, POST_TYPE_LABEL } from '@/lib/reviewLabels';
 
 /**
@@ -51,16 +52,13 @@ export function ReviewPostPage() {
   });
 
   if (q.isLoading || summary.isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Spinner size="lg" className="text-primary-600" />
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!q.data) {
     return (
       <EmptyState
         icon="🙈"
+        illustration="oops"
         title="검토할 수 없는 글이에요"
         description="이미 검토됐거나 내가 검토할 수 없는 글이에요."
         action={<Button onClick={() => navigate('/review')}>목록으로</Button>}

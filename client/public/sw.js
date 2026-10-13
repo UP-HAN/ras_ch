@@ -3,9 +3,10 @@
  *  - /api, /uploads, /healthz 는 캐시하지 않는다(개인정보·최신성)
  *  - 페이지 이동이 실패하면 offline.html 을 보여 준다
  *  - 정적 자산(/assets/*)은 캐시 우선(파일명에 해시가 있어 안전)
+ *  - 일러스트(/illustrations/*)도 캐시 우선(학교 망 절약). 그림을 바꾸면 VERSION 을 올린다
  */
-const VERSION = 'ras-shell-v1';
-const SHELL = ['/', '/offline.html', '/manifest.webmanifest', '/favicon.svg'];
+const VERSION = 'ras-shell-v3';
+const SHELL = ['/', '/offline.html', '/manifest.webmanifest', '/favicon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -53,12 +54,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/assets/')) {
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/illustrations/')) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>
           hit ||
           fetch(req).then((res) => {
+            // 아직 없는 그림(404)은 캐시하지 않는다: 나중에 그림이 올라오면 바로 보이게
+            if (!res.ok) return res;
             const copy = res.clone();
             caches
               .open(VERSION)

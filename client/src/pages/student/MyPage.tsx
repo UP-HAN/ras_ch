@@ -9,8 +9,20 @@ import { useNavigate } from 'react-router-dom';
 import { pointsApi } from '@/api/points';
 import { authApi } from '@/api/auth';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { Mascot } from '@/components/fun/Mascot';
 import { Badge, Button, Card } from '@/components/ui';
+import { useCountUp } from '@/lib/motion';
 import { useMe, useMeCache } from '@/hooks/useMe';
+
+/** 포인트 큰 숫자: 0 에서 올라간다 (6.4 #2) */
+function CountUpPoints({ value }: { value: number }) {
+  const shown = useCountUp(value, 800);
+  return (
+    <dd className="font-display text-2xl font-extrabold text-primary-700" aria-label={`${value}P`}>
+      {shown}P
+    </dd>
+  );
+}
 
 /** 내 정보 (6.1) + 내 포인트 합계 (PT-06) */
 export function MyPage() {
@@ -48,7 +60,7 @@ export function MyPage() {
   return (
     <>
       <PageHeader title="내 정보" />
-      <div className="space-y-4">
+      <div className="anim-stagger space-y-4">
         <Card>
           <p className="text-xl font-extrabold">
             {me?.className ? `${me.className} ` : ''}
@@ -72,20 +84,22 @@ export function MyPage() {
           }
         >
           <dl className="grid grid-cols-3 text-center">
-            {[
-              ['이번 주', `${points.data?.week ?? 0}P`],
-              ['이번 달', `${points.data?.month ?? 0}P`],
-              ['누적', `${points.data?.all ?? 0}P`],
-            ].map(([k, v]) => (
+            {(
+              [
+                ['이번 주', points.data?.week ?? 0],
+                ['이번 달', points.data?.month ?? 0],
+                ['누적', points.data?.all ?? 0],
+              ] as const
+            ).map(([k, v]) => (
               <div key={k}>
                 <dt className="text-base text-ink-muted">{k}</dt>
-                <dd className="text-2xl font-extrabold text-primary-700">{v}</dd>
+                <CountUpPoints value={v} />
               </div>
             ))}
           </dl>
         </Card>
         {ach.data && (
-          <Card title="내 등급" data-testid="tier-card">
+          <Card title="내 등급" data-testid="tier-card" action={<Mascot name="shine" size={64} />}>
             <p className="text-lg font-bold">
               {ach.data.tier.emoji} {ach.data.tier.label} 등급 ·{' '}
               <span className="text-primary-700">누적 {ach.data.tier.points}P</span>
@@ -107,7 +121,12 @@ export function MyPage() {
               <p className="mt-1 text-base text-ink-muted">가장 높은 등급이에요. 멋져요!</p>
             )}
             {ach.data.attendanceStreak >= 2 && (
-              <p className="mt-1 text-base">🔥 {ach.data.attendanceStreak}일 연속 출석 중</p>
+              <p className="mt-1 text-base">
+                <span className="anim-flame" aria-hidden="true">
+                  🔥
+                </span>{' '}
+                {ach.data.attendanceStreak}일 연속 출석 중
+              </p>
             )}
           </Card>
         )}
@@ -131,7 +150,7 @@ export function MyPage() {
                       a.earned
                         ? a.isTitle
                           ? 'border-primary-600 bg-primary-100'
-                          : 'border-primary-200 bg-surface'
+                          : 'border-primary-200 bg-primary-50'
                         : 'border-line bg-paper opacity-60',
                     )}
                   >
