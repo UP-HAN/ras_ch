@@ -81,7 +81,7 @@
 
   /* 터치 최소 44px */
   --spacing-tap: 44px;
-  --spacing-tab-bar: 64px;
+  --spacing-tab-bar: 72px; /* 두 줄 이름(명예의 전당) + 아이콘 알약이 잘리지 않게 (2026-10-13) */
   --spacing-sidebar: 240px;
 
   --radius-sm: 10px;

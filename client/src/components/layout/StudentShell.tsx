@@ -100,7 +100,7 @@ export function StudentShell() {
                   end={'end' in t ? t.end : false}
                   className={({ isActive }) =>
                     cn(
-                      'flex min-h-tap flex-1 flex-col items-center justify-center gap-0.5',
+                      'flex min-h-tap flex-1 flex-col items-center justify-center gap-0',
                       isActive ? 'font-bold text-primary-700' : 'font-semibold text-ink-muted',
                     )
                   }
@@ -110,7 +110,7 @@ export function StudentShell() {
                       {/* 활성 탭: 아이콘 뒤 알약 + 통통 1회 (6.4 #10) */}
                       <span
                         className={cn(
-                          'flex h-8 w-14 items-center justify-center rounded-full',
+                          'flex h-7 w-14 items-center justify-center rounded-full',
                           isActive && 'anim-tab-bounce bg-primary-100',
                         )}
                       >
