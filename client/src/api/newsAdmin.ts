@@ -27,6 +27,8 @@ export const newsAdminApi = {
   cancelTopic: (id: number) => api.post<{ cancelled: boolean }>(`/admin/news/topics/${id}/cancel`),
   publishNow: (id: number) => api.post<NewsAdminTopicView>(`/admin/news/topics/${id}/publish-now`),
   closeNow: (id: number) => api.post<NewsAdminTopicView>(`/admin/news/topics/${id}/close-now`),
+  /** 마감된 토론을 다시 올린다 (투표·의견은 그대로 남는다) */
+  republish: (id: number) => api.post<NewsAdminTopicView>(`/admin/news/topics/${id}/republish`),
 
   bank: () => api.get<NewsBankItemView[]>('/admin/news/bank'),
   createBank: (input: NewsProposalInput & { status?: 'ready' | 'reserve' }) =>
@@ -44,7 +46,7 @@ export const newsAdminApi = {
     input: Partial<
       Pick<
         NewsSettingsView,
-        'perWeek' | 'hour' | 'durationDays' | 'bestPerGrade' | 'commentsPerTopic'
+        'perWeek' | 'hour' | 'durationDays' | 'bestPerGrade' | 'commentsPerTopic' | 'autoPublish'
       >
     >,
   ) => api.put<NewsSettingsView>('/admin/news/settings', input),

@@ -13,6 +13,12 @@ export interface NewsScheduleSetting {
   durationDays: number;
   bestPerGrade: number;
   commentsPerTopic: number;
+  /**
+   * 자동 예약·게시·마감을 돌릴지 (NWS-04). 끄면 배치가 아무것도 하지 않아
+   * 주제가 저절로 올라가거나 마감되지 않는다 — 서비스를 열기 전에 쓴다.
+   * 예전 설정에는 이 값이 없으므로 없으면 켜진 것으로 본다.
+   */
+  autoPublish: boolean;
 }
 
 export const DEFAULT_NEWS_SCHEDULE: NewsScheduleSetting = {
@@ -21,6 +27,7 @@ export const DEFAULT_NEWS_SCHEDULE: NewsScheduleSetting = {
   durationDays: 7,
   bestPerGrade: 2,
   commentsPerTopic: 3,
+  autoPublish: true,
 };
 
 export const NEWS_TAGS = ['RAS', '폰프리', '미디어', '학교생활', '환경', '과학', '기타'] as const;
@@ -97,6 +104,34 @@ export function topicReactable(
   if (status !== 'live') return false;
   if (!closeAt) return true;
   return kst(now).isBefore(kst(closeAt));
+}
+
+/**
+ * 관리 화면에서 주제 상태별로 할 수 있는 일 (NWS-04, 2026-10-13 사용자 요청).
+ *  - 취소: 예약 중 + **이미 올라간(진행 중) 토론**. 취소하면 학생 화면에서 사라진다.
+ *  - 다시 올리기: 마감된 토론. 투표·의견은 그대로 남는다.
+ */
+export function canCancelTopic(status: string): boolean {
+  return status === 'scheduled' || status === 'live';
+}
+
+export function canRepublishTopic(status: string): boolean {
+  return status === 'closed';
+}
+
+/**
+ * 취소한 주제를 주제 은행에 다시 '바로 사용'으로 돌려놓을지.
+ * 아무도 참여하지 않았을 때만 돌려놓는다 — 참여 기록이 있는 주제가 다음 예약 때
+ * 같은 내용으로 또 올라가면 학생이 헷갈린다(원하면 은행에서 직접 되돌릴 수 있다).
+ */
+export function returnBankOnCancel(t: {
+  status: string;
+  agreeCount: number;
+  disagreeCount: number;
+  commentCount: number;
+}): boolean {
+  if (t.status === 'scheduled') return true;
+  return t.agreeCount + t.disagreeCount + t.commentCount === 0;
 }
 
 export interface TopicInput {

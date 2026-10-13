@@ -1,9 +1,12 @@
 process.env.SESSION_SECRET = 'test-secret-test-secret';
 import { describe, expect, it } from 'vitest';
 import {
+  canCancelTopic,
+  canRepublishTopic,
   closeAtOf,
   DEFAULT_NEWS_SCHEDULE,
   nextWeekSlots,
+  returnBankOnCancel,
   slotDays,
   todaySlot,
   topicReactable,
@@ -87,5 +90,29 @@ describe('주제 입력 검증 (NWS-01)', () => {
     expect(validateTopicInput({ ...good, type: 'poll' }).ok).toBe(false);
     expect(validateTopicInput({ ...good, sourceUrl: 'ftp://x' }).ok).toBe(false);
     expect(validateTopicInput({ ...good, sourceUrl: 'https://news.example.com/a' }).ok).toBe(true);
+  });
+});
+
+describe('주제 취소·다시 올리기 (NWS-04)', () => {
+  it('예약 중·진행 중인 토론만 취소할 수 있다', () => {
+    expect(canCancelTopic('scheduled')).toBe(true);
+    expect(canCancelTopic('live')).toBe(true);
+    expect(canCancelTopic('closed')).toBe(false);
+    expect(canCancelTopic('rejected')).toBe(false);
+  });
+  it('마감된 토론만 다시 올릴 수 있다', () => {
+    expect(canRepublishTopic('closed')).toBe(true);
+    expect(canRepublishTopic('live')).toBe(false);
+    expect(canRepublishTopic('rejected')).toBe(false);
+  });
+  it('취소한 주제는 참여가 없을 때만 은행으로 돌려놓는다', () => {
+    const base = { agreeCount: 0, disagreeCount: 0, commentCount: 0 };
+    expect(returnBankOnCancel({ ...base, status: 'scheduled' })).toBe(true);
+    expect(returnBankOnCancel({ ...base, status: 'live' })).toBe(true);
+    expect(returnBankOnCancel({ ...base, status: 'live', agreeCount: 1 })).toBe(false);
+    expect(returnBankOnCancel({ ...base, status: 'live', commentCount: 2 })).toBe(false);
+  });
+  it('예전 설정에 autoPublish 가 없으면 켜진 것으로 본다', () => {
+    expect(DEFAULT_NEWS_SCHEDULE.autoPublish).toBe(true);
   });
 });

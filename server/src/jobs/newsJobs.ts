@@ -57,6 +57,11 @@ export async function runNewsReserve(
   now: DateInput = new Date(),
 ): Promise<{ reserved: number; ready: number }> {
   const setting = await newsSetting();
+  // 자동 게시를 꺼 두면 아무것도 예약하지 않는다 (서비스 열기 전, NWS-04)
+  if (!setting.autoPublish) {
+    logger.info("토론 자동 예약: 설정에서 꺼 두어 건너뜀");
+    return { reserved: 0, ready: (await newsRepo.bankCounts()).ready };
+  }
   let reserved = 0;
   for (const slot of nextWeekSlots(now, setting)) {
     if ((await newsRepo.countOnDate(slot.format('YYYY-MM-DD'))) > 0) continue;
@@ -74,6 +79,11 @@ export async function runNewsPublish(
   now: DateInput = new Date(),
 ): Promise<{ published: number; closed: number; fallback: boolean }> {
   const setting = await newsSetting();
+  // 자동 게시가 꺼져 있으면 게시도 마감도 하지 않는다 (NWS-04)
+  if (!setting.autoPublish) {
+    logger.info("토론 자동 게시·마감: 설정에서 꺼 두어 건너뜀");
+    return { published: 0, closed: 0, fallback: false };
+  }
   const nowDb = toDbDateTime(now);
   let closed = 0;
   for (const t of await newsRepo.listExpiredLive(nowDb)) {

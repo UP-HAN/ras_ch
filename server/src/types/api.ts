@@ -880,6 +880,8 @@ export interface NewsSettingsView {
   durationDays: number;
   bestPerGrade: number;
   commentsPerTopic: number;
+  /** 끄면 자동 예약·게시·마감이 돌지 않는다 (서비스 열기 전) */
+  autoPublish: boolean;
   /** 1=월 … 7=일 */
   slotDays: number[];
   bank: { pending: number; reserve: number; ready: number; used: number };

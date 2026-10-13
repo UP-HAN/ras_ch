@@ -403,9 +403,10 @@ function ScheduleSection() {
     onError: fail,
   });
   const act = useMutation({
-    mutationFn: async (v: { id: number; what: 'cancel' | 'publish' | 'close' }) => {
+    mutationFn: async (v: { id: number; what: 'cancel' | 'publish' | 'close' | 'republish' }) => {
       if (v.what === 'cancel') await newsAdminApi.cancelTopic(v.id);
       else if (v.what === 'publish') await newsAdminApi.publishNow(v.id);
+      else if (v.what === 'republish') await newsAdminApi.republish(v.id);
       else await newsAdminApi.closeNow(v.id);
     },
     onSuccess: () => {
@@ -415,7 +416,8 @@ function ScheduleSection() {
     onError: fail,
   });
   const saveSettings = useMutation({
-    mutationFn: (v: { perWeek?: number; hour?: number }) => newsAdminApi.updateSettings(v),
+    mutationFn: (v: { perWeek?: number; hour?: number; autoPublish?: boolean }) =>
+      newsAdminApi.updateSettings(v),
     onSuccess: () => {
       setMsg('설정을 저장했어요.');
       refresh();
@@ -460,6 +462,29 @@ function ScheduleSection() {
               <option value={3}>3개 (월·수·금)</option>
             </select>
           </label>
+          <label className="flex min-h-tap cursor-pointer items-center gap-2 text-base">
+            <input
+              type="checkbox"
+              className="h-6 w-6"
+              checked={s.autoPublish}
+              onChange={(e) => {
+                const on = e.target.checked;
+                if (
+                  window.confirm(
+                    on
+                      ? '자동 게시를 켤까요? 예약된 주제가 정해진 시각에 저절로 올라가고 마감돼요.'
+                      : '자동 게시를 끌까요? 주제가 저절로 올라가거나 마감되지 않아요. 직접 "지금 게시"·"지금 마감"을 눌러 주세요.',
+                  )
+                )
+                  saveSettings.mutate({ autoPublish: on });
+              }}
+              data-testid="auto-publish"
+            />
+            <span className="font-semibold">자동 예약·게시·마감</span>
+            <Badge tone={s.autoPublish ? 'success' : 'warn'}>
+              {s.autoPublish ? '켜짐' : '꺼짐'}
+            </Badge>
+          </label>
           <span className="text-base text-ink-muted">
             {s.hour}시 게시 · {s.durationDays}일 후 마감 · 베스트 학년별 {s.bestPerGrade}개 · 은행:
             바로 사용 {s.bank.ready} / 대기 {s.bank.reserve} / 제안 {s.bank.pending}
@@ -484,7 +509,9 @@ function ScheduleSection() {
             다음 주:{' '}
             {s.nextWeek.map((n) => (
               <Badge key={n.publishAt} tone={n.topicId ? 'success' : 'warn'} className="mr-1">
-                {fmt(n.publishAt)} {n.title ?? '(비어 있음 — 일요일 20:00 자동 예약)'}
+                {fmt(n.publishAt)}{' '}
+                {n.title ??
+                  (s.autoPublish ? '(비어 있음 — 일요일 20:00 자동 예약)' : '(비어 있음)')}
               </Badge>
             ))}
           </div>
@@ -561,14 +588,37 @@ function ScheduleSection() {
                       </>
                     )}
                     {t.status === 'live' && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            window.confirm('지금 마감할까요? 투표·의견이 잠겨요.') &&
+                            act.mutate({ id: t.id, what: 'close' })
+                          }
+                        >
+                          지금 마감
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            window.confirm(
+                              '이미 올라간 토론을 취소할까요? 학생 화면에서 사라지고 다시 되돌릴 수 없어요. 이미 받은 투표 포인트는 그대로 남아요.',
+                            ) && act.mutate({ id: t.id, what: 'cancel' })
+                          }
+                        >
+                          게시 취소
+                        </Button>
+                      </>
+                    )}
+                    {t.status === 'closed' && (
                       <Button
-                        variant="secondary"
                         onClick={() =>
-                          window.confirm('지금 마감할까요? 투표·의견이 잠겨요.') &&
-                          act.mutate({ id: t.id, what: 'close' })
+                          window.confirm(
+                            '이 주제를 다시 올릴까요? 오늘부터 다시 토론할 수 있고, 이미 쌓인 투표·의견은 그대로 남아요.',
+                          ) && act.mutate({ id: t.id, what: 'republish' })
                         }
                       >
-                        지금 마감
+                        다시 올리기
                       </Button>
                     )}
                   </span>
@@ -704,6 +754,18 @@ function BankSection() {
                   <span className="text-ink-muted">제안: {b.proposedByName}</span>
                 )}
                 <span className="ml-auto flex flex-wrap gap-1">
+                  {b.status === 'used' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        window.confirm(
+                          '이미 쓴 주제를 다시 쓸까요? "바로 사용"으로 돌아가서, 다음 자동 예약 때 같은 내용으로 새 토론이 하나 더 만들어져요.',
+                        ) && setStatus.mutate({ id: b.id, status: 'ready' })
+                      }
+                    >
+                      다시 쓰기
+                    </Button>
+                  )}
                   {b.status !== 'used' && (
                     <>
                       {b.status !== 'ready' && (

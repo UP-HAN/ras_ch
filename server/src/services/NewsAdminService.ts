@@ -5,8 +5,11 @@
 import { tx } from '../db/query.js';
 import { AppError } from '../lib/apiResponse.js';
 import {
+  canCancelTopic,
+  canRepublishTopic,
   closeAtOf,
   nextWeekSlots,
+  returnBankOnCancel,
   slotDays,
   validateTopicInput,
   type NewsScheduleSetting,
@@ -126,16 +129,37 @@ export async function updateTopic(
   return toAdminTopic((await newsRepo.findTopic(id)) as newsRepo.TopicRow);
 }
 
+/**
+ * 예약 중이거나 이미 올라간(진행 중) 토론을 취소한다 (NWS-04, 2026-10-13 사용자 요청).
+ * 취소하면 학생 화면(목록·아카이브·반응)에서 사라진다. 이미 받은 투표 포인트는 회수하지 않는다
+ * — 학생이 실제로 참여한 활동이기 때문이다.
+ */
 export async function cancelTopic(user: AuthUser, id: number, ip?: string): Promise<void> {
   const t = await newsRepo.findTopic(id);
   if (!t) throw AppError.notFound('토론 주제를 찾을 수 없어요.');
-  if (t.status !== 'scheduled') throw AppError.conflict('예약 중인 주제만 취소할 수 있어요.');
+  if (!canCancelTopic(t.status))
+    throw AppError.conflict('예약 중이거나 진행 중인 주제만 취소할 수 있어요.');
+  const returnBank =
+    !!t.bank_id &&
+    returnBankOnCancel({
+      status: t.status,
+      agreeCount: t.agree_count,
+      disagreeCount: t.disagree_count,
+      commentCount: t.comment_count,
+    });
   await tx(async (conn) => {
     await newsRepo.setTopicStatus(id, 'rejected', {}, conn);
-    // 은행에서 온 주제면 다시 ready 로 되돌린다
-    if (t.bank_id) await newsRepo.setBankStatus(t.bank_id, 'ready', user.row.id, null, conn);
+    // 은행에서 온 주제면 (참여가 없을 때) 다시 ready 로 되돌린다
+    if (returnBank && t.bank_id)
+      await newsRepo.setBankStatus(t.bank_id, 'ready', user.row.id, null, conn);
     await writeAudit(
-      { ...actorOf(user, ip), action: 'news.topic.cancel', targetType: 'news_topic', targetId: id },
+      {
+        ...actorOf(user, ip),
+        action: 'news.topic.cancel',
+        targetType: 'news_topic',
+        targetId: id,
+        payload: { from: t.status, returnBank },
+      },
       conn,
     );
   });
@@ -178,6 +202,35 @@ export async function closeNow(
     action: 'news.topic.close_now',
     targetType: 'news_topic',
     targetId: id,
+  });
+  return toAdminTopic((await newsRepo.findTopic(id)) as newsRepo.TopicRow);
+}
+
+/**
+ * 마감된 토론을 다시 올린다 (NWS-04, 2026-10-06 사용자 요청).
+ * 아무도 참여하지 못한 채 마감된 주제를 되살릴 때 쓴다. 게시 시각을 지금으로 다시 잡고
+ * 마감은 설정한 기간 뒤로 민다. **이미 쌓인 투표·의견·베스트는 그대로 남는다.**
+ */
+export async function republish(
+  user: AuthUser,
+  id: number,
+  ip?: string,
+): Promise<NewsAdminTopicView> {
+  const setting = await newsSetting();
+  const t = await newsRepo.findTopic(id);
+  if (!t) throw AppError.notFound('토론 주제를 찾을 수 없어요.');
+  if (!canRepublishTopic(t.status)) throw AppError.conflict('마감된 주제만 다시 올릴 수 있어요.');
+  const now = kst();
+  await newsRepo.setTopicStatus(id, 'live', {
+    publishAt: toDbDateTime(now),
+    closeAt: toDbDateTime(closeAtOf(now, setting)),
+  });
+  await writeAudit({
+    ...actorOf(user, ip),
+    action: 'news.topic.republish',
+    targetType: 'news_topic',
+    targetId: id,
+    payload: { durationDays: setting.durationDays },
   });
   return toAdminTopic((await newsRepo.findTopic(id)) as newsRepo.TopicRow);
 }
@@ -241,7 +294,8 @@ export async function setBankStatus(
 ): Promise<NewsBankItemView> {
   const b = await newsRepo.findBank(id);
   if (!b) throw AppError.notFound('주제를 찾을 수 없어요.');
-  if (b.status === 'used') throw AppError.conflict('이미 사용한 주제예요.');
+  // 이미 쓴 주제도 다시 쓸 수 있게 되돌린다 (2026-10-06 사용자 요청).
+  // 되돌리면 다음 예약 때 같은 내용으로 새 토론이 하나 더 만들어진다.
   await newsRepo.setBankStatus(id, status, user.row.id);
   await writeAudit({
     ...actorOf(user, ip),

@@ -52,6 +52,10 @@ export function createNewsAdminRouter(): Router {
   router.post('/topics/:id/publish-now', async (req, res) => {
     res.json(ok(await admin.publishNow(currentUser(req), idOf(req.params.id), clientIp(req))));
   });
+  router.post('/topics/:id/republish', async (req, res) => {
+    res.json(ok(await admin.republish(currentUser(req), idOf(req.params.id), clientIp(req))));
+  });
+
   router.post('/topics/:id/close-now', async (req, res) => {
     res.json(ok(await admin.closeNow(currentUser(req), idOf(req.params.id), clientIp(req))));
   });
@@ -115,6 +119,7 @@ export function createNewsAdminRouter(): Router {
         durationDays: z.number().int().optional(),
         bestPerGrade: z.number().int().optional(),
         commentsPerTopic: z.number().int().optional(),
+        autoPublish: z.boolean().optional(),
       })
       .safeParse(req.body);
     if (!body.success) throw AppError.badRequest('설정 값을 확인해 주세요.');
