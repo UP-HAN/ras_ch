@@ -1,7 +1,8 @@
 import type { StudentPostView } from '@server-types/api';
 import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge, Card } from '@/components/ui';
-import { tagLabel, typeLabel } from './articleMeta';
+import { typeLabel } from './articleMeta';
+import { TagLabel } from './TagLabel';
 
 /** 기사 상세 본문 (ART-01): 제목·태그·유형·사진·본문·한 줄 소감 */
 export function ArticleDetail({ post }: { post: StudentPostView }) {
@@ -12,7 +13,7 @@ export function ArticleDetail({ post }: { post: StudentPostView }) {
         <div className="mt-2 flex flex-wrap items-center gap-1">
           {post.article?.tags.map((t) => (
             <Badge key={t} tone="primary">
-              {tagLabel(t)}
+              <TagLabel tagKey={t} size={20} />
             </Badge>
           ))}
           {post.article && <Badge tone="neutral">{typeLabel(post.article.articleType)}</Badge>}
@@ -20,7 +21,9 @@ export function ArticleDetail({ post }: { post: StudentPostView }) {
         <p className="mt-2 text-base text-ink-muted">
           <AuthorChip author={post.author} />
           {post.approvedAt && (
-            <span className="ml-2">{new Date(post.approvedAt).toLocaleDateString('ko-KR')}</span>
+            <span className="ml-2 whitespace-nowrap">
+              {new Date(post.approvedAt).toLocaleDateString('ko-KR')}
+            </span>
           )}
         </p>
       </div>

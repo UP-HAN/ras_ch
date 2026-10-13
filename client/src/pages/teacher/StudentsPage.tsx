@@ -220,10 +220,10 @@ export function StudentsPage() {
               {students.data.map((s) => (
                 <li key={s.id} className="space-y-2 py-3 text-base">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-semibold">
+                    <span className="name-nowrap font-semibold">
                       {s.studentNo}번 {s.name}
                     </span>
-                    <span className="text-ink-muted">{s.displayName}</span>
+                    <span className="name-nowrap text-ink-muted">{s.displayName}</span>
                     <span className="text-ink-muted">{s.loginId}</span>
                     <Badge tone={s.parentConsent === 'Y' ? 'success' : 'warn'}>
                       {s.parentConsent === 'Y' ? '동의' : '미동의'}
@@ -264,7 +264,7 @@ export function StudentsPage() {
                     <tr key={s.id} className="border-b border-line/60">
                       <td className="py-2 pr-3">{s.studentNo}</td>
                       <td className="py-2 pr-3 font-semibold">{s.name}</td>
-                      <td className="py-2 pr-3">{s.displayName}</td>
+                      <td className="name-nowrap py-2 pr-3">{s.displayName}</td>
                       <td className="py-2 pr-3 text-ink-muted">{s.loginId}</td>
                       <td className="py-2 pr-3">
                         <Badge tone={s.parentConsent === 'Y' ? 'success' : 'warn'}>

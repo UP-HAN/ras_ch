@@ -1,6 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
-import { ILLUSTRATIONS, type IllustrationKey, type MascotKey } from '@/lib/illustrations';
+import {
+  ILLUSTRATIONS,
+  RAS_ICONS,
+  type IllustrationKey,
+  type MascotKey,
+  type RasKind,
+} from '@/lib/illustrations';
 
 /**
  * 일러스트 그림 (01-spec 3.6). 꾸밈용이라 alt="" + aria-hidden.
@@ -85,5 +91,46 @@ export function Mascot({
     >
       {img}
     </span>
+  );
+}
+
+/**
+ * RAS 영역 아이콘 (책·팔레트·공). 꾸밈용이라 aria-hidden — 옆에 글자(독서·예술문화·스포츠)를 함께 둔다.
+ * 그림을 못 불러오면 원래 이모지를 보여 준다.
+ *  <RasIcon kind="R" size={24} />
+ */
+export function RasIcon({
+  kind,
+  size = 24,
+  className,
+}: {
+  kind: RasKind;
+  size?: number;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const icon = RAS_ICONS[kind];
+  if (failed)
+    return (
+      <span aria-hidden="true" className={className}>
+        {icon.emoji}
+      </span>
+    );
+  return (
+    <img
+      src={icon.src128}
+      srcSet={`${icon.src128} 128w, ${icon.src256} 256w`}
+      sizes={`${size}px`}
+      alt=""
+      aria-hidden="true"
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+      className={cn('inline-block shrink-0 select-none align-middle', className)}
+      style={{ width: size, height: size }}
+    />
   );
 }

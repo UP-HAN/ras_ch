@@ -13,6 +13,7 @@ import { TopicCard } from '@/components/news/TopicCard';
 import { ReportCard } from '@/components/post/ReportCard';
 import { AttendanceStamp } from '@/components/fun/AttendanceStamp';
 import { Celebration } from '@/components/fun/Celebration';
+import { NoBreakNames } from '@/components/common/NoBreakNames';
 import { Mascot } from '@/components/fun/Mascot';
 import { PageLoading } from '@/components/fun/PageLoading';
 import { TierUpModal } from '@/components/fun/TierUpModal';
@@ -211,8 +212,10 @@ export function HomePage() {
           <div className="min-w-0 flex-1">
             <p className="text-base text-ink-muted">안녕하세요</p>
             <p className="text-2xl font-extrabold break-keep">
-              {me.className ? `${me.className} ` : ''}
-              {me.displayName}
+              <span className="name-nowrap">
+                {me.className ? `${me.className} ` : ''}
+                {me.displayName}
+              </span>
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-1">
               <TierBadge tier={me.tier} />
@@ -380,10 +383,12 @@ export function HomePage() {
                   <button
                     type="button"
                     onClick={() => openNotification(n.id, payload.link)}
-                    className={`flex min-h-tap w-full items-center rounded-md px-3 py-2 text-left text-base ${n.readAt ? 'bg-surface/60 text-ink-muted' : 'bg-surface font-semibold shadow-card'}`}
+                    className={`flex min-h-tap w-full items-center rounded-md px-3 py-2 text-left text-base text-pretty ${n.readAt ? 'bg-surface/60 text-ink-muted' : 'bg-surface font-semibold shadow-card'}`}
                   >
                     {n.readAt ? '' : '🔔 '}
-                    {String(payload.message ?? n.type)}
+                    <span>
+                      <NoBreakNames text={String(payload.message ?? n.type)} />
+                    </span>
                   </button>
                 </li>
               );
@@ -411,7 +416,7 @@ export function HomePage() {
           </div>
         ) : (
           <EmptyState
-            illustration="sleep"
+            illustration="rasReading"
             title="아직 글이 없어요"
             description="첫 번째 리포트를 올려 볼까요?"
           />

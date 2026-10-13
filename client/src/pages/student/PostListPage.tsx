@@ -6,6 +6,7 @@ import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ArticleCard } from '@/components/post/ArticleCard';
 import { ARTICLE_TAGS } from '@/components/post/articleMeta';
+import { TagLabel } from '@/components/post/TagLabel';
 import { ReportCard } from '@/components/post/ReportCard';
 import { Button, EmptyState } from '@/components/ui';
 import { CouncilList } from './CouncilListPage';
@@ -90,7 +91,7 @@ export function PostListPage() {
               variant={tag === t.key ? 'primary' : 'ghost'}
               onClick={() => setTag(tag === t.key ? '' : t.key)}
             >
-              {t.emoji} {t.label}
+              <TagLabel tagKey={t.key} />
             </Button>
           ))}
           <Button variant={reporter ? 'primary' : 'ghost'} onClick={() => setReporter((v) => !v)}>

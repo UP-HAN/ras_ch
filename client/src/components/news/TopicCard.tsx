@@ -29,7 +29,7 @@ export function TopicCard({ t, home = false }: { t: TopicCardData; home?: boolea
             #{tag}
           </Badge>
         ))}
-        <span className="ml-auto text-base text-ink-muted">
+        <span className="ml-auto whitespace-nowrap text-base text-ink-muted">
           {live
             ? closeLabel(t.closeAt)
             : t.closeAt

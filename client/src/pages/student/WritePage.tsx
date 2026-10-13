@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Illustration } from '@/components/fun/Mascot';
+import { Illustration, RasIcon } from '@/components/fun/Mascot';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
@@ -29,7 +29,18 @@ export function WritePage() {
             리포트 쓰기
           </Button>
         </Card>
-        <Card title="📰 RAS 기사" tone="mint">
+        <Card
+          title="📰 RAS 기사"
+          tone="mint"
+          action={
+            // 독서·예술·스포츠 아이콘 (2026-10-13 RAS 그림 요청)
+            <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
+              <RasIcon kind="R" size={32} />
+              <RasIcon kind="A" size={32} />
+              <RasIcon kind="S" size={32} />
+            </span>
+          }
+        >
           <p className="mb-3 text-base">
             학교에서 겪은 독서·예술·스포츠·폰프리 활동을 기사로 써요. 승인되면 전교에 게시돼요.
           </p>

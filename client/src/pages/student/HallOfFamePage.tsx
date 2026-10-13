@@ -36,9 +36,17 @@ function StudentChip({ s }: { s: HallStudent }) {
           {s.rank}위
         </span>
       )}
-      <span className="text-ink-muted">{s.className}</span>
-      <span className="font-semibold">
-        {s.name ? `${s.name} (${s.displayName})` : s.displayName}
+      {/* 반 이름이 "6- / 1" 로 쪼개지지 않게 고정, 이름은 실명·(표시 이름) 덩어리 단위로만 줄을 바꾼다 (줄바꿈 원칙) */}
+      <span className="shrink-0 whitespace-nowrap text-ink-muted">{s.className}</span>
+      <span className="min-w-0 font-semibold">
+        {s.name ? (
+          <>
+            <span className="name-nowrap">{s.name}</span>{' '}
+            <span className="name-nowrap">({s.displayName})</span>
+          </>
+        ) : (
+          <span className="name-nowrap">{s.displayName}</span>
+        )}
       </span>
       {s.gifted && (
         <span title="주간 선물" aria-label="주간 선물 받음" data-testid="gifted">
@@ -46,7 +54,9 @@ function StudentChip({ s }: { s: HallStudent }) {
         </span>
       )}
       {s.points !== undefined && (
-        <span className="ml-auto font-bold text-primary-700">{s.points}P</span>
+        <span className="ml-auto shrink-0 whitespace-nowrap font-bold text-primary-700">
+          {s.points}P
+        </span>
       )}
     </li>
   );
@@ -61,7 +71,7 @@ function GradeLists({
 }) {
   const nonEmpty = groups.filter((g) => g.students.length > 0);
   if (nonEmpty.length === 0)
-    return <EmptyState icon="🏆" illustration="trophy" title={emptyText} />;
+    return <EmptyState icon="🏆" illustration="rasSports" title={emptyText} />;
   return (
     <div className="space-y-3">
       {nonEmpty.map((g) => (
@@ -111,7 +121,7 @@ function AwardList({ awards }: { awards: HallAward[] }) {
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="primary">{a.label}</Badge>
             <span className="text-base text-ink-muted">{a.grade}학년</span>
-            <span className="text-base font-bold">
+            <span className="name-nowrap text-base font-bold">
               {a.student.className}{' '}
               {a.student.name
                 ? `${a.student.name} (${a.student.displayName})`
@@ -147,13 +157,18 @@ function WeeklyTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setWeek(d.prevWeekKey)}>
+        <Button
+          className="whitespace-nowrap"
+          variant="ghost"
+          onClick={() => setWeek(d.prevWeekKey)}
+        >
           ← 지난주
         </Button>
         <span className="text-lg font-bold" data-testid="week-label">
           {weekLabel(d.weekKey)}
         </span>
         <Button
+          className="whitespace-nowrap"
           variant="ghost"
           disabled={!d.nextWeekKey}
           onClick={() => d.nextWeekKey && setWeek(d.nextWeekKey)}
@@ -189,13 +204,18 @@ function MonthlyTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setMonth(d.prevMonthKey)}>
+        <Button
+          className="whitespace-nowrap"
+          variant="ghost"
+          onClick={() => setMonth(d.prevMonthKey)}
+        >
           ← 지난달
         </Button>
         <span className="text-lg font-bold" data-testid="month-label">
           {monthLabel(d.monthKey)}
         </span>
         <Button
+          className="whitespace-nowrap"
           variant="ghost"
           disabled={!d.nextMonthKey}
           onClick={() => d.nextMonthKey && setMonth(d.nextMonthKey)}
@@ -280,7 +300,7 @@ function AllTimeTab() {
     return (
       <EmptyState
         icon="📜"
-        illustration="trophy"
+        illustration="rasArt"
         title="아직 역대 기록이 없어요"
         description="첫 달 결산이 끝나면 여기에 쌓여요."
       />

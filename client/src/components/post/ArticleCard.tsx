@@ -2,7 +2,8 @@ import type { StudentPostView } from '@server-types/api';
 import { Link } from 'react-router-dom';
 import { AuthorChip } from '@/components/common/AuthorChip';
 import { Badge } from '@/components/ui';
-import { tagLabel, typeLabel } from './articleMeta';
+import { typeLabel } from './articleMeta';
+import { TagLabel } from './TagLabel';
 
 /** 기사 목록 카드 (ART-04): 제목·태그·유형·사진 1장·엄지척·댓글 수·기자단 배지 */
 export function ArticleCard({ post }: { post: StudentPostView }) {
@@ -28,7 +29,7 @@ export function ArticleCard({ post }: { post: StudentPostView }) {
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {post.article?.tags.map((t) => (
               <Badge key={t} tone="primary">
-                {tagLabel(t)}
+                <TagLabel tagKey={t} size={20} />
               </Badge>
             ))}
             {post.article && <Badge tone="neutral">{typeLabel(post.article.articleType)}</Badge>}

@@ -32,3 +32,19 @@
 
 ## 제안
 - 호출 메모: `codex exec` 는 백그라운드에서 stdin 을 기다리며 멈추므로 `< /dev/null` 필요. `-i` 는 여러 값을 먹으므로 프롬프트 뒤에 둬야 함. Codex 원본 크기가 1254 로 나올 수 있어 크기 확인 필수.
+
+## RAS 추가분 (2026-10-13)
+| 파일 | 크기 | 재생성 | 메모 |
+|---|---|---|---|
+| 12-ras-reading | 1024x1024 | 0 | 나무 아래 책 읽는 초롱이, 글자 없음 |
+| 13-ras-art | 1024x1024 | 0 | 이젤·팔레트·붓 |
+| 14-ras-sports | 1024x1024 | 0 | Codex 원본 1254 를 sharp 로 1024 축소 |
+| 15-icon-reading | 1024x1024 | 0 | 펼친 책, 빈 물결선 |
+| 16-icon-art | 1024x1024 | 0 | 팔레트+붓 |
+| 17-icon-sports | 1024x1024 | 0 | 축구공+줄넘기 |
+
+프롬프트: 위 공통 캐릭터·스타일 문장 재사용(01·11 을 `-i` 참조). 장면 본문:
+- 12: sitting under a leafy green tree reading an open picture book, soft grass, falling leaves
+- 13: standing at a wooden easel painting, brush in one hand, palette in the other, small paint dots
+- 14: dribbling and kicking a soccer ball while running, hint of green playground with white line
+- 아이콘 공통: `Simple sticker-style icon on a plain white background, single centered object, very thick dark green-brown outline (#2E4A1E, same thick stroke width), flat green shading, a soft darker green (#2F9E5A) drop shadow below, object fills about 75 percent, matching set of three icons. No character.` + 15 open book with bookmark ribbon (blank wavy lines) / 16 paint palette with brush / 17 soccer ball with coiled jump rope

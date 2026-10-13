@@ -70,7 +70,7 @@ export function DebateTopicPage() {
             </Badge>
           ))}
           {t.closeAt && (
-            <span className="ml-auto text-base text-ink-muted">
+            <span className="ml-auto whitespace-nowrap text-base text-ink-muted">
               {closed ? '마감' : '마감'} {new Date(t.closeAt).toLocaleDateString('ko-KR')}
             </span>
           )}

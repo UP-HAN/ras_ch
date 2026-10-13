@@ -7,6 +7,8 @@ import { postsApi } from '@/api/posts';
 import { articlesApi } from '@/api/reactions';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ARTICLE_TAGS, ARTICLE_TYPES } from '@/components/post/articleMeta';
+import { TagLabel } from '@/components/post/TagLabel';
+import { isRasKind, rasMascot } from '@/lib/illustrations';
 import { Badge, Button, Card, Input, Spinner, Textarea } from '@/components/ui';
 import { useMe } from '@/hooks/useMe';
 import { cn } from '@/lib/cn';
@@ -108,6 +110,7 @@ function ArticleForm({ editId, existing }: { editId: number | null; existing: My
       <PageHeader
         title={editId === null ? 'RAS 기사 쓰기' : '기사 고치기'}
         description="학교에서 겪은 독서·예술·스포츠·폰프리 이야기를 기사로 써요."
+        illustration={rasMascot(tags.find(isRasKind)) ?? 'rasReading'}
       />
       {me?.isReporter && (
         <p className="mb-3 rounded-md bg-info-50 px-3 py-2 text-base text-info-600">
@@ -164,7 +167,7 @@ function ArticleForm({ editId, existing }: { editId: number | null; existing: My
                     : 'border-line-strong bg-surface',
                 )}
               >
-                {t.emoji} {t.label}
+                <TagLabel tagKey={t.key} />
               </button>
             ))}
           </div>

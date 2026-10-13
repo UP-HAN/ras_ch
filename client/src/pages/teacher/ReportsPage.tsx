@@ -114,7 +114,7 @@ export function ReportsPage() {
               <ul className="mt-2 space-y-1 rounded-md bg-paper px-3 py-2 text-base">
                 {r.reports.map((e) => (
                   <li key={e.id} className="flex flex-wrap gap-x-2">
-                    <span className="text-ink-muted">
+                    <span className="name-nowrap text-ink-muted">
                       {e.reporter.className} {e.reporter.displayName}
                     </span>
                     <span>{e.reason}</span>

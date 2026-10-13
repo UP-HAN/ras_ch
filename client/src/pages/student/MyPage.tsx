@@ -62,18 +62,30 @@ export function MyPage() {
       <PageHeader title="내 정보" />
       <div className="anim-stagger space-y-4">
         <Card>
-          <p className="text-xl font-extrabold">
-            {me?.className ? `${me.className} ` : ''}
-            {me?.displayName} {me && <TierBadge tier={me.tier} />}
-            {me?.title && (
-              <Badge tone="primary" className="ml-1">
-                {me.title.emoji} {me.title.label}
-              </Badge>
-            )}
-          </p>
-          <p className="mt-1 text-base text-ink-muted">
-            아이디 {me?.loginId} {me?.isCouncil && <Badge tone="info">자치회 임원</Badge>}
-          </p>
+          {/* 이름(한 덩어리) / 배지 / 아이디 를 줄 단위로 나누고, 오른쪽 빈 칸에 그림 그리는 초롱이 (줄바꿈 원칙·RAS 그림) */}
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xl font-extrabold">
+                <span className="name-nowrap">
+                  {me?.className ? `${me.className} ` : ''}
+                  {me?.displayName}
+                </span>
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                {me && <TierBadge tier={me.tier} />}
+                {me?.title && (
+                  <Badge tone="primary">
+                    {me.title.emoji} {me.title.label}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-ink-muted">
+                <span className="whitespace-nowrap">아이디 {me?.loginId}</span>
+                {me?.isCouncil && <Badge tone="info">자치회 임원</Badge>}
+              </p>
+            </div>
+            <Mascot name="rasArt" size={80} className="shrink-0" />
+          </div>
         </Card>
         <Card
           title="내 포인트"

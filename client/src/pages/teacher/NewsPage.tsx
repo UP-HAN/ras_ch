@@ -172,7 +172,7 @@ function BestSection() {
                             aria-label={`${c.authorName} 의견 베스트로`}
                           />
                           <span>
-                            <span className="font-semibold">
+                            <span className="name-nowrap font-semibold">
                               {c.className} {c.studentNo}번 {c.authorName}
                             </span>
                             {c.stance && (
@@ -183,7 +183,9 @@ function BestSection() {
                                 {c.stance === 'agree' ? '찬성' : '반대'}
                               </Badge>
                             )}
-                            <span className="ml-2 text-ink-muted">👍 {c.likeCount}</span>
+                            <span className="ml-2 whitespace-nowrap text-ink-muted">
+                              👍 {c.likeCount}
+                            </span>
                             {c.isBest && (
                               <Badge tone="primary" className="ml-1">
                                 베스트

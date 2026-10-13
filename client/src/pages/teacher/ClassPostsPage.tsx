@@ -107,7 +107,10 @@ export function ClassPostsPage() {
             {items.map((p) => (
               <li key={p.id} className="space-y-1 py-3 text-base">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <Link to={`/teacher/posts/${p.id}`} className="font-semibold underline">
+                  <Link
+                    to={`/teacher/posts/${p.id}`}
+                    className="name-nowrap font-semibold underline"
+                  >
                     {p.author.studentNo}번 {p.author.name}
                   </Link>
                   <Badge
@@ -173,7 +176,7 @@ export function ClassPostsPage() {
                     <td className="py-2 pr-3 font-semibold">
                       <Link
                         to={`/teacher/posts/${p.id}`}
-                        className="inline-flex min-h-tap items-center underline"
+                        className="name-nowrap inline-flex min-h-tap items-center underline"
                       >
                         {p.author.studentNo}번 {p.author.name}
                       </Link>

@@ -31,7 +31,12 @@ function TargetCell({ t }: { t: TeacherCommentView['target'] }) {
   const inner = (
     <>
       {label} · {title}
-      {t.authorDisplayName ? ` (${t.authorDisplayName})` : ''}
+      {t.authorDisplayName && (
+        <>
+          {' '}
+          <span className="name-nowrap">({t.authorDisplayName})</span>
+        </>
+      )}
     </>
   );
   if (t.type === 'post')
@@ -211,7 +216,7 @@ export function CommentsPage() {
                 className={`space-y-1 py-3 text-base ${c.status === 'hidden' ? 'bg-warn-50/50' : ''}`}
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="font-semibold">
+                  <span className="name-nowrap font-semibold">
                     {c.author.className} {c.author.studentNo}번 {c.author.name}
                   </span>
                   <span className="text-ink-muted">{fmtDateTime(c.createdAt)}</span>

@@ -143,7 +143,7 @@ export function PendingPage() {
             checked={checked.has(p.id)}
             onChange={() => toggle(p.id)}
           />
-          <span className="text-lg font-bold">
+          <span className="name-nowrap text-lg font-bold">
             {p.author.className} {p.author.studentNo}번 {p.author.name}
           </span>
         </label>

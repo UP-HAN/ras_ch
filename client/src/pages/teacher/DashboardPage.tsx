@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statsApi } from '@/api/stats';
 import { teacherApi } from '@/api/teacher';
+import { RasIcon } from '@/components/fun/Mascot';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
 import { useClassParam } from '@/hooks/useClassParam';
@@ -40,7 +41,18 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="반 대시보드" description="우리 반의 이번 주 상황을 한눈에 봅니다." />
+      <PageHeader
+        title="반 대시보드"
+        description="우리 반의 이번 주 상황을 한눈에 봅니다."
+        action={
+          // RAS(독서·예술·스포츠) 아이콘, 작게 (2026-10-13 RAS 그림 요청)
+          <span className="hidden items-center gap-1 sm:flex" aria-hidden="true">
+            <RasIcon kind="R" size={32} />
+            <RasIcon kind="A" size={32} />
+            <RasIcon kind="S" size={32} />
+          </span>
+        }
+      />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="반 선택">
         {classes.data?.map((c) => (
           <Button
@@ -96,7 +108,7 @@ export function DashboardPage() {
                       className="flex min-h-tap items-center gap-3 rounded-md bg-paper px-3 text-base"
                     >
                       <span className="w-8 font-extrabold text-accent-700">{i + 1}위</span>
-                      <span className="font-semibold">
+                      <span className="name-nowrap font-semibold">
                         {s.studentNo}번 {s.name}
                       </span>
                       <span className="ml-auto font-bold text-primary-700">{s.points}P</span>
@@ -133,7 +145,7 @@ export function DashboardPage() {
                   {d.nonParticipants.map((s) => (
                     <li
                       key={s.userId}
-                      className="rounded-full border border-line px-3 py-1 text-base"
+                      className="name-nowrap rounded-full border border-line px-3 py-1 text-base"
                     >
                       {s.studentNo}번 {s.name}
                     </li>

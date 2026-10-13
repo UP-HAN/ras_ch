@@ -5,7 +5,8 @@ import { errorMessage } from '@/api/client';
 import { reviewApi } from '@/api/review';
 import { PageLoading } from '@/components/fun/PageLoading';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { tagLabel, typeLabel } from '@/components/post/articleMeta';
+import { typeLabel } from '@/components/post/articleMeta';
+import { TagLabel } from '@/components/post/TagLabel';
 import { minutesLabel, UsageDiff } from '@/components/post/UsageDiff';
 import { Badge, Button, Card, EmptyState, Textarea } from '@/components/ui';
 import { HOLD_NOTE_MIN, POST_TYPE_LABEL } from '@/lib/reviewLabels';
@@ -139,7 +140,7 @@ export function ReviewPostPage() {
             <div className="mt-2 flex flex-wrap gap-1">
               {p.article?.tags.map((t) => (
                 <Badge key={t} tone="primary">
-                  {tagLabel(t)}
+                  <TagLabel tagKey={t} size={20} />
                 </Badge>
               ))}
               {p.article && <Badge tone="neutral">{typeLabel(p.article.articleType)}</Badge>}

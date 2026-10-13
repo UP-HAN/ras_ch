@@ -206,19 +206,16 @@ export function ReactionsSection({
               key={c.id}
               className={cn('rounded-md bg-paper p-3', c.isBest && 'border-2 border-primary-300')}
             >
-              <p className="text-base font-semibold">
+              {/* 이름·배지·날짜가 덩어리째 줄을 바꾸게 (날짜 "2026. / 10. 13." 쪼개짐 방지, 줄바꿈 원칙) */}
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold">
                 <AuthorChip author={c.author} />
                 {c.stance && (
-                  <Badge tone={c.stance === 'agree' ? 'success' : 'danger'} className="ml-2">
+                  <Badge tone={c.stance === 'agree' ? 'success' : 'danger'}>
                     {c.stance === 'agree' ? '찬성' : '반대'}
                   </Badge>
                 )}
-                {c.isBest && (
-                  <Badge tone="primary" className="ml-2">
-                    🏅 베스트
-                  </Badge>
-                )}
-                <span className="ml-2 text-ink-muted">
+                {c.isBest && <Badge tone="primary">🏅 베스트</Badge>}
+                <span className="whitespace-nowrap text-ink-muted">
                   {new Date(c.createdAt).toLocaleDateString('ko-KR')}
                 </span>
               </p>

@@ -21,7 +21,7 @@ export function AuthorChip({
       data-testid="author-chip"
       className={cn('inline-flex flex-wrap items-center gap-1.5', className)}
     >
-      <span className={cn('font-bold', size === 'lg' ? 'text-lg' : 'text-base')}>
+      <span className={cn('name-nowrap font-bold', size === 'lg' ? 'text-lg' : 'text-base')}>
         {author.className} {author.displayName}
       </span>
       <TierBadge tier={author.tier} compact />

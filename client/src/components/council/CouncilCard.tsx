@@ -1,3 +1,4 @@
+import { NoBreakNames } from '@/components/common/NoBreakNames';
 import type { CouncilPostCard } from '@server-types/api';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui';
@@ -39,7 +40,7 @@ export function CouncilCard({
             {COUNCIL_STATUS[post.status]?.label ?? post.status}
           </Badge>
         )}
-        <span className="ml-auto text-base text-ink-muted">
+        <span className="ml-auto whitespace-nowrap text-base text-ink-muted">
           {dateLabel(post.startsAt)} ~ {dateLabel(post.endsAt)}
         </span>
       </div>
@@ -56,7 +57,9 @@ export function CouncilCard({
         )}
         <div className="min-w-0 flex-1">
           <p className={cn('font-extrabold', banner ? 'text-xl' : 'text-lg')}>{post.title}</p>
-          <p className="mt-1 text-base text-ink-muted">{post.authorLabel}</p>
+          <p className="mt-1 text-base text-ink-muted">
+            <NoBreakNames text={post.authorLabel} />
+          </p>
           {!banner && (
             <p className="mt-1 text-base text-ink-muted">
               👍 {post.likeCount} · 💬 {post.commentCount}

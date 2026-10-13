@@ -1,3 +1,4 @@
+import { NoBreakNames } from '@/components/common/NoBreakNames';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CouncilPollView } from '@server-types/api';
 import { useState } from 'react';
@@ -150,7 +151,10 @@ export function CouncilPostPage() {
         <div>
           <h2 className="text-2xl font-extrabold">{p.title}</h2>
           <p className="mt-1 text-base text-ink-muted">
-            {p.authorLabel} · {dateLabel(p.startsAt)} ~ {dateLabel(p.endsAt)}
+            <NoBreakNames text={p.authorLabel} /> ·{' '}
+            <span className="whitespace-nowrap">
+              {dateLabel(p.startsAt)} ~ {dateLabel(p.endsAt)}
+            </span>
             {p.isPinned && (
               <Badge tone="warn" className="ml-2">
                 📌 고정

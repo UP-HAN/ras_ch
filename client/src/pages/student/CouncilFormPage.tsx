@@ -247,7 +247,11 @@ function CouncilForm({
               checked={pinRequested}
               onChange={(e) => setPinRequested(e.target.checked)}
             />
-            홈 상단에 고정해 주세요 (선생님이 정해요)
+            {/* 좁은 화면에서는 괄호 안내가 통째로 다음 줄로 (줄바꿈 원칙) */}
+            <span className="flex flex-wrap gap-x-1">
+              <span>홈 상단에 고정해 주세요</span>
+              <span className="text-ink-muted">(선생님이 정해요)</span>
+            </span>
           </label>
           <label className="flex min-h-tap items-center gap-2 text-base">
             <input

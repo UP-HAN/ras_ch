@@ -181,7 +181,7 @@ export function TeacherPostPage() {
               }`}
               data-testid={`teacher-comment-${c.id}`}
             >
-              <span className="font-semibold">
+              <span className="name-nowrap font-semibold">
                 {c.author.className} {c.author.studentNo}번 {c.author.name}
               </span>
               <span className="text-ink-muted">{fmtDateTime(c.createdAt)}</span>

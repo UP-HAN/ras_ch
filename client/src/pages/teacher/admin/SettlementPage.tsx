@@ -139,7 +139,7 @@ export function SettlementPage() {
             />
           )}
           <span className="font-bold">{c.rank}위</span>
-          <span className="font-semibold">
+          <span className="name-nowrap font-semibold">
             {c.className} {c.studentNo}번 {c.name}
           </span>
           <span className="text-ink-muted">{c.score}점</span>
@@ -367,7 +367,7 @@ export function SettlementPage() {
                           data-testid={`rank-row-${r.userId}`}
                         >
                           <td className="py-1 pr-3">{r.rank}</td>
-                          <td className="py-1 pr-3 font-semibold">
+                          <td className="name-nowrap py-1 pr-3 font-semibold">
                             {r.className} {r.studentNo}번 {r.name}
                           </td>
                           <td className="py-1 pr-3">{r.points}P</td>
@@ -422,7 +422,7 @@ export function SettlementPage() {
                             className={`border-b border-line/60 ${r.selected ? 'bg-primary-50' : ''}`}
                           >
                             <td className="py-1 pr-3">{r.rank}</td>
-                            <td className="py-1 pr-3 font-semibold">
+                            <td className="name-nowrap py-1 pr-3 font-semibold">
                               {r.className} {r.studentNo}번 {r.name}
                             </td>
                             <td className="py-1 pr-3">

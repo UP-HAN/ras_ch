@@ -77,7 +77,7 @@ function MembersSection() {
             className="flex min-h-tap flex-wrap items-center gap-2 rounded-md bg-paper px-3 text-base"
           >
             <Badge tone="info">{m.title}</Badge>
-            <span className="font-semibold">
+            <span className="name-nowrap font-semibold">
               {m.className} {m.studentNo}번 {m.name}
             </span>
             <span className="text-ink-muted">
@@ -210,7 +210,7 @@ function PostRow({ p, onChanged }: { p: CouncilAdminPostView; onChanged: (msg: s
         {p.isPinned && <Badge tone="warn">📌 고정</Badge>}
         {p.pinRequested && p.status === 'pending' && <Badge tone="neutral">고정 요청</Badge>}
         <span className="font-bold">{p.title}</span>
-        <span className="text-ink-muted">
+        <span className="name-nowrap text-ink-muted">
           {p.authorClassName} {p.authorName}
           {p.submittedAt ? ` · 제출 ${fmt(p.submittedAt)}` : ''}
         </span>

@@ -127,10 +127,14 @@ export function WeeklyGiftPanel({ week }: { week: string }) {
                       checked={picked.has(c.userId)}
                       onChange={() => toggle(c.userId)}
                     />
-                    <span className="w-8 font-extrabold text-primary-700">{c.rankInGrade}위</span>
-                    <span className="text-ink-muted">{c.className}</span>
-                    <span className="font-semibold">{c.name}</span>
-                    <span className="ml-auto font-bold text-primary-700">{c.points}P</span>
+                    <span className="w-8 shrink-0 whitespace-nowrap font-extrabold text-primary-700">
+                      {c.rankInGrade}위
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-ink-muted">{c.className}</span>
+                    <span className="name-nowrap min-w-0 font-semibold">{c.name}</span>
+                    <span className="ml-auto shrink-0 whitespace-nowrap font-bold text-primary-700">
+                      {c.points}P
+                    </span>
                     {c.gifted ? (
                       <>
                         <span title={c.method === 'manual' ? '직접 선택' : '상위'}>🎁</span>

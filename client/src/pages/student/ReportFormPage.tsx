@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { errorMessage } from '@/api/client';
 import { postsApi } from '@/api/posts';
+import { RasIcon } from '@/components/fun/Mascot';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CaptureGuide } from '@/components/post/CaptureGuide';
 import { ImagePicker } from '@/components/post/ImagePicker';
@@ -175,6 +176,7 @@ function ReportForm({
       <PageHeader
         title={editId === null ? '폰프리 주간 리포트' : '리포트 고치기'}
         description="캡처는 확인용이에요. 숫자는 화면을 보고 직접 적어요."
+        illustration="rasSports"
       />
 
       {existing?.rejectReason && existing.status === 'rejected' && (
@@ -186,16 +188,24 @@ function ReportForm({
       <form onSubmit={(e) => submit(e)} className="space-y-4" noValidate>
         {editId === null && ctx && (
           <Card title="어느 주 리포트인가요?">
-            <div className="flex gap-2">
+            {/* 360px: "이번 주" 가 "이번 / 주" 로 쪼개지지 않게 이름(위)·주차(아래) 두 줄로 고정 (줄바꿈 원칙) */}
+            <div className="grid grid-cols-2 gap-2">
               {[ctx.previousWeekKey, ctx.currentWeekKey].map((wk) => (
                 <Button
                   key={wk}
                   type="button"
                   variant={weekKey === wk ? 'primary' : 'secondary'}
                   onClick={() => setWeekKey(wk)}
+                  className="py-1"
                 >
-                  {wk === ctx?.currentWeekKey ? '이번 주' : '지난주'}{' '}
-                  <span className="ml-1 text-base opacity-80">{wk}</span>
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="whitespace-nowrap">
+                      {wk === ctx?.currentWeekKey ? '이번 주' : '지난주'}
+                    </span>
+                    <span className="whitespace-nowrap text-base font-semibold opacity-80">
+                      {wk}
+                    </span>
+                  </span>
                 </Button>
               ))}
             </div>
@@ -211,14 +221,15 @@ function ReportForm({
         )}
 
         <Card title="리포트 종류">
-          <div className="flex gap-2">
+          {/* 360px 에서 버튼 글자가 두 줄로 쪼개지지 않게 세로로 쌓고, 넓은 화면에서만 나란히 (줄바꿈 원칙) */}
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               type="button"
               variant={type === 'report' ? 'primary' : 'secondary'}
               disabled={!canUseCapture || editId !== null}
               onClick={() => setType('report')}
             >
-              📱 캡처 리포트
+              <span className="whitespace-nowrap">📱 캡처 리포트</span>
             </Button>
             <Button
               type="button"
@@ -226,7 +237,7 @@ function ReportForm({
               disabled={editId !== null}
               onClick={() => setType('diary')}
             >
-              📔 폰 없는 일주일 일기
+              <span className="whitespace-nowrap">📔 폰 없는 일주일 일기</span>
             </Button>
           </div>
           {!canUseCapture && editId === null && (
@@ -360,7 +371,17 @@ function ReportForm({
         )}
 
         <PoliteNotice />
-        <Card title="이번 주 나의 폰 습관">
+        <Card
+          title="이번 주 나의 폰 습관"
+          action={
+            // 폰 대신 할 수 있는 RAS 활동 (독서·예술·스포츠) 아이콘
+            <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
+              <RasIcon kind="R" size={28} />
+              <RasIcon kind="A" size={28} />
+              <RasIcon kind="S" size={28} />
+            </span>
+          }
+        >
           <div className="mb-2 flex flex-wrap gap-2">
             {HELPERS.map((h) => (
               <button
