@@ -28,7 +28,7 @@ export function TierBadge({
       aria-label={`${m.label} 등급`}
       data-testid="tier-badge"
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-base font-bold leading-none',
+        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-2 px-2 py-0.5 text-base font-bold leading-none',
         TIER_TONE[tier] ?? TIER_TONE.seed,
         className,
       )}

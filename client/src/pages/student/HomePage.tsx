@@ -205,25 +205,46 @@ export function HomePage() {
         </section>
       )}
       <Card tone="hero">
-        <div className="flex items-center justify-between gap-3">
-          <Mascot name="hello" size={64} sticker className="self-start" />
+        {/* 360px 에서 이름·배지가 세로로 쪼개지지 않게: 위(초롱이+이름+배지) / 아래(출석·포인트) 두 줄 (2026-10-13) */}
+        <div className="flex items-start gap-3">
+          <Mascot name="hello" size={64} sticker className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-base text-ink-muted">안녕하세요</p>
-            <p className="text-2xl font-extrabold">
+            <p className="text-2xl font-extrabold break-keep">
               {me.className ? `${me.className} ` : ''}
-              {me.displayName} <TierBadge tier={me.tier} />
+              {me.displayName}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              <TierBadge tier={me.tier} />
               {me.title && (
-                <Badge tone="primary" className="ml-1" data-testid="my-title">
+                <Badge tone="primary" data-testid="my-title">
                   {me.title.emoji} {me.title.label}
                 </Badge>
               )}
-              {me.isReporter && (
-                <Badge tone="info" className="ml-1">
-                  기자단
-                </Badge>
-              )}
-            </p>
+              {me.isReporter && <Badge tone="info">기자단</Badge>}
+            </div>
           </div>
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-2 rounded-lg bg-surface/70 px-3 py-2">
+          {attendance.data ? (
+            <div className="flex items-center gap-1">
+              <AttendanceStamp animate={stampAnimate} />
+              <p className="text-base text-ink">
+                {attendance.data.streak >= 2 ? (
+                  <>
+                    <span className="anim-flame" aria-hidden="true">
+                      🔥
+                    </span>{' '}
+                    {attendance.data.streak}일 연속 출석
+                  </>
+                ) : (
+                  '✅ 오늘 출석'
+                )}
+              </p>
+            </div>
+          ) : (
+            <span />
+          )}
           <div className="text-right">
             <p className="text-base text-ink-muted">이번 주 포인트</p>
             <p
@@ -232,23 +253,6 @@ export function HomePage() {
             >
               {weekPointsShown}P
             </p>
-            {attendance.data && (
-              <div className="mt-1 flex items-center justify-end gap-1">
-                <p className="text-base text-ink">
-                  {attendance.data.streak >= 2 ? (
-                    <>
-                      <span className="anim-flame" aria-hidden="true">
-                        🔥
-                      </span>{' '}
-                      {attendance.data.streak}일 연속 출석
-                    </>
-                  ) : (
-                    '✅ 오늘 출석'
-                  )}
-                </p>
-                <AttendanceStamp animate={stampAnimate} />
-              </div>
-            )}
           </div>
         </div>
       </Card>

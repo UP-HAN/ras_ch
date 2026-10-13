@@ -19,6 +19,27 @@
     line-height: var(--text-base--line-height);
     min-height: 100dvh;
     overflow-x: hidden;
+    /*
+     * 한국어 줄바꿈 (2026-10-13 사용자 요청): 낱말(어절) 중간에서 끊지 않는다.
+     * 이름·배지가 한 글자씩 세로로 쌓이거나, 문장 끝 한 글자만 다음 줄로 넘어가지 않게 한다.
+     * 아주 긴 영문·주소만 줄 끝에서 끊는다.
+     */
+    word-break: keep-all;
+    overflow-wrap: break-word; /* anywhere 는 최소 너비를 0 으로 만들어 세로 쌓임을 부르므로 쓰지 않는다 */
+    text-wrap: pretty;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  button,
+  label,
+  th {
+    text-wrap: balance;
+  }
+  /* 학생 표시 이름(성○이름)은 절대 줄을 나누지 않는다 */
+  .name-nowrap {
+    white-space: nowrap;
   }
   /* 학생 화면: 큰 글자·큰 버튼. 어떤 글자도 16px 아래로 내려가지 않게 */
   small,
