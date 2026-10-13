@@ -4,6 +4,7 @@
  * 결과: outputs/video/shots/{student,teacher}/*.png + boxes.json(강조할 요소 위치, CSS px, 화면 기준)
  * 비밀번호는 환경 변수로만 받는다(코드·git 에 남기지 않는다).
  */
+/* global window, fetch -- page.evaluate 안(브라우저)에서만 쓴다 */
 import console from 'node:console';
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
